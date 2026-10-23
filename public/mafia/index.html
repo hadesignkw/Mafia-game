@@ -1037,7 +1037,7 @@ function queryBox(others){
       ?`<button class="pick res ${bad?"m":"t"} ${fresh?"reveal":""}" ${fresh?d:""} disabled><span class="nmv">${esc(nm(id))}</span><span class="lbl">${word}</span>${fresh?`<span class="flash" ${d}>${word}</span>`:""}</button>`
       :`<button class="pick dim" disabled>${esc(nm(id))}</button>`).join("")}</div><p class="muted small">احفظ الجواب، يروح لما يقلب القاضي للخطوة الجاية.</p></div>`;
   }
-  if(!left)return`<div class="panel"><h2>خلصت استعلاماتك</h2><p class="muted">استعملت كل استعلاماتك (${ar(max)}، بعدد المافيا).</p></div>`;
+  if(!left)return`<div class="panel nightbox"><h2>خلصت استعلاماتك</h2><p style="font-size:1.2rem">عاد الحين أنت وربعك بيّضوها 🔥</p></div>`;
   return`<div class="panel"><h2>استعلم عن مجرم</h2>${count}<p class="muted small">استعلام واحد بالليلة، وعدد استعلاماتك كلها بعدد المافيا. دوس على الشخص والجواب يطلع على اسمه.</p>${picker("query",others)}</div>`;
 }
 function bestPanel(){
