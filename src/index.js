@@ -75,7 +75,7 @@ export class Room extends DurableObject {
     this.s = {
       code, judgeToken, createdAt: Date.now(), touched: Date.now(),
       players: {}, lobby: [], order: [], phase: "lobby", step: null, round: 0, gen: 0, canVote: false,
-      alive: {}, roles: {}, fakeCop: null, notes: {}, night: blankNight(), votes: {},
+      alive: {}, roles: {}, fakeCop: null, notes: {}, night: blankNight(), votes: {}, voteOrder: [], voteTurn: 0,
       sniperPending: null, winner: null, announce: "", timer: null, event: null, log: [], demo: !!demo,
     };
     const players = [];
@@ -180,6 +180,8 @@ export class Room extends DurableObject {
         id, name: s.players[id].name, alive: s.phase === "lobby" ? true : !!s.alive[id], online: on.has(id),
       })),
     };
+    if ((s.phase === "vote" || s.phase === "result") && (s.voteOrder || []).length)
+      pub.vote = { order: s.voteOrder, turn: s.voteTurn, votes: s.votes, cur: this.curVoter() };
     if (s.phase === "over") pub.reveal = Object.fromEntries(s.order.map((id) => [id, { role: s.roles[id], fake: s.fakeCop === id }]));
     if (a.judge) {
       pub.judge = {
@@ -198,6 +200,7 @@ export class Room extends DurableObject {
       if (isM(role)) pub.me.team = s.order.filter((i) => isM(s.roles[i])).map((i) => ({
         id: i, role: s.roles[i], fake: s.fakeCop === i,
         pick: s.phase === "night0" ? (n.fake || {})[i] || null : s.phase === "night" ? n.sugg[i] || null : null,
+        at: s.phase === "night" ? (n.suggAt || {})[i] || 0 : 0,
       }));
       pub.me.sel = {
         fakecop: isM(role) ? (n.fake || {})[pid] || null : null,
@@ -213,6 +216,21 @@ export class Room extends DurableObject {
   /* ---------- أدوات ---------- */
   nm(id) { return this.s.players[id]?.name || "لاعب"; }
   aliveIds() { return this.s.order.filter((i) => this.s.alive[i]); }
+  // منو دوره يصوّت الحين
+  curVoter() {
+    const s = this.s;
+    if (s.phase !== "vote") return null;
+    while (s.voteTurn < s.voteOrder.length && !s.alive[s.voteOrder[s.voteTurn]]) s.voteTurn++;
+    return s.voteOrder[s.voteTurn] || null;
+  }
+  castVote(v, t) {
+    const s = this.s;
+    if (!v || v !== this.curVoter() || !s.alive[t] || t === v) return;
+    s.votes[v] = t;
+    s.voteTurn++;
+    this.curVoter();
+    s.announce = this.curVoter() ? `دور ${this.nm(this.curVoter())} يصوّت.` : "الكل صوّت. القاضي يعلن النتيجة.";
+  }
   log(t) { this.s.log.push(t); if (this.s.log.length > 120) this.s.log.shift(); }
   ev(type, extra = {}) { this.s.event = { id: sid(), at: Date.now(), type, ...extra }; }
   note(id, t) { (this.s.notes[id] = this.s.notes[id] || []).push(t); }
@@ -239,11 +257,14 @@ export class Room extends DurableObject {
       case "night": return this.goNight();
       case "vote":
         if (s.phase === "day" && s.canVote && !s.sniperPending) {
-          s.votes = {}; s.phase = "vote"; s.timer = null;
-          s.announce = "التصويت: كل واحد يختار من جواله الشخص اللي يشك إنه مافيا.";
+          const o = this.aliveIds();
+          for (let i = o.length - 1; i > 0; i--) { const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1); [o[i], o[j]] = [o[j], o[i]]; }
+          s.votes = {}; s.voteOrder = o; s.voteTurn = 0; s.phase = "vote"; s.timer = null;
+          s.announce = `التصويت بالدور. أول واحد: ${this.nm(o[0])}.`;
         }
         break;
-      case "closeVote": if (s.phase === "vote") this.closeVote(); break;
+      case "closeVote": if (s.phase === "vote" && !this.curVoter()) this.closeVote(); break; // التصويت إلزامي
+      case "voteFor": if (s.phase === "vote") this.castVote(this.curVoter(), id); break; // القاضي يصوّت بدال اللي جواله فيه مشكلة
       case "talk":
         if (s.phase === "day" && s.alive[id]) s.timer = { pid: id, name: this.nm(id), endsAt: Date.now() + TALK * 1000, dur: TALK, id: sid() };
         break;
@@ -259,7 +280,7 @@ export class Room extends DurableObject {
         break;
       case "snipeFor": if (s.sniperPending && s.alive[id] && id !== s.sniperPending) this.resolveSnipe(s.sniperPending, id); break;
       case "newGame":
-        Object.assign(s, { phase: "lobby", step: null, round: 0, timer: null, sniperPending: null, winner: null, announce: "", event: null, order: [], alive: {}, roles: {}, fakeCop: null, notes: {}, votes: {}, night: blankNight() });
+        Object.assign(s, { phase: "lobby", step: null, round: 0, timer: null, sniperPending: null, winner: null, announce: "", event: null, order: [], alive: {}, roles: {}, fakeCop: null, notes: {}, votes: {}, voteOrder: [], voteTurn: 0, night: blankNight() });
         break;
     }
   }
@@ -275,7 +296,7 @@ export class Room extends DurableObject {
     Object.assign(s, {
       gen: s.gen + 1, order: ids, roles, alive: Object.fromEntries(ids.map((i) => [i, true])),
       phase: "deal", step: null, round: 0, timer: null, sniperPending: null, winner: null, canVote: false,
-      fakeCop: null, notes: {}, votes: {}, night: blankNight(), log: [], queryMax: m, queriesUsed: 0,
+      fakeCop: null, notes: {}, votes: {}, voteOrder: [], voteTurn: 0, night: blankNight(), log: [], queryMax: m, queriesUsed: 0,
       announce: "كل واحد يقلب كرته ويشوف دوره.",
     });
     this.ev("deal");
@@ -300,7 +321,7 @@ export class Room extends DurableObject {
     const s = this.s;
     if (s.sniperPending) return;
     if (!(s.phase === "result" || (s.phase === "day" && !s.canVote))) return;
-    Object.assign(s, { phase: "night", step: "mafia", timer: null, votes: {}, night: blankNight(), announce: "الليل بدا. كل واحد يتابع جواله." });
+    Object.assign(s, { phase: "night", step: "mafia", timer: null, votes: {}, voteOrder: [], voteTurn: 0, night: blankNight(), announce: "الليل بدا. كل واحد يتابع جواله." });
     this.ev("dusk");
   }
 
@@ -387,7 +408,7 @@ export class Room extends DurableObject {
         break;
       case "kill":
         if (s.phase === "night" && s.step === "mafia" && alive && isM(role) && tA && t !== pid) {
-          n.sugg[pid] = t;
+          if (n.sugg[pid] !== t) { n.sugg[pid] = t; (n.suggAt = n.suggAt || {})[pid] = Date.now(); }
           const r = plurality(this.aliveIds().filter((i) => isM(s.roles[i])).map((i) => n.sugg[i]));
           if (r.winner) { n.kill = r.winner; n.killByJudge = false; }
           else if (!(n.killByJudge && r.tied.includes(n.kill))) { n.kill = null; n.killByJudge = false; }
@@ -406,7 +427,7 @@ export class Room extends DurableObject {
         }
         break;
       case "vote":
-        if (s.phase === "vote" && alive && tA && t !== pid && !s.votes[pid]) s.votes[pid] = t; // الصوت ما يتغير
+        if (s.phase === "vote" && alive) this.castVote(pid, t); // بالدور، والصوت ما يتغير
         break;
       case "snipe":
         if (s.sniperPending === pid && tA && t !== pid) this.resolveSnipe(pid, t);
@@ -415,4 +436,4 @@ export class Room extends DurableObject {
   }
 }
 
-function blankNight() { return { sugg: {}, fake: {}, kill: null, save: null, queried: null, killByJudge: false, fakeByJudge: false }; }
+function blankNight() { return { sugg: {}, suggAt: {}, fake: {}, kill: null, save: null, queried: null, killByJudge: false, fakeByJudge: false }; }

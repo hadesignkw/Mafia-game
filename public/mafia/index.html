@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0f1217">
 <title>غرفة المافيا</title>
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
@@ -23,7 +23,8 @@
 body[data-phase="night"]{--bg:#07090d;--panel:#10141b;--panel2:#161c25;--line:#222a35}
 body[data-phase="day"]{--bg:#17130e;--panel:#221c14;--panel2:#2b241a;--line:#3b3225}
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%}
+html,body{margin:0;min-height:100%;max-width:100%;overflow-x:hidden;overflow-x:clip;touch-action:pan-x pan-y;-webkit-text-size-adjust:100%;text-size-adjust:100%;overscroll-behavior-x:none}
+img,svg,table{max-width:100%}
 body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.6;transition:background .9s ease;-webkit-tap-highlight-color:transparent}
 .wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-top:calc(16px + env(safe-area-inset-top,0px));padding-bottom:calc(48px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:16px}
 h1,h2,h3{font-family:var(--display);font-weight:800;margin:0;line-height:1.3;text-wrap:balance}
@@ -181,7 +182,7 @@ select{font:inherit;font-size:1rem;width:100%;background:var(--bg);color:var(--f
 @keyframes float{50%{translate:0 -6px}}
 
 /* ---------- الحركات الكبيرة ---------- */
-#fx{position:fixed;inset:0;z-index:50;display:grid;place-items:center;overflow:hidden;cursor:pointer;padding:24px}
+#fx{position:fixed;inset:0;z-index:50;display:grid;place-items:center;align-content:center;gap:10px;overflow:hidden;cursor:pointer;padding:24px;touch-action:none}
 #fx .fx-in{position:relative;z-index:2;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;max-width:520px}
 #fx .big{font-family:var(--display);font-size:clamp(2.6rem,12vw,4.6rem);line-height:1.1}
 #fx .sub{font-size:1.25rem;font-weight:700;overflow-wrap:anywhere}
@@ -252,6 +253,64 @@ select{font:inherit;font-size:1rem;width:100%;background:var(--bg);color:var(--f
 .fan{position:relative;width:200px;height:150px}
 .fan i{position:absolute;inset-inline-start:70px;top:10px;width:64px;height:96px;border-radius:9px;background:repeating-linear-gradient(45deg,#1a1f28 0 6px,#141820 6px 12px);border:2px solid #d2a74c;transform-origin:50% 120%;animation:fanout .8s cubic-bezier(.2,.9,.3,1.2) both}
 @keyframes fanout{from{transform:rotate(0)}}
+
+/* ---------- التصويت بالدور ---------- */
+.turn{position:relative;overflow:hidden;text-align:center;align-items:center;border-color:color-mix(in srgb,var(--brass) 55%,transparent);background:radial-gradient(120% 120% at 50% 0%,color-mix(in srgb,var(--brass) 20%,transparent),transparent 65%),var(--panel)}
+.turn .lab{font-size:.9rem;color:var(--muted)}
+.turn .who{font-family:var(--display);font-size:clamp(2rem,10vw,2.8rem);color:var(--brass);line-height:1.2;overflow-wrap:anywhere}
+.turn .dots i{display:inline-block;width:8px;height:8px;margin:0 3px;border-radius:50%;background:var(--brass);animation:dotb 1.2s ease-in-out infinite}
+.turn .dots i:nth-child(2){animation-delay:.15s}.turn .dots i:nth-child(3){animation-delay:.3s}
+@keyframes dotb{0%,80%,100%{transform:translateY(0);opacity:.35}40%{transform:translateY(-7px);opacity:1}}
+.turn.fresh{animation:turnIn .6s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes turnIn{from{transform:scale(.85) rotateX(40deg);opacity:0}}
+.turn.mine{border-color:var(--blood);background:radial-gradient(120% 120% at 50% 0%,color-mix(in srgb,var(--blood) 26%,transparent),transparent 65%),var(--panel)}
+.turn.mine .who{color:var(--blood)}
+.turn.mine::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 2px var(--blood);animation:breathe 1.2s ease-in-out infinite;pointer-events:none}
+.queue{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.queue span{font-size:.78rem;padding:2px 10px;border-radius:99px;background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.queue span.done{color:var(--town);border-color:color-mix(in srgb,var(--town) 40%,transparent)}
+.queue span.cur{background:var(--brass);color:var(--brass-ink);border-color:var(--brass);font-weight:700}
+.rank{display:flex;flex-direction:column;gap:8px}
+.rk{position:relative;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--bg);overflow:hidden;min-width:0}
+.rk .bar{position:absolute;inset-block:0;inset-inline-start:0;background:color-mix(in srgb,var(--blood) 22%,transparent);border-radius:inherit;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.rk>*:not(.bar){position:relative}
+.rk .pos{width:26px;height:26px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:.85rem;font-weight:800;background:var(--panel2);color:var(--muted)}
+.rk.top .pos{background:var(--blood);color:#fff}
+.rk.top{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--blood) 60%,transparent)}
+.rk .nm{flex:1;min-width:0;overflow-wrap:anywhere;font-weight:700}
+.rk .by{font-size:.78rem;color:var(--muted);flex-basis:100%;padding-inline-start:36px;margin-top:-6px}
+.rk .n{font-family:var(--display);font-size:1.4rem;color:var(--blood);font-variant-numeric:tabular-nums}
+.rk.bump{animation:bump .7s cubic-bezier(.2,1.5,.4,1)}
+.rk.bump .n{animation:numPop .7s cubic-bezier(.2,1.8,.4,1)}
+@keyframes bump{30%{transform:scale(1.04);background:color-mix(in srgb,var(--blood) 18%,var(--bg))}}
+@keyframes numPop{30%{transform:scale(1.7)}}
+.cast{display:flex;align-items:center;gap:8px;font-size:.92rem;padding:6px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.cast:last-child{border-bottom:0}.cast b{color:var(--blood)}
+.cast.new{animation:slideIn .5s cubic-bezier(.2,.8,.2,1) both}
+/* صورة الصوت */
+.fx-cast{background:radial-gradient(circle at 50% 45%,#3b1416,#0c0506 72%);color:#fff}
+.fx-cast .voter{font-size:1.4rem;font-weight:700;animation:fxin .3s both}
+.fx-cast .arrow{width:60px;height:60px;color:#ff8a80;animation:arrowDown .5s .25s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes arrowDown{from{transform:translateY(-30px);opacity:0}}
+.fx-cast .target{font-family:var(--display);font-size:clamp(2.4rem,13vw,4rem);color:#ff6b62;border:5px solid #ff6b62;border-radius:14px;padding:2px 20px;transform:rotate(-5deg);animation:stamp .5s .5s cubic-bezier(.3,1.8,.5,1) both;overflow-wrap:anywhere;max-width:90vw}
+.fx-cast .nextup{margin-top:16px;font-size:1.05rem;opacity:.85;animation:fxin .4s 1.1s both}
+.fx-cast.hit{animation:shake .35s .8s ease}
+/* ---------- اختيار الربع (تحت يسار) ---------- */
+.mate{position:fixed;left:max(16px,env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:30;width:min(230px,calc(100vw - 32px));font:inherit;color:#fff;text-align:center;cursor:pointer;border:2px solid var(--blood);border-radius:18px;padding:12px 14px 14px;background:radial-gradient(120% 100% at 50% 0%,#5a1517,#1a0809);box-shadow:0 14px 40px rgb(0 0 0 / .55),0 0 0 6px color-mix(in srgb,var(--blood) 18%,transparent);display:flex;flex-direction:column;gap:4px;animation:mateIn .55s cubic-bezier(.2,1.4,.4,1) both}
+.mate .ttl{font-size:.82rem;opacity:.85}
+.mate .who{font-family:var(--display);font-size:clamp(1.8rem,9vw,2.4rem);line-height:1.15;overflow-wrap:anywhere;color:#ffb0a9}
+.mate .how{font-size:.8rem;line-height:1.4;background:rgb(0 0 0 / .3);border-radius:10px;padding:5px 8px;margin-top:4px}
+.mate.with{border-color:var(--town);background:radial-gradient(120% 100% at 50% 0%,#164336,#07130f);box-shadow:0 14px 40px rgb(0 0 0 / .55),0 0 0 6px color-mix(in srgb,var(--town) 20%,transparent)}
+.mate.with .who{color:#9fe5c9}
+.mate.swap{animation:mateSwap .6s cubic-bezier(.2,1.5,.4,1)}
+.mate:not(.with){animation:mateIn .55s cubic-bezier(.2,1.4,.4,1) both,matePulse 1.6s 1s ease-in-out infinite}
+.mate:active{transform:scale(.96)}
+@keyframes mateIn{from{transform:translateX(-120%) rotate(-8deg);opacity:0}}
+@keyframes mateSwap{0%{transform:rotateY(90deg)}100%{transform:none}}
+@keyframes matePulse{50%{box-shadow:0 14px 40px rgb(0 0 0 / .55),0 0 0 12px color-mix(in srgb,var(--blood) 8%,transparent)}}
+.mate-space{height:190px}
+/* زر الرجوع للقاضي فوق صورة النتيجة بالتجربة */
+#fx .democlose{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));inset-inline:16px;z-index:3;display:flex;justify-content:center}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}
@@ -331,11 +390,21 @@ function onMsg(m){
     const prev=st;st=m;view="game";
     if(st.me&&st.gen!==lastGen){if(lastGen!==null||st.phase==="night0")cardOpen=false;lastGen=st.gen}
     handleEvent(prev);
+    voteFx(prev);
     if(st.me&&st.me.notes){const n=st.me.notes.length;
       if(notesSeen!==null&&n>notesSeen&&!/^الليلة/.test(st.me.notes[n-1])){fxQ.push({id:"a"+Date.now(),type:"answer",text:st.me.notes[n-1]});cardOpen=false;playNext()}
       notesSeen=n}
     render();
   }
+}
+/* كل صوت جديد يطلع للكل: فلان صوّت على فلان، والدور الجاي */
+function voteFx(prev){
+  const a=prev&&prev.vote,b=st.vote;
+  if(!b||!a||prev.gen!==st.gen||a.order.join()!==b.order.join())return;
+  b.order.slice(a.turn,b.turn).forEach((v,i,arr)=>{const t=b.votes[v];if(!t)return;
+    const last=i===arr.length-1,nx=last&&b.cur?b.cur:null;
+    fxQ.push({id:"c"+v+st.gen,type:"cast",voter:nm(v),target:nm(t),me:st.me&&st.me.id,v,t,next:nx?nm(nx):null,nextMe:!!(nx&&st.me&&nx===st.me.id)})});
+  playNext();
 }
 function endSession(msg){if(demo){endDemo(msg);return}sess=null;lsSet("mafia.sess",null);try{ws&&ws.close()}catch{}ws=null;st=null;view="home";homeErr=msg;render()}
 
@@ -410,7 +479,7 @@ function demoNeeds(){
     if(J.step==="police")ids.filter(i=>R[i]==="cop").forEach(i=>{if(!J.judge.night.queried&&J.judge.queriesLeft)need.add(i)});
     if(J.step==="mafia")ids.filter(i=>isM(R[i])).forEach(i=>{const m=J.phase==="night0"?J.judge.night.fake:J.judge.night.sugg;if(!(m&&m[i]))need.add(i)});
     if(J.step==="doctor")ids.filter(i=>R[i]==="doctor").forEach(i=>{if(!J.judge.night.save)need.add(i)});
-  }else if(J.phase==="vote")ids.forEach(i=>{if(!J.judge.votes[i])need.add(i)});
+  }else if(J.phase==="vote"&&J.vote&&J.vote.cur)need.add(J.vote.cur);
   if(!J.players.length||J.phase==="lobby")need.clear();
   return need;
 }
@@ -460,13 +529,18 @@ function playNext(){
   else if(e.type==="out"){cls="fx-out hit";dur=12000;html=`<div class="stamp">طلع</div><div class="sub" style="margin-top:14px">${esc(e.who)} طلع بالتصويت</div><div class="muted">${ar(e.votes)} صوت</div>${e.sniper?`<div class="chip m" style="font-size:1rem">قناص! بيسحب واحد وياه</div>`:""}`;buzz([30,40,160])}
   else if(e.type==="tie"){cls="fx-tie";dur=12000;html=`<svg class="scale" viewBox="0 0 120 90" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"><path d="M60 8v74M30 84h60M14 22h92M14 22 4 52h22zM106 22l-10 30h22z"/></svg><div class="big">${e.none?"ما أحد صوّت":"تعادل"}</div><div class="sub">التصويت لاغي</div>`}
   else if(e.type==="snipe"){cls="fx-snipe";dur=12000;html=`<div style="position:relative"><svg class="cross-h" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="50" cy="50" r="36"/><circle cx="50" cy="50" r="22" stroke-dasharray="4 5"/><path d="M50 2v26M50 72v26M2 50h26M72 50h26"/></svg><div class="who">${esc(e.who)}</div></div><div class="big" style="font-size:2.4rem">القناص سحبه</div>`;buzz([20,30,20,30,200])}
+  else if(e.type==="cast"){cls="fx-cast hit";dur=2600;
+    const me=st&&st.me&&st.me.id;
+    html=`<div class="voter">${e.v===me?"أنت صوّتت على":esc(e.voter)+" صوّت على"}</div><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v15M5 12l7 7 7-7"/></svg><div class="target">${e.t===me?"أنت":esc(e.target)}</div>${e.next?`<div class="nextup">${e.nextMe?"<b>دورك الحين!</b>":"الدور على "+esc(e.next)}</div>`:`<div class="nextup">الكل صوّت</div>`}`;
+    buzz(e.t===me?[60,40,120]:30)}
   else if(e.type==="win"){const t=e.winner==="town";cls="fx-win fx-win-"+(t?"town":"mafia");dur=6000;
     html=(t?`<svg class="crown" viewBox="0 0 110 90" fill="#e9c46a"><path d="M10 70 4 18l26 22L55 6l25 34 26-22-6 52z"/><rect x="10" y="74" width="90" height="10" rx="3"/></svg>`:`<svg class="crown" viewBox="0 0 64 64" fill="#ff6b62">${ICON.mafia.replace(/<\/?svg[^>]*>/g,"")}</svg>`)+`<div class="big">${t?"فاز الشعب":"فازت المافيا"}</div><div class="sub">${t?"صادوا كل المافيا":"المافيا تعادلت مع الشعب"}</div>`;
     buzz([100,60,100,60,300])}
   else {fxBusy=false;return playNext()}
   const sticky=STICKY.has(e.type);
   const tapH=!sticky?tap:(st&&st.judge?`<div class="tap judgeclose"><button class="btn primary" data-fx="close">سكّر النتيجة عند الكل</button></div>`:`<div class="tap">القاضي يسكرها لما يشوفها الكل</div>`);
-  fx.className="fx-enter "+cls+(sticky?" sticky":"");fx.innerHTML=html+tapH;fx.hidden=false;
+  const demoH=demo&&st&&!st.judge?`<div class="democlose"><button class="btn sm" data-fx="judge">رجوع لشاشة القاضي</button></div>`:"";
+  fx.className="fx-enter "+cls+(sticky?" sticky":"");fx.innerHTML=html+tapH+demoH;fx.hidden=false;
   if(e.type==="win")confettiStop=confetti(fx,e.winner==="town"?["#e9c46a","#72b096","#f4ffef","#d2a74c"]:["#cf5c55","#7a1d1f","#ffb4ab","#2a0a0b"],e.winner!=="town");
   clearTimeout(fxTimer);if(!sticky)fxTimer=setTimeout(closeFx,matchMedia("(prefers-reduced-motion: reduce)").matches?Math.min(dur,1800):dur);
   if(night)document.body.dataset.phase="night";
@@ -478,6 +552,7 @@ function closeFx(){
 }
 $("#fx").addEventListener("click",e=>{
   if(e.target.closest("[data-fx=close]")){send({t:"closeFx"});closeFx();return}
+  if(e.target.closest("[data-fx=judge]")){switchPersona(0);return}
   if(curFx&&STICKY.has(curFx.type))return; // صورة النتيجة يسكرها القاضي بس
   closeFx();
 });
@@ -563,6 +638,32 @@ function header(){
   <div class="timer" id="timer" hidden><div class="ring"><svg viewBox="0 0 62 62"><circle class="bgc" cx="31" cy="31" r="26"/><circle class="fgc" cx="31" cy="31" r="26" stroke-dasharray="163.36" stroke-dashoffset="0"/></svg><div class="t">40</div></div><div class="who">${st.timer?"يتكلم: "+esc(st.timer.name):""}</div></div>
   ${st.announce&&st.phase!=="lobby"?`<p class="announce ${(()=>{const c=st.announce!==lastAnn;lastAnn=st.announce;return c?"changed":""})()}">${esc(ar(st.announce))}</p>`:""}`;
 }
+/* لوحة التصويت: دور منو، ترتيب الأصوات، ومنو صوّت على منو */
+let lastTurnKey=null;const lastTally={},seenCast=new Set();
+function voteStage(opts={}){
+  const V=st.vote;if(!V)return"";
+  const cur=V.cur,mine=!!(cur&&st.me&&cur===st.me.id);
+  let h="";
+  if(st.phase==="vote"){
+    const tk=st.gen+"|"+st.round+"|"+V.turn,fresh=tk!==lastTurnKey;if(fresh){lastTurnKey=tk;if(mine)buzz([80,50,80])}
+    h+=cur?`<div class="panel turn ${mine?"mine":""} ${fresh?"fresh":""}"><span class="lab">${mine?"جا دورك":"الدور على"}</span><span class="who">${mine?"صوّت الحين!":esc(nm(cur))}</span>${mine?`<span class="muted small">اختار الشخص اللي تشك إنه مافيا. الكل بيشوف صوتك.</span>`:`<span class="dots"><i></i><i></i><i></i></span><span class="muted small">قاعد يختار…</span>`}
+      <div class="queue">${V.order.filter(i=>P(i).alive||V.votes[i]).map((i,k)=>`<span class="${V.votes[i]?"done":i===cur?"cur":""}">${esc(nm(i))}</span>`).join("")}</div></div>`
+      :`<div class="panel turn"><span class="lab">خلص التصويت</span><span class="who">الكل صوّت</span><span class="muted small">${st.judge?"أعلن النتيجة تحت.":"القاضي بيعلن النتيجة."}</span></div>`;
+  }
+  if(opts.picker)h+=opts.picker;
+  // الترتيب: الأكثر أصوات فوق
+  const t={},by={};V.order.forEach(v=>{const x=V.votes[v];if(x){t[x]=(t[x]||0)+1;(by[x]=by[x]||[]).push(v)}});
+  const rows=Object.entries(t).sort((a,b)=>b[1]-a[1]||V.order.indexOf(by[a[0]][0])-V.order.indexOf(by[b[0]][0])),max=rows.length?rows[0][1]:0,tops=rows.filter(r=>r[1]===max).length;
+  const key=st.gen+"|"+st.round;
+  h+=`<div class="panel"><h3>ترتيب الأصوات</h3>${rows.length?`<div class="rank">${rows.map(([id,c],i)=>{
+    const k=key+"|"+id,bump=(lastTally[k]||0)<c;lastTally[k]=c;
+    return`<div class="rk ${c===max&&tops===1?"top":""} ${bump?"bump":""}"><i class="bar" style="width:${Math.round(c/max*100)}%"></i><span class="pos">${i+1}</span><span class="nm">${esc(nm(id))}${st.me&&id===st.me.id?" (أنت)":""}</span><span class="n">${ar(c)}</span><span class="by">${by[id].map(v=>esc(nm(v))).join("، ")}</span></div>`}).join("")}</div>`:`<p class="muted small">ما أحد صوّت للحين.</p>`}</div>`;
+  // سجل الأصوات بالترتيب
+  const cast=V.order.filter(v=>V.votes[v]);
+  if(cast.length)h+=`<div class="panel"><h3>منو صوّت على منو</h3><div>${cast.map(v=>{const k=key+"|"+v,n=!seenCast.has(k);seenCast.add(k);
+    return`<div class="cast ${n?"new":""}">${esc(nm(v))}${st.me&&v===st.me.id?" (أنت)":""} <span class="muted">←</span> <b>${esc(nm(V.votes[v]))}</b></div>`}).join("")}</div></div>`;
+  return h;
+}
 const dot=p=>`<span class="dot ${p.online?"on":""}" title="${p.online?"موجود":"طلع من الموقع"}"></span>`;
 
 /* --- القاضي --- */
@@ -594,7 +695,7 @@ function roleChip(id){const J=st.judge,r=J.roles[id];if(!r)return"";return`<span
 function judgeRow(p){
   const J=st.judge,speaking=st.timer&&st.timer.pid===p.id;let extra="";
   if(p.alive&&st.phase==="day")extra=speaking?`<button class="btn sm" data-a="cmd" data-c="stopT">إيقاف</button>`:`<button class="btn sm" data-a="cmd" data-c="talk" data-id="${p.id}">40 ث</button>`;
-  if(st.phase==="vote"&&p.alive){const v=J.votes[p.id];extra=`<span class="small muted">${v?"صوّت ← "+esc(nm(v)):"ما صوّت"}</span>`}
+  if(st.phase==="vote"&&p.alive){const v=J.votes[p.id];extra=`<span class="small muted">${v?"صوّت ← "+esc(nm(v)):st.vote&&st.vote.cur===p.id?"دوره الحين":"ما صوّت"}</span>`}
   if(st.sniperPending&&p.alive&&p.id!==st.sniperPending)extra=`<button class="btn sm ghost" data-a="cmd" data-c="snipeFor" data-id="${p.id}">القناص سحبه</button>`;
   return`<div class="li ${p.alive?"":"out"} ${speaking?"speak":""}">${dot(p)}<span class="nm">${esc(p.name)}</span>${roleChip(p.id)}${extra}</div>`;
 }
@@ -620,14 +721,13 @@ function judgeControls(){
     else h+=`<h3>منو يتكلم؟</h3><div class="grid">${aliveIds().map(id=>{const sp=st.timer&&st.timer.pid===id;return`<button class="pick ${sp?"on":""}" data-a="cmd" data-c="${sp?"stopT":"talk"}" data-id="${id}">${esc(nm(id))}${sp?"<br><small>إيقاف</small>":""}</button>`}).join("")}</div>`;
     h+=st.canVote?`<button class="btn primary" data-a="cmd" data-c="vote" ${st.sniperPending?"disabled":""}>ابدأ التصويت</button>`:`<p class="muted small">أول نهار بدون تصويت.</p><button class="btn primary" data-a="cmd" data-c="night">الليل</button>`;
   }else if(p==="vote"){
-    const al=aliveIds(),t={};al.forEach(v=>{const x=J.votes[v];if(x)t[x]=(t[x]||0)+1});
-    h+=`<p>صوّت <span class="tally">${ar(al.filter(v=>J.votes[v]).length)}</span> من ${ar(al.length)}</p>`;
-    if(Object.keys(t).length)h+=`<table>${Object.entries(t).sort((a,b)=>b[1]-a[1]).map(([k,c])=>`<tr><td>${esc(nm(k))}</td><td class="tally">${ar(c)}</td></tr>`).join("")}</table>`;
-    const left=al.filter(v=>!J.votes[v]);
-    if(left.length)h+=`<p class="small muted">باقي ما صوّتوا: ${left.map(v=>esc(nm(v))).join("، ")}</p>`;
-    h+=`<button class="btn primary" data-a="cmd" data-c="closeVote">أنهِ التصويت وأعلن</button>`;
+    const V=st.vote||{order:[],votes:{}},al=aliveIds(),done=al.filter(v=>V.votes[v]).length,cur=V.cur;
+    h+=`<p class="script"><b>التصويت بالدور</b> والترتيب عشوائي. كل واحد يصوّت من جواله والكل يشوف صوته.</p><p>صوّت <span class="tally">${ar(done)}</span> من ${ar(al.length)}</p>`;
+    if(cur)h+=`<details><summary class="small muted">جوال ${esc(nm(cur))} فيه مشكلة؟ صوّت بداله</summary><div class="grid" style="margin-top:8px">${al.filter(i=>i!==cur).map(i=>`<button class="pick red" data-a="cmd" data-c="voteFor" data-id="${i}">${esc(nm(i))}</button>`).join("")}</div></details>`;
+    h+=`<button class="btn primary" data-a="cmd" data-c="closeVote" ${cur?"disabled":""}>${cur?"ننتظر الكل يصوّت":"أعلن النتيجة"}</button></div>`+voteStage()+`<div style="display:none">`;
   }else if(p==="result"){
     if(st.sniperPending)h+=sniperFallback();
+    if(st.vote)h+=`</div>`+voteStage()+`<div class="panel">`;
     h+=`<button class="btn primary" data-a="cmd" data-c="night" ${st.sniperPending?"disabled":""}>الليل</button>`;
   }else if(p==="over"){
     h+=`<h2 style="color:var(--${st.winner==="town"?"town":"blood"})">${st.winner==="town"?"فاز الشعب":"فازت المافيا"}</h2><button class="btn primary" data-a="cmd" data-c="newGame">لعبة جديدة بنفس الغرفة</button>`;
@@ -667,7 +767,7 @@ function playerView(){
   if(st.phase==="over")return h+overView();
   const alive=P(me.id).alive;
   if(st.phase==="deal")return h+cardView()+`<div class="panel nightbox"><div class="moon"></div><h2>احفظ دورك</h2><p class="muted">أول ما يبدا القاضي اللعبة الكرت ينشال.</p></div>`;
-  if(!alive&&st.sniperPending!==me.id)return h+`<div class="panel"><h2>طلعت من اللعبة</h2><p class="muted">لا تتكلم ولا تأشر، تابع لين تخلص.</p></div>`+aliveList();
+  if(!alive&&st.sniperPending!==me.id)return h+`<div class="panel"><h2>طلعت من اللعبة</h2><p class="muted">لا تتكلم ولا تأشر، تابع لين تخلص.</p></div>`+(st.vote?voteStage():"")+aliveList();
   return h+actionView();
 }
 function cardView(){
@@ -706,13 +806,32 @@ function actionView(){
     return nightBox();
   }
   if(p==="night"){
-    if(st.step==="mafia"&&isM(role))return`<div class="panel"><h2>منو تغتالون؟</h2><p class="muted small">كل واحد يختار، وربعك يشوفون اختيارك. الأغلبية تفوز، وإذا تعادلتوا القاضي يختار من اختياراتكم.</p>${picker("kill",others,true)}${teamPicks()}</div>`;
+    if(st.step==="mafia"&&isM(role))return`<div class="panel"><h2>منو تغتالون؟</h2><p class="muted small">كل واحد يختار، وربعك يشوفون اختيارك. الأغلبية تفوز، وإذا تعادلتوا القاضي يختار من اختياراتكم.</p>${picker("kill",others,true)}${teamPicks()}</div>`+mateCard();
     if(st.step==="doctor"&&role==="doctor")return`<div class="panel"><h2>منو تنقذ؟</h2><p class="muted small">تقدر تختار نفسك.</p>${picker("save",al)}</div>`;
     if(st.step==="police"&&role==="cop")return queryBox(others);
     return nightBox();
   }
-  if(p==="vote"){const v=me.sel.vote;return(v?`<div class="panel"><h2>صوّتت ✓</h2><p>صوتك راح على <b>${esc(nm(v))}</b>، وما ينفع يتغير. انتظر القاضي يعلن النتيجة.</p></div>`:`<div class="panel"><h2>صوّت</h2><p class="muted small">اختار الشخص اللي تشك إنه مافيا. انتبه: أول ما تدوس الاسم ينحسب صوتك وما تقدر تغيّره.</p>${picker("vote",others,true)}</div>`)+aliveList();}
+  if(p==="vote"){
+    const mine=st.vote&&st.vote.cur===me.id,v=me.sel.vote;
+    const pk=mine?`<div class="panel">${picker("vote",others,true)}<p class="muted small">أول ما تدوس الاسم ينحسب صوتك وما يتغير.</p></div>`:v?`<p class="muted small" style="text-align:center">صوتك راح على <b>${esc(nm(v))}</b> ✓</p>`:"";
+    return voteStage({picker:pk});
+  }
+  if(p==="result"&&st.vote)return voteStage()+aliveList();
   return aliveList();
+}
+/* تحت يسار: الشخص اللي اختاره ربعك (الأكثر اختياراً)، تضغط عليه وتصوّت معهم */
+let lastMate=null;
+function mateCard(){
+  const me=st.me,t={},at={};
+  (me.team||[]).filter(x=>x.id!==me.id&&isAlive(x.id)&&x.pick&&isAlive(x.pick)).forEach(x=>{t[x.pick]=(t[x.pick]||0)+1;at[x.pick]=Math.max(at[x.pick]||0,x.at||0)});
+  const ids=Object.keys(t);if(!ids.length){lastMate=null;return""}
+  const pick=ids.sort((a,b)=>t[b]-t[a]||at[b]-at[a])[0],n=t[pick];
+  if(pick===me.id)return"";
+  const withThem=me.sel.kill===pick,swap=lastMate&&lastMate!==pick;lastMate=pick;
+  const mates=(me.team||[]).filter(x=>x.id!==me.id&&isAlive(x.id)&&x.pick===pick).map(x=>esc(nm(x.id))).join(" و");
+  return`<div class="mate-space"></div><button class="mate ${withThem?"with":""} ${swap?"swap":""}" ${withThem?"disabled":`data-a="act" data-k="kill" data-id="${pick}"`} aria-label="صوّت مع ربعك على ${esc(nm(pick))}">
+    <span class="ttl">${n>1?"ربعك اختاروا":"خويك "+mates+" اختار"}</span><span class="who">${esc(nm(pick))}</span>
+    <span class="how">${withThem?"صوّتت ويا خويك ✓":"اضغط هني وصوّت ويا خويك على نفس الشخص"}</span></button>`;
 }
 const revealed=new Map();
 function queryBox(others){
