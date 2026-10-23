@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="168 112 126 126" ><defs><linearGradient id="cone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd9a0" stop-opacity=".6"/><stop offset=".75" stop-color="#ffcf8a" stop-opacity=".14"/><stop offset="1" stop-color="#ffcf8a" stop-opacity="0"/></linearGradient>
+<radialGradient id="pool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffcf8a" stop-opacity=".5"/><stop offset="1" stop-color="#ffcf8a" stop-opacity="0"/></radialGradient>
+<pattern id="brk" width="22" height="12" patternUnits="userSpaceOnUse"><rect width="22" height="12" fill="#120d0b"/><path d="M0 .5h22M0 6.5h22M.5 0v6M11.5 6v6" stroke="#060404" stroke-width="1.2"/></pattern>
+<filter id="b2"><feGaussianBlur stdDeviation="1.6"/></filter>
+<radialGradient id="vig" cx=".5" cy=".55" r=".7"><stop offset=".45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".9"/></radialGradient></defs>
+<rect x="0" y="0" width="400" height="400" fill="#050405"/>
+<path d="M231 100h10l50 170H185z" fill="url(#cone)" filter="url(#b2)"/>
+<ellipse cx="231" cy="232" rx="60" ry="9" fill="url(#pool)"/>
+<path d="M222 238h7v26h-7zM233 238h7v26h-7z" fill="#020202"/><path d="M216 162Q231 156 246 162L252 176L256 232L263 262L242 264L238 240H224L220 264L199 262L206 232L210 176Z" fill="#030303"/>
+<path d="M224 162l7 20 7-20" fill="none" stroke="#1c1814" stroke-width="1.1"/><path d="M208 212h47" stroke="#0d0c0b" stroke-width="3"/>
+<ellipse cx="231" cy="151" rx="7.5" ry="9" fill="#040303"/><path d="M220 144q0-13 11-14 11 1 11 14z" fill="#040404"/><path d="M220 140h22" stroke="#5b1512" stroke-width="2"/>
+<ellipse cx="231" cy="144" rx="19" ry="3.2" fill="#040404"/>
+<path d="M246 162L252 176L256 232L263 262M242 144q0-13-11-14M250 144.5a19 3.2 0 0 1-6 2.5M238.5 151a7.5 9 0 0 1-2 6" fill="none" stroke="#ffd9a0" stroke-opacity=".55" stroke-width="1.2"/>
+<path d="M236 154.5l7 1.4" stroke="#cfc4b4" stroke-width="1.1" stroke-linecap="round"/><circle cx="243.6" cy="156" r="1.8" fill="#ff6a2a"/><circle cx="243.6" cy="156" r="3.4" fill="#ff6a2a" opacity=".22"/>
+<path d="M244 152c-5-8 5-12 0-20s5-12 0-20" fill="none" stroke="#b8bcc2" stroke-opacity=".45" stroke-width="1.4"/>
+<rect x="168" y="112" width="126" height="126" fill="url(#vig)"/></svg>
