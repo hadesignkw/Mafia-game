@@ -30,7 +30,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=Aref+Ruqaa:wght@400;700&family=Caveat:wght@700&display=swap">
 <link rel="stylesheet" href="/noir.css">
 <style>
-/* لوحة واحدة بعرض الجوال، والليل والنهار يغيّرون لون الخلفية */
+/* لوحة واحدة بعرض التلفون، والليل والنهار يغيّرون لون الخلفية */
 :root{
   --bg:#0e0b09;--panel:rgb(27 20 16 / .9);--panel2:#261c16;--line:#3b2d22;
   --fg:#efe3c8;--muted:#a69886;--brass:#c9a35b;--brass-hi:#ecd29a;--brass-ink:#1d1408;
@@ -608,14 +608,14 @@ select{font:inherit;font-size:1rem;width:100%;background:var(--bg);color:var(--f
 const ROLE={
   mafia:{n:"مافيا",team:"m",d:"أنت من المافيا. تعرف ربعك، وكل ليلة تختارون منو تغتالون والأغلبية تفوز. وإذا تعادلتوا القاضي يختار من اختياراتكم."},
   cop:{n:"الشرطي الحقيقي",team:"t",d:"أنت من الشعب. كل ليلة تستعلم عن شخص ويطلع لك: مافيا ولا شعب."},
-  doctor:{n:"الطبيب",team:"t",d:"أنت من الشعب. كل ليلة تنقذ واحد من الاغتيال، حتى نفسك، وتقدر تكرر نفس الشخص."},
+  doctor:{n:"البيطري",team:"t",d:"أنت من الشعب. كل ليلة تنقذ واحد من الاغتيال، حتى نفسك، وتقدر تكرر نفس الشخص."},
   sniper:{n:"القناص",team:"t",d:"أنت من الشعب. إذا طلعت بالتصويت أو اغتالوك، تسحب واحد وياك وتعرف دوره أنت والقاضي بس."},
   citizen:{n:"مواطن",team:"t",d:"أنت من الشعب. ما عندك قدرة، سلاحك كلامك وتصويتك."}
 };
 const isM=r=>r==="mafia";
 const STEPS0=["police","mafia"],STEPN=["mafia","doctor","police"];
 const stepsOf=p=>p==="night0"?STEPS0:STEPN;
-const STEP_N={mafia:"المافيا",doctor:"الطبيب",police:"الشرطي"};
+const STEP_N={mafia:"المافيا",doctor:"البيطري",police:"الشرطي"};
 const PHASE_N={lobby:"ننطر",deal:"نوزع الكروت",night0:"الليلة الأولى",night:"الليل",day:"النهار",vote:"التصويت",result:"نتيجة التصويت",over:"خلصت اللعبة"};
 const ICON={
   mafia:'<svg viewBox="0 0 64 64" fill="currentColor"><path d="M4 26c8-6 18-8 28-8s20 2 28 8c-2 14-10 22-18 22-5 0-7-6-10-6s-5 6-10 6C14 48 6 40 4 26zm14 4c-3 0-6 2-7 4 3 2 6 3 9 3s5-2 5-4-3-3-7-3zm28 0c-4 0-7 1-7 3s2 4 5 4 6-1 9-3c-1-2-4-4-7-4z"/></svg>',
@@ -899,7 +899,7 @@ function demoBar(){
   return`<div class="demobar"><div class="demohead"><b>وضع التجربة</b><span class="muted small">دوس على أي واحد تشوف شاشته</span><button class="btn sm ghost" data-a="endDemo">سكّر التجربة</button></div>
   <div class="tabs">${demo.list.map((p,i)=>{
     const r=R[p.key],pl=J&&J.players.find(x=>x.id===p.key),out=pl&&!pl.alive;
-    const lab=p.judge?"القاضي":`${esc(p.label)}${r?`<small>${ROLE[r].n}${j.fakeCop===p.key?" · مزيف":""}</small>`:""}`;
+    const lab=p.judge?"القاضي":`${esc(p.label)}${r?`<small>${ROLE[r].n}${j.fakeCop===p.key?" · نصاب":""}</small>`:""}`;
     return`<button class="tab ${i===demo.active?"on":""} ${r?ROLE[r].team:""} ${out?"out":""}" data-a="persona" data-i="${i}">${need.has(p.key)?`<i class="need"></i>`:""}${lab}</button>`}).join("")}</div></div>`;
 }
 
@@ -930,11 +930,11 @@ function playNext(){
   const tap=`<div class="tap">دوس عشان تكمل</div>`;
   if(e.type==="answer"){const bad=/مافيا/.test(e.text);cls="fx-answer "+(bad?"fx-answer-m":"fx-answer-t");dur=10000;
     html=`<div class="big">${bad?"مافيا!":"شعب"}</div><div class="sub">${esc(ar(e.text))}</div><div class="bar"><i></i></div><div class="muted small">احفظها، ما بترجع تطلع لك</div>`;buzz(bad?[60,40,60]:40)}
-  else if(e.type==="deal"){cls="fx-deal";dur=2400;html=`<div class="fan">${[-30,-15,0,15,30].map((r,i)=>`<i style="transform:rotate(${r}deg);animation-delay:${i*.06}s"></i>`).join("")}</div><div class="big">توزعت الكروت</div><div class="sub">${isMe?"اقلب كرتك وغطّ الشاشة عن اللي جنبك":"كل واحد يشوف دوره بجواله"}</div>`;dealAnim=true;buzz(60)}
-  else if(e.type==="dusk"){cls="fx-dusk";dur=7000;html=stars(30)+SCENE_NIGHT+`<div class="big">الليل</div><div class="sub">كل واحد يتابع جواله</div>`}
+  else if(e.type==="deal"){cls="fx-deal";dur=2400;html=`<div class="fan">${[-30,-15,0,15,30].map((r,i)=>`<i style="transform:rotate(${r}deg);animation-delay:${i*.06}s"></i>`).join("")}</div><div class="big">توزعت الكروت</div><div class="sub">${isMe?"اقلب كرتك وغطّ الشاشة عن اللي جنبك":"كل واحد يشوف دوره بتلفونه"}</div>`;dealAnim=true;buzz(60)}
+  else if(e.type==="dusk"){cls="fx-dusk";dur=7000;html=stars(30)+SCENE_NIGHT+`<div class="big">الليل</div><div class="sub">كل واحد يتابع تلفونه</div>`}
   else if(e.type==="dawn"){cls="fx-dawn";dur=7000;html=SCENE_DAY+`<div class="big">الصبح</div><div class="sub">بدا النهار</div>`}
-  else if(e.type==="kill"){cls="fx-kill";dur=12000;const tape="مسرح جريمة · لا تقرب · ".repeat(8);html=`<div class="tape t1"><span>${tape}</span></div><div class="tape t2"><span>${tape}</span></div><svg class="chalk" viewBox="0 0 220 150" aria-hidden="true"><path class="ln" d="M110 22a14 14 0 1 1-0.1 0M104 50c-6 2-10 8-12 16l-30-8-22 10M116 50c6 2 10 8 12 16l26-20 24-4M96 66l-2 30-20 26-24 6M124 66l4 30 14 28 22 10M96 96h30"/><path class="ln2" d="M150 30c8-8 22-8 30 0l4 6h-38zM144 36h46"/><circle class="blood" cx="120" cy="84" r="9"/></svg><div class="big">اغتيال</div><div class="sub">${esc(e.who)} طلع من اللعبة</div><div class="sub" style="animation-delay:1.3s">صيدة سهلة والطبيب مدوّج 😴</div>${e.sniper?`<div class="chip m" style="font-size:1rem">قناص! بيسحب واحد وياه</div>`:""}`;buzz([80,60,200])}
-  else if(e.type==="saved"){cls="fx-saved";dur=12000;html=`<svg class="cross" viewBox="0 0 64 64" fill="currentColor"><path d="M24 6h16v18h18v16H40v18H24V40H6V24h18z"/></svg><svg class="ecg" viewBox="0 0 320 90"><path d="M0 50 H90 L105 20 L120 80 L140 8 L158 70 L172 50 H320"/></svg><div class="big">اغتيال شامط</div><div class="sub">الطبيب موجووووود 🔥</div>`;buzz([40,80,40])}
+  else if(e.type==="kill"){cls="fx-kill";dur=12000;const tape="مسرح جريمة · لا تقرب · ".repeat(8);html=`<div class="tape t1"><span>${tape}</span></div><div class="tape t2"><span>${tape}</span></div><svg class="chalk" viewBox="0 0 220 150" aria-hidden="true"><path class="ln" d="M110 22a14 14 0 1 1-0.1 0M104 50c-6 2-10 8-12 16l-30-8-22 10M116 50c6 2 10 8 12 16l26-20 24-4M96 66l-2 30-20 26-24 6M124 66l4 30 14 28 22 10M96 96h30"/><path class="ln2" d="M150 30c8-8 22-8 30 0l4 6h-38zM144 36h46"/><circle class="blood" cx="120" cy="84" r="9"/></svg><div class="big">اغتيال</div><div class="sub">${esc(e.who)} طلع من اللعبة</div><div class="sub" style="animation-delay:1.3s">صيدة سهلة والبيطري مدوّج 😴</div>${e.sniper?`<div class="chip m" style="font-size:1rem">قناص! بيسحب واحد وياه</div>`:""}`;buzz([80,60,200])}
+  else if(e.type==="saved"){cls="fx-saved";dur=12000;html=`<svg class="cross" viewBox="0 0 64 64" fill="currentColor"><path d="M24 6h16v18h18v16H40v18H24V40H6V24h18z"/></svg><svg class="ecg" viewBox="0 0 320 90"><path d="M0 50 H90 L105 20 L120 80 L140 8 L158 70 L172 50 H320"/></svg><div class="big">اغتيال شامط</div><div class="sub">البيطري موجووووود 🔥</div>`;buzz([40,80,40])}
   else if(e.type==="nokill"){cls="fx-dawn";dur=12000;html=`<div class="sun"></div><div class="big">ليلة هادية</div><div class="sub">ما صار اغتيال</div>`}
   else if(e.type==="out"){cls="fx-out hit";dur=12000;html=`<svg class="gavel" viewBox="0 0 120 120" aria-hidden="true"><g class="gv"><rect x="54" y="40" width="10" height="66" rx="4" fill="#8a5a33"/><rect x="26" y="14" width="66" height="30" rx="8" fill="#5a3720" stroke="#c9a35b" stroke-width="3"/><rect x="21" y="19" width="9" height="20" rx="2" fill="#c9a35b"/><rect x="88" y="19" width="9" height="20" rx="2" fill="#c9a35b"/></g><ellipse cx="59" cy="112" rx="40" ry="6" fill="#2a1a0c"/></svg><div class="stamp">طلع</div><div class="sub" style="margin-top:14px">${esc(e.who)} طلع بالتصويت</div><div class="muted">${ar(e.votes)} صوت</div>${e.sniper?`<div class="chip m" style="font-size:1rem">قناص! بيسحب واحد وياه</div>`:""}`;buzz([30,40,160])}
   else if(e.type==="tie"){cls="fx-tie";dur=12000;html=`<svg class="scale" viewBox="0 0 120 90" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"><path d="M60 8v74M30 84h60M14 22h92M14 22 4 52h22zM106 22l-10 30h22z"/></svg><div class="big">${e.none?"ما أحد صوّت":"تعادل"}</div><div class="sub">التصويت ما ينحسب</div>`}
@@ -1177,12 +1177,12 @@ function rolesBoard(){
   const J=st.judge,ids=Object.keys(J.roles);
   const order=["mafia","cop","doctor","sniper","citizen"];
   const by=r=>ids.filter(i=>J.roles[i]===r);
-  const cell=(r,i)=>{const p=P(i);return`<div class="li ${p.alive?"":"out"}">${dot(p)}<span class="ico" style="width:22px;height:22px;flex:none;color:var(--${ROLE[r].team==="m"?"blood":"town"})">${ICON[r]}</span><span class="nm">${esc(p.name||"لاعب")}</span><span class="chip ${ROLE[r].team}">${ROLE[r].n}${J.fakeCop===i?" · مزيف":""}</span>${p.alive?"":`<span class="small muted">طالع</span>`}</div>`};
+  const cell=(r,i)=>{const p=P(i);return`<div class="li ${p.alive?"":"out"}">${dot(p)}<span class="ico" style="width:22px;height:22px;flex:none;color:var(--${ROLE[r].team==="m"?"blood":"town"})">${ICON[r]}</span><span class="nm">${esc(p.name||"لاعب")}</span><span class="chip ${ROLE[r].team}">${ROLE[r].n}${J.fakeCop===i?" · نصاب":""}</span>${p.alive?"":`<span class="small muted">طالع</span>`}</div>`};
   const group=(t,title)=>`<div><h3 style="color:var(--${t==="m"?"blood":"town"})">${title}</h3><div class="list">${order.filter(r=>ROLE[r].team===t).flatMap(r=>by(r).map(i=>cell(r,i))).join("")}</div></div>`;
   const out=ids.filter(i=>!P(i).alive).length;
   return`<div class="panel roles"><button class="roles-head" data-a="roles" aria-expanded="${rolesOpen}"><h2>الأدوار</h2><span class="muted small">${ids.length-out} باقين${out?` · ${out} طلعوا`:""}</span><span class="chev ${rolesOpen?"up":""}">⌄</span></button>${rolesOpen?`<div class="roles-body ${rolesJust?"anim":""}">${group("m","المافيا")}${group("t","الشعب")}</div>`:""}</div>`;
 }
-function roleChip(id){const J=st.judge,r=J.roles[id];if(!r)return"";return`<span class="chip ${ROLE[r].team}">${ROLE[r].n}${J.fakeCop===id?" · مزيف":""}</span>`}
+function roleChip(id){const J=st.judge,r=J.roles[id];if(!r)return"";return`<span class="chip ${ROLE[r].team}">${ROLE[r].n}${J.fakeCop===id?" · نصاب":""}</span>`}
 function judgeRow(p){
   const J=st.judge,speaking=st.timer&&st.timer.pid===p.id;let extra="";
   if(p.alive&&st.phase==="day")extra=speaking?`<button class="btn sm" data-a="cmd" data-c="stopT">وقّف</button>`:`<button class="btn sm" data-a="cmd" data-c="talk" data-id="${p.id}">40 ث</button>`;
@@ -1194,26 +1194,26 @@ function judgeRow(p){
 function talkGrid(ids,cops){
   const J=st.judge;
   return`<div class="grid">${ids.map(id=>{const sp=st.timer&&st.timer.pid===id,done=st.talked[id]&&!sp;
-    const tag=cops?`<small>${J.roles[id]==="cop"?"حقيقي":"مزيف"}</small>`:"";
+    const tag=cops?`<small>${J.roles[id]==="cop"?"حقيقي":"نصاب"}</small>`:"";
     return`<button class="pick talk ${sp?"on":""} ${done?"done":""}" data-a="cmd" data-c="${sp?"stopT":"talk"}" data-id="${id}">${done?`<i class="ck">✓</i>`:""}${esc(nm(id))}${sp?"<br><small>وقّف</small>":done?"<br><small>سولف وخلص</small>":tag?"<br>"+tag:""}</button>`}).join("")}</div>`;
 }
 function sniperFallback(){
   const sp=st.sniperPending;
-  return`<p class="err">القناص ${esc(nm(sp))} يختار من جواله منو يسحب وياه.</p><details><summary class="small muted">جواله فيه مشكلة؟ اختار بداله</summary><div class="grid" style="margin-top:8px">${aliveIds().filter(i=>i!==sp).map(i=>`<button class="pick red" data-a="cmd" data-c="snipeFor" data-id="${i}">${esc(nm(i))}</button>`).join("")}</div></details>`;
+  return`<p class="err">القناص ${esc(nm(sp))} يختار من تلفونه منو يسحب وياه.</p><details><summary class="small muted">تلفونه فيه مشكلة؟ اختار بداله</summary><div class="grid" style="margin-top:8px">${aliveIds().filter(i=>i!==sp).map(i=>`<button class="pick red" data-a="cmd" data-c="snipeFor" data-id="${i}">${esc(nm(i))}</button>`).join("")}</div></details>`;
 }
 const whoHas=r=>Object.keys(st.judge.roles).find(i=>st.judge.roles[i]===r);
 const isAlive=id=>!!(id&&P(id).alive);
 function judgeControls(){
   const p=st.phase,J=st.judge;let h=`<div class="panel">`;
   if(p==="deal"){
-    h+=`<p class="script"><b>كل واحد يشوف دوره</b> بكرته. لما يخلصون دوس «ابدا اللعبة» والكروت تنشال من جوالاتهم.</p><button class="btn primary" data-a="cmd" data-c="begin">ابدا اللعبة</button>`;
+    h+=`<p class="script"><b>كل واحد يشوف دوره</b> بكرته. لما يخلصون دوس «ابدا اللعبة» والكروت تنشال من تلفوناتهم.</p><button class="btn primary" data-a="cmd" data-c="begin">ابدا اللعبة</button>`;
   }else if(p==="night0"||p==="night"){
-    const say={night0:{police:"<b>الشرطي</b> يستعلم من جواله عن مجرم.",mafia:"<b>المافيا</b> يتعرفون على بعض ويختارون الشرطي المزيف من جوالاتهم."},
-      night:{mafia:"<b>المافيا</b> يختارون منو يغتالون.",doctor:"<b>الطبيب</b> يختار منو ينقذ.",police:"<b>الشرطي</b> يستعلم من جواله."}}[p][st.step];
+    const say={night0:{police:"<b>الشرطي</b> يستعلم من تلفونه عن مجرم.",mafia:"<b>المافيا</b> يتعرفون على بعض ويختارون النصاب من تلفوناتهم."},
+      night:{mafia:"<b>المافيا</b> يختارون منو يغتالون.",doctor:"<b>البيطري</b> يختار منو ينقذ.",police:"<b>الشرطي</b> يستعلم من تلفونه."}}[p][st.step];
     const S=stepsOf(p),i=S.indexOf(st.step),last=i===S.length-1;
     h+=`<div class="steps">${S.map((s,k)=>`<span class="${k===i?"cur":k<i?"done":""}">${STEP_N[s]}</span>`).join("")}</div><p class="script">${say}</p>${nightStatus()}`;
     h+=stepFallback();
-    if(!st.stepDone)h+=`<p class="small err">ما تقدر تكمل لين ${({police:"الشرطي يستعلم",mafia:p==="night0"?"المافيا يختارون الشرطي المزيف":"المافيا يختارون منو يغتالون",doctor:"الطبيب ينقذ"})[st.step]}، أو اختار أنت بداله.</p>`;
+    if(!st.stepDone)h+=`<p class="small err">ما تقدر تكمل لين ${({police:"الشرطي يستعلم",mafia:p==="night0"?"المافيا يختارون النصاب":"المافيا يختارون منو يغتالون",doctor:"البيطري ينقذ"})[st.step]}، أو اختار أنت بداله.</p>`;
     h+=`<button class="btn primary" data-a="cmd" data-c="next" ${st.stepDone?"":"disabled"}>${last?(p==="night0"?"الصبح":"الصبح: طلّع النتيجة"):"اللي بعده: "+STEP_N[S[i+1]]}</button>`;
   }else if(p==="day"){
     h+=`<p class="script">${st.round===1?"<b>الشرطة يرفعون إيدهم.</b> ":""}الشرطة يتكلمون أول، اختار منو يبدا منهم. بعدين الشعب واحد واحد، وكل واحد له 40 ثانية.</p>`;
@@ -1228,8 +1228,8 @@ function judgeControls(){
     h+=st.canVote?`<button class="btn primary" data-a="cmd" data-c="vote" ${st.sniperPending?"disabled":""}>ابدا التصويت</button>`:`<p class="muted small">أول نهار بدون تصويت.</p><button class="btn primary" data-a="cmd" data-c="night">الليل</button>`;
   }else if(p==="vote"){
     const V=st.vote||{order:[],votes:{}},al=aliveIds(),done=al.filter(v=>V.votes[v]).length,cur=V.cur;
-    h+=`<p class="script"><b>التصويت بالدور</b> والترتيب عشوائي. كل واحد يصوّت من جواله والكل يشوف صوته.</p><p>صوّت <span class="tally">${ar(done)}</span> من ${ar(al.length)}</p>`;
-    if(cur)h+=`<details><summary class="small muted">جوال ${esc(nm(cur))} فيه مشكلة؟ صوّت بداله</summary><div class="grid" style="margin-top:8px">${al.filter(i=>i!==cur).map(i=>`<button class="pick red" data-a="cmd" data-c="voteFor" data-id="${i}">${esc(nm(i))}</button>`).join("")}</div></details>`;
+    h+=`<p class="script"><b>التصويت بالدور</b> والترتيب عشوائي. كل واحد يصوّت من تلفونه والكل يشوف صوته.</p><p>صوّت <span class="tally">${ar(done)}</span> من ${ar(al.length)}</p>`;
+    if(cur)h+=`<details><summary class="small muted">تلفون ${esc(nm(cur))} فيه مشكلة؟ صوّت بداله</summary><div class="grid" style="margin-top:8px">${al.filter(i=>i!==cur).map(i=>`<button class="pick red" data-a="cmd" data-c="voteFor" data-id="${i}">${esc(nm(i))}</button>`).join("")}</div></details>`;
     h+=`<button class="btn primary" data-a="cmd" data-c="closeVote" ${cur?"disabled":""}>${cur?"ننطر الكل يصوّت":"طلّع النتيجة"}</button></div>`+voteStage()+`<div style="display:none">`;
   }else if(p==="result"){
     if(st.sniperPending)h+=sniperFallback();
@@ -1240,14 +1240,14 @@ function judgeControls(){
   }
   return h+`</div>`;
 }
-/* جوالهم فيه مشكلة؟ القاضي يختار بدالهم */
+/* تلفونهم فيه مشكلة؟ القاضي يختار بدالهم */
 function stepFallback(){
   const J=st.judge,n=J.night,al=aliveIds(),R=J.roles,step=st.step,p=st.phase;
   const box=(title,ids,cmd,chosen,red)=>`<details ${st.stepDone?"":"open"}><summary class="small muted">${title}</summary><div class="grid" style="margin-top:8px">${ids.map(i=>`<button class="pick ${red?"red":""} ${chosen===i?"on":""}" data-a="cmd" data-c="${cmd}" data-id="${i}">${esc(nm(i))}</button>`).join("")}</div></details>`;
   if(step==="police"){const cop=al.find(i=>R[i]==="cop");if(!cop||!J.queriesLeft||n.queried)return"";return box("الشرطي ما استعلم؟ استعلم بداله",al.filter(i=>i!==cop),"queryFor",null)}
   if(step==="mafia"){const m=al.filter(i=>isM(R[i]));if(!m.length)return"";
-    return p==="night0"?box("المافيا ما اختاروا الشرطي المزيف؟ اختار بدالهم",m,"setFake",J.fakeCop):box("المافيا ما اختاروا؟ اختار الاغتيال بدالهم",al.filter(i=>!isM(R[i])),"killFor",n.kill,true)}
-  if(step==="doctor"){if(!al.some(i=>R[i]==="doctor"))return"";return box("الطبيب ما اختار؟ اختار بداله",al,"saveFor",n.save)}
+    return p==="night0"?box("المافيا ما اختاروا النصاب؟ اختار بدالهم",m,"setFake",J.fakeCop):box("المافيا ما اختاروا؟ اختار الاغتيال بدالهم",al.filter(i=>!isM(R[i])),"killFor",n.kill,true)}
+  if(step==="doctor"){if(!al.some(i=>R[i]==="doctor"))return"";return box("البيطري ما اختار؟ اختار بداله",al,"saveFor",n.save)}
   return"";
 }
 function nightStatus(){
@@ -1261,13 +1261,13 @@ function nightStatus(){
   };
   if(st.phase==="night0"){
     if(st.step==="mafia"){
-      rows.push(`الشرطي المزيف: ${J.fakeCop?`<b>${esc(nm(J.fakeCop))}</b>`:`<span class="muted">ما تحدد</span>`}`);
-      picksRows(n.fake,"setFake",J.fakeCop,"الشرطي المزيف");
+      rows.push(`النصاب: ${J.fakeCop?`<b>${esc(nm(J.fakeCop))}</b>`:`<span class="muted">ما تحدد</span>`}`);
+      picksRows(n.fake,"setFake",J.fakeCop,"النصاب");
     }
   }else{
     rows.push(`الاغتيال: ${n.kill?`<b class="err">${esc(nm(n.kill))}</b>`:`<span class="muted">ما تحدد</span>`}`);
     picksRows(n.sugg,"pickKill",n.kill,"منو ينغتال");
-    rows.push(`الطبيب اختار: ${n.save?`<b style="color:var(--town)">${esc(nm(n.save))}</b>`:`<span class="muted">${isAlive(whoHas("doctor"))?"ما اختار":"الطبيب طالع"}</span>`}`);
+    rows.push(`البيطري اختار: ${n.save?`<b style="color:var(--town)">${esc(nm(n.save))}</b>`:`<span class="muted">${isAlive(whoHas("doctor"))?"ما اختار":"البيطري طالع"}</span>`}`);
   }
   rows.push(`<span class="small muted">استعلامات الشرطي: باقي ${ar(J.queriesLeft)} من ${ar(J.queryMax)}</span>`);
   rows.push(`الاستعلام: ${n.queried?`<b>${esc(nm(n.queried))}</b> ← ${isM(J.roles[n.queried])?"مافيا":"شعب"}`:`<span class="muted">${!isAlive(whoHas("cop"))?"الشرطي طالع":J.queriesLeft?"ما استعلم":"خلصت استعلاماته"}</span>`}`);
@@ -1289,9 +1289,9 @@ function playerView(){
 function cardView(){
   const me=st.me,r=ROLE[me.role],accent=r.team==="m"?"var(--blood)":"var(--town)";
   let front=`<span class="chip ${r.team}" style="align-self:flex-start">${r.team==="m"?"المافيا":"الشعب"}</span>
-    <div style="display:flex;align-items:center;gap:12px"><span class="ico">${ICON[me.role]}</span><span class="rn">${r.n}${me.fake?"<br><small style='font-size:1.1rem'>والشرطي المزيف</small>":""}</span></div>
-    <p class="muted">${r.d}${me.fake?" ربعك عيّنوك شرطي مزيف: إذا قال القاضي الشرطة يرفعون إيدهم، ارفع إيدك ولخبطهم.":""}</p>`;
-  if(me.team)front+=`<div class="sep"></div><h3>ربعك المافيا</h3><div class="list">${me.team.map(t=>`<div class="li ${isAlive(t.id)?"":"out"}"><span class="nm">${esc(nm(t.id))}${t.id===me.id?" (أنت)":""}</span><span class="chip m">${ROLE[t.role].n}${t.fake?" · مزيف":""}</span></div>`).join("")}</div>`;
+    <div style="display:flex;align-items:center;gap:12px"><span class="ico">${ICON[me.role]}</span><span class="rn">${r.n}${me.fake?"<br><small style='font-size:1.1rem'>والنصاب</small>":""}</span></div>
+    <p class="muted">${r.d}${me.fake?" ربعك عيّنوك النصاب: إذا قال القاضي الشرطة يرفعون إيدهم، ارفع إيدك ولخبطهم.":""}</p>`;
+  if(me.team)front+=`<div class="sep"></div><h3>ربعك المافيا</h3><div class="list">${me.team.map(t=>`<div class="li ${isAlive(t.id)?"":"out"}"><span class="nm">${esc(nm(t.id))}${t.id===me.id?" (أنت)":""}</span><span class="chip m">${ROLE[t.role].n}${t.fake?" · نصاب":""}</span></div>`).join("")}</div>`;
   if(me.notes&&me.notes.length)front+=`<div class="sep"></div><h3>معلوماتك السرية</h3><ul class="notes">${me.notes.map(n=>`<li>${esc(ar(n))}</li>`).join("")}</ul>`;
   front+=`<span class="muted small">دوس عشان تقلبه وتخبيه</span>`;
   return`<button class="flip ${cardOpen?"open":""} ${dealAnim?"deal":""}" data-a="card" aria-label="كرتك" style="--accent:${accent}"><div class="flip-in">
@@ -1318,7 +1318,7 @@ function actionView(){
   const nightBox=t=>`<div class="panel nightbox"><div class="zz"><span class="leye"><i></i></span><span class="leye"><i></i></span><b>z</b><b>z</b><b>z</b></div><h2>${t||"غمّض عيونك"}</h2><p class="muted small">مو دورك الحين، القاضي بيصحّيك.</p></div>`;
   if(st.sniperPending===me.id)return`<div class="panel"><h2>أنت القناص</h2><p>اختار واحد يطلع وياك. دوره يطلع لك أنت والقاضي بس.</p>${picker("snipe",others,true)}</div>`;
   if(p==="night0"){
-    if(st.step==="mafia"&&isM(role))return`<div class="panel"><h2>اختاروا الشرطي المزيف</h2><p class="muted small">كل واحد يختار من ربعه، حتى نفسه. الأغلبية تفوز، وإذا تعادلتوا القاضي يختار.</p>${picker("fakecop",me.team.filter(t=>isAlive(t.id)).map(t=>t.id))}${teamPicks()}${(()=>{const f=me.team.find(t=>t.fake);return`<p class="announce" style="font-size:1.05rem">الشرطي المزيف: ${f?(f.id===me.id?"أنت! إذا قال القاضي الشرطة يرفعون إيدهم، ارفع إيدك":esc(nm(f.id))):"ما تحدد للحين"}</p>`})()}</div>`;
+    if(st.step==="mafia"&&isM(role))return`<div class="panel"><h2>اختاروا النصاب بينكم</h2><p class="muted small">كل واحد يختار من ربعه، حتى نفسه. الأغلبية تفوز، وإذا تعادلتوا القاضي يختار.</p>${picker("fakecop",me.team.filter(t=>isAlive(t.id)).map(t=>t.id))}${teamPicks()}${(()=>{const f=me.team.find(t=>t.fake);return`<p class="announce" style="font-size:1.05rem">النصاب: ${f?(f.id===me.id?"أنت! إذا قال القاضي الشرطة يرفعون إيدهم، ارفع إيدك":esc(nm(f.id))):"ما تحدد للحين"}</p>`})()}</div>`;
     if(st.step==="police"&&role==="cop")return queryBox(others);
     return nightBox();
   }
@@ -1385,7 +1385,7 @@ function bestPanel(){
 }
 function overView(){
   const w=st.winner;
-  return bestPanel()+`<div class="panel"><h2 style="color:var(--${w==="town"?"town":"blood"})">${w==="town"?"فاز الشعب":"فازت المافيا"}</h2><table>${st.players.map(p=>{const r=st.reveal[p.id];return`<tr><td>${esc(p.name)}${p.id===st.me.id?" (أنت)":""}</td><td class="${isM(r.role)?"err":""}">${ROLE[r.role].n}${r.fake?" · شرطي مزيف":""}</td></tr>`}).join("")}</table><p class="muted small">انطر القاضي يبدا لعبة جديدة.</p></div>`;
+  return bestPanel()+`<div class="panel"><h2 style="color:var(--${w==="town"?"town":"blood"})">${w==="town"?"فاز الشعب":"فازت المافيا"}</h2><table>${st.players.map(p=>{const r=st.reveal[p.id];return`<tr><td>${esc(p.name)}${p.id===st.me.id?" (أنت)":""}</td><td class="${isM(r.role)?"err":""}">${ROLE[r.role].n}${r.fake?" · النصاب":""}</td></tr>`}).join("")}</table><p class="muted small">انطر القاضي يبدا لعبة جديدة.</p></div>`;
 }
 
 /* ---------- الأحداث ---------- */
