@@ -600,7 +600,7 @@ function freeView(){
   h+=`<p class="muted small" style="text-align:center;margin-top:16px">أهل الثقة: ${tn.map(esc).join(" و")}</p>`;
   return h;
 }
-const voteName=k=>({sort:"فرز الأصوات",cards:"خلصت الكروت",dissolve:"حل المجلس"})[k];
+const voteName=k=>({sort:"فرز الأصوات",cards:"خلصت الكروت",dissolve:"حل المجلس",finish:"إنهاء اللعبة"})[k];
 function approveHTML(q){
   const btns=`<div class="row" style="margin-top:8px"><button class="btn gold sm grow" data-a="fApprove" data-id="${q.id}">اعتمد</button><button class="btn sm" data-a="fReject" data-id="${q.id}">لا</button></div>${q.okBy.length?`<p class="small" style="margin-top:4px">اعتمده ${q.okBy.map(esc).join("، ")}</p>`:""}`;
   if(q.type==="swap")return`<div class="ballot"><b>بدل: ${esc(q.a)} ويا ${esc(q.b)}</b><p class="small num" style="direction:rtl">${esc(q.a)} ${Number(q.amtA).toLocaleString("en-US")} + ${esc(q.b)} ${Number(q.amtB).toLocaleString("en-US")}</p><div class="amt num">${Number(q.total).toLocaleString("en-US")}</div>${btns}</div>`;
@@ -745,12 +745,14 @@ function renderSheet(){
     <div class="list" style="margin-top:12px;gap:10px">
     ${b("sort",ICON.box.replace("<svg",'<svg width="26" height="26"'),"استخدمت كرت الفرز.","ما يصير بالجولة الأولى.")}
     ${b("cards",ICON.cards.replace("<svg",'<svg width="26" height="26"'),"الكروت اللي بالأرض خلصت.","")}
-    ${b("dissolve",ICON.cross.replace("<svg",'<svg width="26" height="26" style="color:var(--stamp)"'),"تنمسح أصوات الكل بهالجولة إلا المستقيلين.","ما يصير بالجولة الأولى والأخيرة.")}</div>`;
+    ${b("dissolve",ICON.cross.replace("<svg",'<svg width="26" height="26" style="color:var(--stamp)"'),"تنمسح أصوات الكل بهالجولة إلا المستقيلين.","ما يصير بالجولة الأولى والأخيرة.")}</div>
+    <div class="sep"></div>
+    <button class="li" data-a="fPropose" data-k="finish" ${c.finish?"":"disabled style='opacity:.4'"}>${ICON.flag.replace("<svg",'<svg width="26" height="26"')}<span class="nm">إنهاء اللعبة<br><span class="muted small">تنتهي اللعبة وتطلع النتيجة على طول. الجولة الحالية تتسجل باللي انعتمد فيها.</span></span></button>`;
   }
   else if(sheet.type==="fVote"){
     const v=st.vote;
-    inner=`<div class="hd"><h2>${voteName(v.kind)}؟</h2></div><p><b>${esc(v.by)}</b> ${v.kind==="sort"?"استخدم كرت الفرز":v.kind==="cards"?"يقول الكروت خلصت":"يبي يحل المجلس"}. توافق؟</p>
-    <p class="muted small" style="margin-top:6px">أنت من أهل الثقة. ${v.kind==="dissolve"?"إذا وافقت تنمسح أصوات الجولة إلا المستقيلين.":"إذا وافقت تخلص الجولة والكل يحط مجموع أصواته."}</p>
+    inner=`<div class="hd"><h2>${voteName(v.kind)}؟</h2></div><p><b>${esc(v.by)}</b> ${v.kind==="sort"?"استخدم كرت الفرز":v.kind==="cards"?"يقول الكروت خلصت":v.kind==="finish"?"يبي ينهي اللعبة":"يبي يحل المجلس"}. توافق؟</p>
+    <p class="muted small" style="margin-top:6px">أنت من أهل الثقة. ${v.kind==="dissolve"?"إذا وافقت تنمسح أصوات الجولة إلا المستقيلين.":v.kind==="finish"?"إذا وافقت تنتهي اللعبة وتطلع النتيجة للكل.":"إذا وافقت تخلص الجولة والكل يحط مجموع أصواته."}</p>
     <div class="row" style="margin-top:14px"><button class="btn ${v.kind==="dissolve"?"red":"gold"} grow" data-a="fVote" data-id="${v.id}" data-y="1">موافق</button><button class="btn grow" data-a="fVote" data-id="${v.id}" data-y="0">مو موافق</button></div>`;
   }
   else if(sheet.type==="rename"){
@@ -774,7 +776,7 @@ function renderDock(){
     <button class="btn" data-a="fSwapOpen" ${!o||res||busyS?"disabled":""}>${ICON.swap}بدلت</button>
     <button class="btn" data-a="fResign" ${!o||res||st.me.resignAsked?"disabled":""}>${ICON.flag}استقلت</button>
     <button class="btn" data-a="fSecret" ${st.secretName||st.me.secretAsked?"disabled":""}>${ICON.lock}جلسة سرية</button>
-    <button class="btn gold" data-a="fEndOpen" ${!o||st.vote?"disabled":""}>${ICON.gavel}نهاية الجولة</button></div></div>`;return}
+    <button class="btn gold" data-a="fEndOpen" ${st.vote?"disabled":""}>${ICON.gavel}نهاية الجولة</button></div></div>`;return}
   if(view!=="game"||!st||!st.judge||st.phase!=="play"){d.innerHTML="";return}
   const ic=k=>ICON[k];
   const cnt=st.round.status==="counting";

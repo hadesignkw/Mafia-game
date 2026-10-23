@@ -313,6 +313,7 @@ export class Parl extends DurableObject {
   // يرجع نص الغلط إذا ما يصير، أو null إذا يصير
   endCheck(kind) {
     const s = this.s;
+    if (kind === "finish") return s.phase === "play" ? null : "ما في لعبة شغالة.";
     if (!this.roundOpen()) return "ما في جولة شغالة.";
     if (!["sort", "cards", "dissolve"].includes(kind)) return "؟";
     const last = s.cur === s.order.length - 1;
@@ -517,7 +518,7 @@ export class Parl extends DurableObject {
       case "voteAns": {
         const v = s.vote;
         if (!v || v.id !== m.id || v.yes.includes(pid) || !v.need.includes(pid)) return;
-        if (!m.yes) { s.vote = null; for (const id of s.order) this.notify(id, `${this.nm(pid)} ما وافق على ${({ sort: "الفرز", cards: "خلصة الكروت", dissolve: "حل المجلس" })[v.kind]}، الجولة كملت.`); return; }
+        if (!m.yes) { s.vote = null; for (const id of s.order) this.notify(id, `${this.nm(pid)} ما وافق على ${({ sort: "الفرز", cards: "خلصة الكروت", dissolve: "حل المجلس", finish: "إنهاء اللعبة" })[v.kind]}، اللعبة كملت.`); return; }
         v.yes.push(pid);
         return this.checkVote();
       }
@@ -552,7 +553,14 @@ export class Parl extends DurableObject {
   checkVote() {
     const s = this.s, v = s.vote;
     if (!v) return;
-    if (v.need.every((id) => v.yes.includes(id))) { s.vote = null; this.endRound(v.kind); }
+    if (!v.need.every((id) => v.yes.includes(id))) return;
+    s.vote = null;
+    if (v.kind === "finish") {
+      // إنهاء اللعبة: الجولة الحالية تتسجل باللي فيها، وتطلع النتيجة على طول
+      if (this.roundLive()) this.closeRound(this.round().endKind || "sort", true);
+      return this.over();
+    }
+    this.endRound(v.kind);
   }
 
   execReq(q) {
@@ -657,7 +665,7 @@ export class Parl extends DurableObject {
       id: q.id, type: q.type, name: q.pid ? this.nm(q.pid) : null, a: q.a ? this.nm(q.a) : null, b: q.b ? this.nm(q.b) : null,
       amt: q.amt, amtA: q.amtA, amtB: q.amtB, total: q.total, okBy: q.ok.map((x) => this.nm(x)), at: q.at,
     }));
-    pub.canEnd = { sort: !this.endCheck("sort"), cards: !this.endCheck("cards"), dissolve: !this.endCheck("dissolve") };
+    pub.canEnd = { sort: !this.endCheck("sort"), cards: !this.endCheck("cards"), dissolve: !this.endCheck("dissolve"), finish: !this.endCheck("finish") };
     return pub;
   }
 
