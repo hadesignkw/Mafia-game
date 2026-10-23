@@ -248,6 +248,9 @@ export class Room extends DurableObject {
         if (s.phase === "day" && s.alive[id]) s.timer = { pid: id, name: this.nm(id), endsAt: Date.now() + TALK * 1000, dur: TALK, id: sid() };
         break;
       case "stopT": s.timer = null; break;
+      case "closeFx": // القاضي يسكر صورة النتيجة عند الكل
+        if (s.event) { s.event.closed = true; if (s.event.after) s.event.after.closed = true; }
+        break;
       case "setFake":
         if (s.phase === "night0" && isM(s.roles[id])) { s.fakeCop = id; s.night.fakeByJudge = true; this.log(`القاضي عيّن ${this.nm(id)} شرطي مزيف`); }
         break;

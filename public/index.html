@@ -187,6 +187,9 @@ select{font:inherit;font-size:1rem;width:100%;background:var(--bg);color:var(--f
 #fx .tap{position:absolute;bottom:calc(20px + env(safe-area-inset-bottom,0px));inset-inline:0;text-align:center;font-size:.85rem;opacity:.6;z-index:2}
 #fx canvas{position:absolute;inset:0;width:100%;height:100%;z-index:1}
 .fx-enter{animation:fxin .45s ease both}
+#fx.sticky{cursor:default}
+#fx .judgeclose{opacity:1}
+#fx .judgeclose .btn{min-width:220px;animation:fxin .4s 1.2s both}
 @keyframes fxin{from{opacity:0}}
 .fx-leave{animation:fxout .4s ease both}
 @keyframes fxout{to{opacity:0}}
@@ -387,6 +390,9 @@ function switchPersona(i){
   const p=demo.list[i];demo.active=i;ws=p.ws;st=p.st;lastEv=p.lastEv;notesSeen=p.notesSeen;lastGen=p.lastGen;firstState=false;cardOpen=false;
   fxQ.length=0;if(!$("#fx").hidden)closeFx();
   render();window.scrollTo({top:0});
+  const ev=st&&st.event;
+  if(ev){const pend=[];if(ev.type==="win"&&ev.after&&STICKY.has(ev.after.type)&&!ev.after.closed)pend.push(ev.after);if(STICKY.has(ev.type)&&!ev.closed)pend.push(ev);
+    if(pend.length){setTimeout(()=>{pend.forEach(x=>fxQ.push(x));playNext()},420)}}
 }
 function endDemo(msg){
   const d=demo;demo=null;if(d)d.list.forEach(p=>{try{p.ws.close()}catch{}});
@@ -419,20 +425,26 @@ function demoBar(){
 
 /* ---------- الحركات ---------- */
 const fxQ=[];let fxBusy=false,fxTimer=null,confettiStop=null;
+const STICKY=new Set(["kill","saved","nokill","out","tie","snipe"]);
+let curFx=null;
+const fxClosed=id=>{const e=st&&st.event;return!!e&&((e.id===id&&e.closed)||(e.after&&e.after.id===id&&e.after.closed))};
 function handleEvent(prev){
   const e=st.event;
+  if(curFx&&STICKY.has(curFx.type)&&fxClosed(curFx.id))closeFx(true);
   if(!e){lastEv=null;firstState=false;return}
   if(e.id===lastEv){firstState=false;return}
-  const fresh=st.now-e.at<7000;
+  const fresh=st.now-e.at<7000||(STICKY.has(e.type)&&!e.closed)||(e.after&&STICKY.has(e.after.type)&&!e.after.closed);
   lastEv=e.id;
   if(firstState&&!fresh){firstState=false;return}
   firstState=false;
-  if(e.type==="win"&&e.after)fxQ.push(e.after);
+  if(e.type==="win"&&e.after&&!e.after.closed)fxQ.push(e.after);
   fxQ.push(e);playNext();
 }
 function playNext(){
   if(fxBusy||!fxQ.length)return;
-  const e=fxQ.shift();const fx=$("#fx");fxBusy=true;
+  const e=fxQ.shift();const fx=$("#fx");
+  if(STICKY.has(e.type)&&fxClosed(e.id))return playNext();
+  fxBusy=true;curFx=e;
   const night=e.type==="dusk", isMe=st&&st.me;
   let cls="",html="",dur=3200;
   const tap=`<div class="tap">اضغط للمتابعة</div>`;
@@ -451,17 +463,23 @@ function playNext(){
     html=(t?`<svg class="crown" viewBox="0 0 110 90" fill="#e9c46a"><path d="M10 70 4 18l26 22L55 6l25 34 26-22-6 52z"/><rect x="10" y="74" width="90" height="10" rx="3"/></svg>`:`<svg class="crown" viewBox="0 0 64 64" fill="#ff6b62">${ICON.mafia.replace(/<\/?svg[^>]*>/g,"")}</svg>`)+`<div class="big">${t?"فاز الشعب":"فازت المافيا"}</div><div class="sub">${t?"صادوا كل المافيا":"المافيا تعادلت مع الشعب"}</div>`;
     buzz([100,60,100,60,300])}
   else {fxBusy=false;return playNext()}
-  fx.className="fx-enter "+cls;fx.innerHTML=html+tap;fx.hidden=false;
+  const sticky=STICKY.has(e.type);
+  const tapH=!sticky?tap:(st&&st.judge?`<div class="tap judgeclose"><button class="btn primary" data-fx="close">سكّر النتيجة عند الكل</button></div>`:`<div class="tap">القاضي يسكرها لما يشوفها الكل</div>`);
+  fx.className="fx-enter "+cls+(sticky?" sticky":"");fx.innerHTML=html+tapH;fx.hidden=false;
   if(e.type==="win")confettiStop=confetti(fx,e.winner==="town"?["#e9c46a","#72b096","#f4ffef","#d2a74c"]:["#cf5c55","#7a1d1f","#ffb4ab","#2a0a0b"],e.winner!=="town");
-  clearTimeout(fxTimer);fxTimer=setTimeout(closeFx,matchMedia("(prefers-reduced-motion: reduce)").matches?Math.min(dur,1800):dur);
+  clearTimeout(fxTimer);if(!sticky)fxTimer=setTimeout(closeFx,matchMedia("(prefers-reduced-motion: reduce)").matches?Math.min(dur,1800):dur);
   if(night)document.body.dataset.phase="night";
 }
 function closeFx(){
-  const fx=$("#fx");if(fx.hidden){fxBusy=false;return playNext()}
+  const fx=$("#fx");curFx=null;if(fx.hidden){fxBusy=false;return playNext()}
   clearTimeout(fxTimer);fx.classList.add("fx-leave");
   setTimeout(()=>{fx.hidden=true;fx.innerHTML="";fx.className="";if(confettiStop){confettiStop();confettiStop=null}fxBusy=false;playNext()},380);
 }
-$("#fx").addEventListener("click",closeFx);
+$("#fx").addEventListener("click",e=>{
+  if(e.target.closest("[data-fx=close]")){send({t:"closeFx"});closeFx();return}
+  if(curFx&&STICKY.has(curFx.type))return; // صورة النتيجة يسكرها القاضي بس
+  closeFx();
+});
 function stars(n){let h="";for(let i=0;i<n;i++)h+=`<span class="star" style="top:${Math.random()*70}%;left:${Math.random()*100}%;animation-delay:${(Math.random()*1.6).toFixed(2)}s;opacity:.${2+Math.floor(Math.random()*7)}"></span>`;return h}
 function confetti(host,colors,embers){
   if(matchMedia("(prefers-reduced-motion: reduce)").matches)return null;
