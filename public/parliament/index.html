@@ -461,8 +461,12 @@ function countingHTML(){
   const kindN={sort:"فرز الأصوات",cards:"خلصت الكروت",dissolve:"انحل المجلس"}[st.round.endKind]||"";
   return`<div class="panel"><div class="row"><h2 class="grow">مجاميع الجولة</h2><span class="chip ${st.round.endKind==="dissolve"?"red":"gold"}">${kindN}</span></div>
   <p class="muted small">${st.round.endKind==="dissolve"?"ننطر المستقيلين بس، والباقين انمسحوا.":"كل واحد يحط أصواته اللي بإيده. دوس على اسم عشان تسجل بداله."}</p>
-  <div class="list" style="margin-top:10px">${c.need.map(id=>{const w=(st.pending||[]).some(p=>p.kind==="final"&&p.pid===id);const d=c.done[id];
-    return`<button class="li" data-a="seat" data-id="${id}"><span class="nm">${esc(nm(id))}</span>${d?`<span class="chip green">انسجل</span>`:w?`<span class="chip gold">وصل، اعتمده</span>`:`<span class="chip">ينطر</span>`}</button>`}).join("")}</div>
+  <div class="list" style="margin-top:10px">${c.need.map(id=>{const w=(st.pending||[]).find(p=>p.kind==="final"&&p.pid===id);const d=c.done[id];
+    // الرقم اللي سجله: من السجل إذا انعتمد، أو من الطلب إذا ينطر
+    const rr=st.record.rounds[st.round.no-1],cx=new Set(rr.ev.filter(e=>e.k==="cancel").map(e=>e.target));
+    const f=d?rr.ev.filter(e=>e.k==="add"&&e.final&&e.pid===id&&!cx.has(e.id)).pop():null;
+    const n=f?f.amt:w?w.amt:null;
+    return`<button class="li" data-a="seat" data-id="${id}"><span class="nm">${esc(nm(id))}</span>${n!=null?`<b class="num" style="font-size:1.15rem">${Number(n).toLocaleString("en-US")}</b>`:""}${d?`<span class="chip green">انسجل</span>`:w?`<span class="chip gold">وصل، اعتمده</span>`:`<span class="chip">ينطر</span>`}</button>`}).join("")}</div>
   <button class="btn gold block" style="margin-top:12px" data-a="nextRound" ${left.length?"disabled":""}>${left.length?`باقي ${left.length}`:last?"طلّع النتيجة":`ابدا الجولة ${st.round.no+1}`}</button></div>`;
 }
 function pendHTML(p){
