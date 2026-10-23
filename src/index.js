@@ -1,4 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
+import { Parl } from "./parl.js";
+export { Parl };
 
 /* =========== قوانين اللعبة =========== */
 const ROLE_N = {
@@ -52,6 +54,27 @@ export default {
       if (!/^\d{4}$/.test(code)) return new Response("bad code", { status: 400 });
       if (req.headers.get("Upgrade") !== "websocket") return new Response("websocket only", { status: 426 });
       return env.ROOM.get(env.ROOM.idFromName(code)).fetch(req);
+    }
+    /* ---------- تسجيل برلمان ---------- */
+    if (url.pathname === "/api/parl/create" && req.method === "POST") {
+      const mode = url.searchParams.get("mode") === "manual" ? "manual" : "players";
+      for (let i = 0; i < 25; i++) {
+        const code = String(1000 + Math.floor(Math.random() * 9000));
+        const r = await env.PARL.get(env.PARL.idFromName(code)).create(code, mode);
+        if (r) return json(r);
+      }
+      return json({ error: "ما قدرت أفتح جلسة، جرّب مرة ثانية." }, 503);
+    }
+    if (url.pathname === "/api/parl/exists") {
+      const code = url.searchParams.get("code") || "";
+      if (!/^\d{4}$/.test(code)) return json({ ok: false });
+      return json(await env.PARL.get(env.PARL.idFromName(code)).exists());
+    }
+    if (url.pathname === "/api/parl/ws") {
+      const code = url.searchParams.get("code") || "";
+      if (!/^\d{4}$/.test(code)) return new Response("bad code", { status: 400 });
+      if (req.headers.get("Upgrade") !== "websocket") return new Response("websocket only", { status: 426 });
+      return env.PARL.get(env.PARL.idFromName(code)).fetch(req);
     }
     if (url.pathname.startsWith("/api/")) return json({ error: "not found" }, 404);
     return env.ASSETS.fetch(req);

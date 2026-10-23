@@ -1020,7 +1020,7 @@ function render(){
 function homeView(){
   const intro=!doorSeen;doorSeen=true;
   const say=SAY[doorState]||"كلمة السر؟";
-  return`<a class="back over" href="/">→ كل الألعاب</a>
+  return`<a class="back over" href="/games/">→ كل الألعاب</a>
   <div class="den ${intro?"intro":""} ${doorState}" aria-hidden="true">
     <svg class="alley" viewBox="0 0 360 300" preserveAspectRatio="xMidYMax slice">
       <defs>
