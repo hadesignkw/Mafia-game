@@ -643,7 +643,7 @@ function actionView(){
     if(st.step==="police"&&role==="cop")return queryBox(others);
     return nightBox();
   }
-  if(p==="vote")return`<div class="panel"><h2>صوّت</h2><p class="muted small">اختار الشخص اللي تشك إنه مافيا. تقدر تغيّر لين يقفل القاضي التصويت.</p>${picker("vote",others,true)}</div>`+aliveList();
+  if(p==="vote"){const v=me.sel.vote;return(v?`<div class="panel"><h2>صوّتت ✓</h2><p>صوتك راح على <b>${esc(nm(v))}</b>، وما ينفع يتغير. انتظر القاضي يعلن النتيجة.</p></div>`:`<div class="panel"><h2>صوّت</h2><p class="muted small">اختار الشخص اللي تشك إنه مافيا. انتبه: أول ما تدوس الاسم ينحسب صوتك وما تقدر تغيّره.</p>${picker("vote",others,true)}</div>`)+aliveList();}
   return aliveList();
 }
 function queryBox(others){
@@ -673,7 +673,7 @@ document.addEventListener("click",e=>{
     else{cardOpen=true;b.classList.add("open")}
     buzz(15)}
   else if(a==="roles"){rolesOpen=!rolesOpen;render()}
-  else if(a==="act"){const k=b.dataset.k;if(k==="query"&&st.me.sel.query)return;send({t:"act",k,id,gen:st.gen});buzz(25)}
+  else if(a==="act"){const k=b.dataset.k;if((k==="query"||k==="vote")&&st.me.sel[k])return;send({t:"act",k,id,gen:st.gen});buzz(25)}
 });
 /* حفظ توكن اللاعب لكل غرفة عشان لو طلع ورجع */
 setInterval(()=>{if(sess&&!sess.judge&&sess.token)lsSet("mafia.tok."+sess.code,sess.token)},1500);

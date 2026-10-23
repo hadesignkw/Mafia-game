@@ -399,7 +399,7 @@ export class Room extends DurableObject {
         }
         break;
       case "vote":
-        if (s.phase === "vote" && alive && tA && t !== pid) s.votes[pid] = t;
+        if (s.phase === "vote" && alive && tA && t !== pid && !s.votes[pid]) s.votes[pid] = t; // الصوت ما يتغير
         break;
       case "snipe":
         if (s.sniperPending === pid && tA && t !== pid) this.resolveSnipe(pid, t);
