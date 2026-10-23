@@ -467,11 +467,10 @@ export class Parl extends DurableObject {
       }
       /* الاستقالة ومجموع الأصوات */
       case "resign": {
+        // الاستقالة تحتاج موافقة أهل الثقة
         if (!this.roundOpen() || this.isResigned(pid)) return;
-        r.resigned.push(pid);
-        this.push({ k: "resign", pid });
-        s.swaps = s.swaps.filter((w) => w.a !== pid && w.b !== pid);
-        this.ev("resign", { name: this.nm(pid) });
+        if (s.reqs.some((q) => q.type === "resign" && q.pid === pid)) return;
+        this.addReq({ type: "resign", pid, need: this.approvers(pid) });
         return;
       }
       case "submit": {
@@ -497,19 +496,28 @@ export class Parl extends DurableObject {
         return;
       }
       case "secretClose": if (s.secret === pid) { s.secret = null; this.ev("secretEnd", { name: this.nm(pid) }); } return;
+      case "secretShut": {
+        // أهل الثقة يسكرونها عشان ما تطول
+        if (!s.trust.includes(pid) || !s.secret) return;
+        const who = s.secret; s.secret = null;
+        this.notify(who, `${this.nm(pid)} سكّر الجلسة السرية.`);
+        this.ev("secretEnd", { name: this.nm(who), by: this.nm(pid) });
+        return;
+      }
       case "away": if (s.secret === pid) this.ev("secretAway", { name: this.nm(pid) }); return;
-      /* فرز / خلصت الكروت / حل: الكل لازم يوافق */
+      /* فرز / خلصت الكروت / حل: أهل الثقة يوافقون */
       case "propose": {
-        if (s.vote) return this.err(ws, "فيه تصويت مفتوح.");
+        if (s.vote) return this.err(ws, "فيه طلب مفتوح.");
         const bad = this.endCheck(m.kind);
         if (bad) return this.err(ws, bad);
-        s.vote = { id: sid(), kind: m.kind, by: pid, yes: [pid], at: Date.now() };
+        const need = this.approvers(pid);
+        s.vote = { id: sid(), kind: m.kind, by: pid, yes: [], need: need.length ? need : s.order.filter((x) => x !== pid), at: Date.now() };
         return this.checkVote();
       }
       case "voteAns": {
         const v = s.vote;
-        if (!v || v.id !== m.id || v.yes.includes(pid)) return;
-        if (!m.yes) { s.vote = null; for (const id of s.order) this.notify(id, `${this.nm(pid)} ما وافق، الجولة كملت.`); return; }
+        if (!v || v.id !== m.id || v.yes.includes(pid) || !v.need.includes(pid)) return;
+        if (!m.yes) { s.vote = null; for (const id of s.order) this.notify(id, `${this.nm(pid)} ما وافق على ${({ sort: "الفرز", cards: "خلصة الكروت", dissolve: "حل المجلس" })[v.kind]}، الجولة كملت.`); return; }
         v.yes.push(pid);
         return this.checkVote();
       }
@@ -529,7 +537,7 @@ export class Parl extends DurableObject {
         if (m.t === "reject") {
           s.reqs = s.reqs.filter((x) => x !== q);
           const who = q.type === "swap" ? [q.a, q.b] : [q.pid];
-          const what = { final: "مجموعك", swap: "البدل", secret: "طلب الجلسة السرية", fix: "طلب التعديل" }[q.type];
+          const what = { final: "مجموعك", swap: "البدل", secret: "طلب الجلسة السرية", fix: "طلب التعديل", resign: "استقالتك" }[q.type];
           for (const id of who) this.notify(id, `${this.nm(pid)} ما اعتمد ${what}. ${q.type === "final" ? "حطه مرة ثانية." : ""}`);
           if (q.type === "final" && r) this.push({ k: "rej", kind: "add", pid: q.pid, amt: q.amt, by: pid });
           return;
@@ -544,7 +552,7 @@ export class Parl extends DurableObject {
   checkVote() {
     const s = this.s, v = s.vote;
     if (!v) return;
-    if (s.order.every((id) => v.yes.includes(id))) { s.vote = null; this.endRound(v.kind); }
+    if (v.need.every((id) => v.yes.includes(id))) { s.vote = null; this.endRound(v.kind); }
   }
 
   execReq(q) {
@@ -569,6 +577,13 @@ export class Parl extends DurableObject {
       this.push({ k: "cancel", target: e.id, by: "free" });
       delete r.done[q.pid];
       this.notify(q.pid, "انلغى مجموعك، حطه من جديد.");
+    } else if (q.type === "resign") {
+      const r = this.round();
+      if (!this.roundOpen() || q.round !== s.cur || r.resigned.includes(q.pid)) return;
+      r.resigned.push(q.pid);
+      this.push({ k: "resign", pid: q.pid });
+      s.swaps = s.swaps.filter((w) => w.a !== q.pid && w.b !== q.pid);
+      this.ev("resign", { name: this.nm(q.pid) });
     } else if (q.type === "secret") {
       if (s.phase !== "play" || s.secret) return;
       s.secret = q.pid;
@@ -634,7 +649,9 @@ export class Parl extends DurableObject {
     const pk = s.reqs.find((q) => q.pick && (q.type === "swap" ? [q.a, q.b] : [q.pid]).includes(pid));
     if (pk) me.pick = { id: pk.id, type: pk.type, with: pk.type === "swap" ? this.nm(pk.a === pid ? pk.b : pk.a) : null };
     // التصويت على نهاية الجولة
-    if (s.vote) pub.vote = { id: s.vote.id, kind: s.vote.kind, by: this.nm(s.vote.by), yes: s.vote.yes.length, of: s.order.length, mine: s.vote.yes.includes(pid), waitingFor: s.order.filter((id) => !s.vote.yes.includes(id)).map((id) => this.nm(id)) };
+    if (s.vote) pub.vote = { id: s.vote.id, kind: s.vote.kind, by: this.nm(s.vote.by), mineBy: s.vote.by === pid, yes: s.vote.yes.length, of: s.vote.need.length,
+      canAnswer: s.vote.need.includes(pid) && !s.vote.yes.includes(pid), waitingFor: s.vote.need.filter((id) => !s.vote.yes.includes(id)).map((id) => this.nm(id)) };
+    me.resignAsked = s.reqs.some((q) => q.type === "resign" && q.pid === pid);
     // اللي ينطر اعتمادي: أشوف الرقم بس عشان أتأكد، وما أشوف أي مجموع
     me.toApprove = s.reqs.filter((q) => q.need.includes(pid) && !q.ok.includes(pid)).map((q) => ({
       id: q.id, type: q.type, name: q.pid ? this.nm(q.pid) : null, a: q.a ? this.nm(q.a) : null, b: q.b ? this.nm(q.b) : null,
