@@ -126,7 +126,7 @@ export class Room extends DurableObject {
     if (m.t === "join") {
       const name = String(m.name || "").trim().replace(/\s+/g, " ").slice(0, 24);
       if (!name) return this.err(ws, "اكتب اسمك.");
-      if (s.phase !== "lobby") return this.err(ws, "اللعبة بدت، انتظر لين تخلص الجولة.");
+      if (s.phase !== "lobby") return this.err(ws, "اللعبة بدت، انطر لين تخلص الجولة.");
       if (s.lobby.length >= MAX_PLAYERS) return this.err(ws, "الغرفة فلّت.");
       if (s.lobby.some((id) => s.players[id].name === name)) return this.err(ws, "هالاسم مستخدم، غيّره شوي.");
       const pid = sid(), token = tok();
@@ -229,7 +229,7 @@ export class Room extends DurableObject {
     s.votes[v] = t;
     s.voteTurn++;
     this.curVoter();
-    s.announce = this.curVoter() ? `دور ${this.nm(this.curVoter())} يصوّت.` : "الكل صوّت. القاضي يعلن النتيجة.";
+    s.announce = this.curVoter() ? `دور ${this.nm(this.curVoter())} يصوّت.` : "الكل صوّت. القاضي بيطلّع النتيجة.";
   }
   log(t) { this.s.log.push(t); if (this.s.log.length > 120) this.s.log.shift(); }
   ev(type, extra = {}) { this.s.event = { id: sid(), at: Date.now(), type, ...extra }; }
@@ -331,10 +331,10 @@ export class Room extends DurableObject {
     const s = this.s, k = s.night.kill, sv = s.night.save;
     let msg;
     if (!k) { msg = "ما صار اغتيال الليلة."; this.ev("nokill"); }
-    else if (k === sv) { msg = "الاغتيال فشل، الطبيب أنقذ المغتال."; this.log(`الطبيب أنقذ ${this.nm(k)}`); this.ev("saved"); }
+    else if (k === sv) { msg = "الاغتيال ما زبط، الطبيب لحّق عليه."; this.log(`الطبيب لحّق على ${this.nm(k)}`); this.ev("saved"); }
     else {
       this.eliminate(k, "اغتيال");
-      msg = `عملية الاغتيال نجحت، ${this.nm(k)} طلع من اللعبة.`;
+      msg = `الاغتيال زبط، ${this.nm(k)} طلع من اللعبة.`;
       const sniper = s.roles[k] === "sniper";
       if (sniper) { msg += ` ${this.nm(k)} قناص، بيسحب واحد وياه.`; s.sniperPending = k; }
       this.ev("kill", { who: this.nm(k), sniper });
@@ -349,8 +349,8 @@ export class Room extends DurableObject {
     const max = Math.max(0, ...Object.values(t));
     const top = Object.keys(t).filter((k) => t[k] === max);
     let msg;
-    if (max === 0) { msg = "ما أحد صوّت، التصويت لاغي."; this.ev("tie", { none: true }); }
-    else if (top.length > 1) { msg = "تعادل بالأصوات، التصويت لاغي."; this.log("تعادل بالتصويت"); this.ev("tie"); }
+    if (max === 0) { msg = "ما أحد صوّت، التصويت ما ينحسب."; this.ev("tie", { none: true }); }
+    else if (top.length > 1) { msg = "تعادلوا بالأصوات، التصويت ما ينحسب."; this.log("تعادل بالتصويت"); this.ev("tie"); }
     else {
       const o = top[0];
       this.eliminate(o, "تصويت");
@@ -381,7 +381,7 @@ export class Room extends DurableObject {
     if (m === 0) w = "town"; else if (m >= t) w = "mafia";
     if (!w) return;
     Object.assign(s, { phase: "over", winner: w, timer: null, step: null });
-    s.announce = w === "town" ? "الشعب فاز! صادوا كل المافيا." : "المافيا فازت! تعادلوا مع الشعب.";
+    s.announce = w === "town" ? "الشعب فاز! صادوا كل المافيا." : "المافيا فازت! صاروا قد الشعب.";
     const prev = s.event;
     this.ev("win", { winner: w, after: prev && prev.type !== "win" ? prev : null });
     this.log(s.announce);
