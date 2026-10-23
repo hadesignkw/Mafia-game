@@ -2,7 +2,9 @@ import { DurableObject } from "cloudflare:workers";
 
 /* =========== تسجيل برلمان =========== */
 // الحكم يسجل أصوات كل لاعب كل جولة. عدد الجولات بعدد اللاعبين.
-// وضعين: يدوي (الحكم يسجل كل شي) أو اللاعبين يسجلون والحكم يعتمد.
+// ثلاث أوضاع: يدوي (الحكم يسجل كل شي)، اللاعبين يسجلون والحكم يعتمد،
+// أو بدون حكم (free): الكل يلعب، واثنين من أهل الثقة يعتمدون بس وما يشوفون الأصوات.
+const FLASH_MS = 10e3;
 const ROOM_TTL = 12 * 3600e3;
 const MAX_PLAYERS = 30;
 const MAX_AMT = 1e7;
@@ -21,17 +23,27 @@ export class Parl extends DurableObject {
   alive() { return !!this.s && Date.now() - (this.s.touched || 0) < ROOM_TTL; }
   async exists() { return this.alive() ? { ok: true, mode: this.s.mode } : { ok: false }; }
 
-  async create(code, mode) {
+  async create(code, mode, ownerName) {
     if (this.alive()) return null;
     const judgeToken = tok();
+    mode = mode === "manual" ? "manual" : mode === "free" ? "free" : "players";
     this.s = {
-      code, judgeToken, mode: mode === "manual" ? "manual" : "players", createdAt: Date.now(), touched: Date.now(),
+      code, judgeToken, mode, createdAt: Date.now(), touched: Date.now(),
       players: {}, order: [], phase: "setup", rounds: [], cur: -1, pending: [], swapAsk: null,
       secret: null, archive: [], event: null, gameNo: 1,
+      owner: null, trust: [], reqs: [], swaps: [], vote: null, flash: {}, notice: {},
     };
+    let token = judgeToken;
+    if (mode === "free") {
+      // اللي يفتح الغرفة يلعب، وهو أول واحد من أهل الثقة
+      const pid = sid(); token = tok();
+      this.s.players[pid] = { name: cleanName(ownerName) || "صاحب الغرفة", token };
+      this.s.order.push(pid);
+      this.s.owner = pid; this.s.trust = [pid];
+    }
     await this.save();
     await this.ctx.storage.setAlarm(Date.now() + ROOM_TTL + 60e3);
-    return { code, token: judgeToken, mode: this.s.mode };
+    return { code, token, mode, player: mode === "free" };
   }
 
   async alarm() {
@@ -70,7 +82,7 @@ export class Parl extends DurableObject {
       return;
     }
     if (m.t === "join") {
-      if (s.mode !== "players") return this.err(ws, "هالجلسة الحكم يسجل فيها بروحه.");
+      if (s.mode === "manual") return this.err(ws, "هالجلسة الحكم يسجل فيها بروحه.");
       const name = cleanName(m.name);
       if (!name) return this.err(ws, "اكتب اسمك.");
       if (s.phase !== "setup") return this.err(ws, "الجلسة بدت، انطر لين تخلص.");
@@ -87,7 +99,7 @@ export class Parl extends DurableObject {
 
     let r;
     if (att.judge) r = await this.judgeCmd(m, ws);
-    else if (att.pid && s.players[att.pid]) r = await this.playerCmd(att.pid, m, ws);
+    else if (att.pid && s.players[att.pid]) r = s.mode === "free" ? await this.freeCmd(att.pid, m, ws) : await this.playerCmd(att.pid, m, ws);
     else return;
     if (r === "wiped" || !this.s) return;
     await this.save();
@@ -108,7 +120,7 @@ export class Parl extends DurableObject {
   isDone(pid) { const r = this.round(); return !!(r && r.done && r.done[pid]); }
   // منو لازم يحط مجموعه الحين
   needs(pid) {
-    const r = this.round(); if (!r || this.s.mode !== "players" || this.isDone(pid)) return false;
+    const r = this.round(); if (!r || this.s.mode === "manual" || this.isDone(pid)) return false;
     if (r.status === "open") return r.resigned.includes(pid);
     if (r.status === "counting") return (r.need || []).includes(pid);
     return false;
@@ -255,24 +267,7 @@ export class Parl extends DurableObject {
         this.ev("resign", { name: this.nm(m.id) });
         return;
       }
-      case "end": {
-        if (!this.roundOpen()) return;
-        const kind = ["sort", "cards", "dissolve"].includes(m.kind) ? m.kind : null;
-        if (!kind) return;
-        const last = s.cur === s.order.length - 1;
-        if (kind === "sort" && s.cur === 0) return this.err(ws, "الجولة الأولى ما فيها فرز.");
-        if (kind === "dissolve" && (s.cur === 0 || last)) return this.err(ws, "الجولة الأولى والأخيرة ما فيها حل مجلس.");
-        const r = this.round();
-        // اللاعبين يحطون مجاميعهم: بالفرز وخلصة الكروت الكل، وبالحل بس المستقيلين اللي ما حطوا للحين
-        const need = s.mode !== "players" ? [] : kind === "dissolve"
-          ? r.resigned.filter((id) => !this.isDone(id))
-          : s.order.filter((id) => !this.isDone(id));
-        if (!need.length) return this.closeRound(kind);
-        r.status = "counting"; r.endKind = kind; r.need = need; r.done = r.done || {};
-        s.swapAsk = null; s.pending = s.pending.filter((p) => p.kind === "final");
-        this.ev("count", { kind, no: r.no, last });
-        return;
-      }
+      case "end": return this.endRound(m.kind, ws);
       case "nextRound": {
         const r = this.round();
         if (s.phase !== "play" || !r || r.status !== "counting") return;
@@ -315,6 +310,37 @@ export class Parl extends DurableObject {
     this.ev("swap", { a: this.nm(a), b: this.nm(b) });
   }
 
+  // يرجع نص الغلط إذا ما يصير، أو null إذا يصير
+  endCheck(kind) {
+    const s = this.s;
+    if (!this.roundOpen()) return "ما في جولة شغالة.";
+    if (!["sort", "cards", "dissolve"].includes(kind)) return "؟";
+    const last = s.cur === s.order.length - 1;
+    if (kind === "sort" && s.cur === 0) return "الجولة الأولى ما فيها فرز.";
+    if (kind === "dissolve" && (s.cur === 0 || last)) return "الجولة الأولى والأخيرة ما فيها حل مجلس.";
+    return null;
+  }
+  endRound(kind, ws) {
+    const s = this.s, r = this.round();
+    const bad = this.endCheck(kind);
+    if (bad) return ws ? this.err(ws, bad) : undefined;
+    const last = s.cur === s.order.length - 1;
+    // اللاعبين يحطون مجاميعهم: بالفرز وخلصة الكروت الكل، وبالحل بس المستقيلين اللي ما حطوا للحين
+    const need = s.mode === "manual" ? [] : kind === "dissolve"
+      ? r.resigned.filter((id) => !this.isDone(id))
+      : s.order.filter((id) => !this.isDone(id));
+    if (!need.length) return this.closeRound(kind);
+    r.status = "counting"; r.endKind = kind; r.need = need; r.done = r.done || {};
+    s.swapAsk = null; s.pending = s.pending.filter((p) => p.kind === "final");
+    if (s.mode === "free") { s.swaps = []; s.reqs = s.reqs.filter((q) => q.type === "final" || q.type === "secret"); }
+    this.ev("count", { kind, no: r.no, last });
+  }
+  // بدون حكم: أول ما الكل ينسجل تبدا الجولة اللي بعدها بروحها
+  maybeAdvance() {
+    const s = this.s, r = this.round();
+    if (s.mode === "free" && r && r.status === "counting" && (r.need || []).every((id) => this.isDone(id))) this.closeRound(r.endKind);
+  }
+
   recordFinal(pid, amt, by, asked, calc) {
     const r = this.round();
     this.push({ k: "add", pid, amt, by, final: true, asked: asked ?? null, calc: String(calc || "").slice(0, 60) || null });
@@ -325,7 +351,8 @@ export class Parl extends DurableObject {
     const s = this.s;
     s.rounds.push({ no: s.rounds.length + 1, status: "open", resigned: [], ev: [], startedAt: Date.now() });
     s.cur = s.rounds.length - 1;
-    s.pending = []; s.swapAsk = null;
+    s.pending = []; s.swapAsk = null; s.swaps = []; s.vote = null;
+    s.reqs = (s.reqs || []).filter((q) => q.type === "secret");
     this.ev("round", { no: s.cur + 1, of: s.order.length });
   }
 
@@ -347,7 +374,7 @@ export class Parl extends DurableObject {
 
   over(keepEvent) {
     const s = this.s;
-    s.phase = "over"; s.pending = []; s.swapAsk = null; s.endedAt = Date.now();
+    s.phase = "over"; s.pending = []; s.swapAsk = null; s.endedAt = Date.now(); s.reqs = []; s.swaps = []; s.vote = null; s.secret = null;
     if (!keepEvent) this.ev("over");
     else s.event.then = "over";
   }
@@ -359,6 +386,194 @@ export class Parl extends DurableObject {
       players: s.order.map((id) => ({ id, name: this.nm(id) })), rounds: s.rounds, totals: this.totals(),
     });
     if (s.archive.length > 20) s.archive.shift();
+  }
+
+  /* ---------- بدون حكم ---------- */
+  // منو يعتمد: أهل الثقة إلا اللي لهم علاقة بالطلب.
+  // وإذا أهل الثقة الاثنين هم أصحاب الطلب (بدلوا ويا بعض)، يختارون واحد ثالث يعتمد
+  approvers(...ids) {
+    const s = this.s;
+    return s.trust.filter((t) => s.order.includes(t) && !ids.includes(t));
+  }
+  addReq(q) { q.id = sid(); q.at = Date.now(); q.ok = []; q.round = this.s.cur; if (!q.need.length) q.pick = true; this.s.reqs.push(q); return q; }
+  notify(pid, text) { this.s.notice[pid] = { id: sid(), text }; }
+
+  async freeCmd(pid, m, ws) {
+    const s = this.s, r = this.round();
+    const owner = pid === s.owner, P = (id) => s.order.includes(id);
+    switch (m.t) {
+      /* صاحب الغرفة */
+      case "remove": {
+        if (!owner || s.phase !== "setup" || !P(m.id) || m.id === s.owner) return;
+        s.order = s.order.filter((x) => x !== m.id); delete s.players[m.id];
+        s.trust = s.trust.filter((x) => x !== m.id);
+        for (const w of this.ctx.getWebSockets()) { const a = w.deserializeAttachment(); if (a && a.pid === m.id) { this.send(w, { t: "kicked" }); w.serializeAttachment({}); } }
+        return;
+      }
+      case "move": {
+        if (!owner || s.phase !== "setup" || !P(m.id)) return;
+        const i = s.order.indexOf(m.id), j = i + (m.dir > 0 ? 1 : -1);
+        if (j < 0 || j >= s.order.length) return;
+        [s.order[i], s.order[j]] = [s.order[j], s.order[i]];
+        return;
+      }
+      case "setTrust": {
+        if (!owner || s.phase !== "setup" || !P(m.id) || m.id === s.owner) return;
+        s.trust = [s.owner, m.id];
+        return;
+      }
+      case "start": {
+        if (!owner || s.phase !== "setup") return;
+        if (s.order.length < 3) return this.err(ws, "تحتاج 3 لاعبين على الأقل.");
+        if (s.trust.length < 2) return this.err(ws, "اختار الشخص الثاني من أهل الثقة.");
+        Object.assign(s, { phase: "play", rounds: [], cur: -1, reqs: [], swaps: [], vote: null, flash: {}, secret: null, startedAt: Date.now() });
+        this.openRound();
+        return;
+      }
+      case "again": {
+        if (!owner || s.phase !== "over") return;
+        this.archiveGame();
+        Object.assign(s, { phase: "setup", rounds: [], cur: -1, reqs: [], swaps: [], vote: null, secret: null, flash: {}, gameNo: (s.gameNo || 1) + 1 });
+        this.ev("again");
+        return;
+      }
+      case "closeRoom": if (!owner) return; await this.wipe(); return "wiped";
+
+      /* البدل: واحد يبدا، والاثنين يكتبون أصواتهم، وأهل الثقة يعتمدون */
+      case "swapStart": {
+        if (!this.roundOpen() || !P(m.with) || m.with === pid) return;
+        if (this.isResigned(pid) || this.isResigned(m.with)) return this.err(ws, "المستقيل ما يبدل.");
+        if (s.swaps.some((w) => [w.a, w.b].includes(pid) || [w.a, w.b].includes(m.with)) || s.reqs.some((q) => q.type === "swap" && [q.a, q.b].some((x) => x === pid || x === m.with)))
+          return this.err(ws, "فيه بدل مفتوح لواحد منكم، خلصوه أول.");
+        s.swaps.push({ id: sid(), a: pid, b: m.with, amt: {}, at: Date.now() });
+        return;
+      }
+      case "swapAmt": {
+        const w = s.swaps.find((x) => x.id === m.id && (x.a === pid || x.b === pid));
+        if (!w || !this.roundOpen()) return;
+        const amt = num(m.amt);
+        if (!Number.isFinite(amt) || amt < 0 || amt > MAX_AMT) return this.err(ws, "اكتب رقم صحيح.");
+        w.amt[pid] = amt;
+        if (w.amt[w.a] != null && w.amt[w.b] != null) {
+          s.swaps = s.swaps.filter((x) => x !== w);
+          this.addReq({ type: "swap", a: w.a, b: w.b, amtA: w.amt[w.a], amtB: w.amt[w.b], total: w.amt[w.a] + w.amt[w.b], need: this.approvers(w.a, w.b) });
+        }
+        return;
+      }
+      case "swapCancel": {
+        const w = s.swaps.find((x) => x.id === m.id && (x.a === pid || x.b === pid));
+        if (w) { s.swaps = s.swaps.filter((x) => x !== w); this.notify(w.a === pid ? w.b : w.a, `${this.nm(pid)} لغى البدل.`); }
+        return;
+      }
+      /* الاستقالة ومجموع الأصوات */
+      case "resign": {
+        if (!this.roundOpen() || this.isResigned(pid)) return;
+        r.resigned.push(pid);
+        this.push({ k: "resign", pid });
+        s.swaps = s.swaps.filter((w) => w.a !== pid && w.b !== pid);
+        this.ev("resign", { name: this.nm(pid) });
+        return;
+      }
+      case "submit": {
+        if (!this.roundLive() || !this.needs(pid)) return this.err(ws, "مو وقت تحط مجموعك.");
+        if (s.reqs.some((q) => q.type === "final" && q.pid === pid)) return this.err(ws, "مجموعك ينطر الاعتماد.");
+        const amt = num(m.amt);
+        if (!Number.isFinite(amt) || amt < 0 || amt > MAX_AMT) return this.err(ws, "اكتب رقم صحيح.");
+        this.addReq({ type: "final", pid, amt, calc: String(m.calc || "").slice(0, 60) || null, need: this.approvers(pid) });
+        this.send(ws, { t: "sent", text: "وصل لأهل الثقة، ينطرون يعتمدونه." });
+        return;
+      }
+      case "fixLast": {
+        // غلطت؟ تطلب إلغاء آخر مجموع حطيته، ويحتاج موافقة أهل الثقة
+        if (!this.roundLive() || !this.isDone(pid)) return;
+        if (s.reqs.some((q) => q.type === "fix" && q.pid === pid)) return;
+        this.addReq({ type: "fix", pid, need: this.approvers(pid) });
+        return;
+      }
+      /* الجلسة السرية */
+      case "secretAsk": {
+        if (s.phase !== "play" || s.secret || s.reqs.some((q) => q.type === "secret")) return this.err(ws, "فيه جلسة سرية مفتوحة أو تنطر.");
+        this.addReq({ type: "secret", pid, need: this.approvers(pid) });
+        return;
+      }
+      case "secretClose": if (s.secret === pid) { s.secret = null; this.ev("secretEnd", { name: this.nm(pid) }); } return;
+      case "away": if (s.secret === pid) this.ev("secretAway", { name: this.nm(pid) }); return;
+      /* فرز / خلصت الكروت / حل: الكل لازم يوافق */
+      case "propose": {
+        if (s.vote) return this.err(ws, "فيه تصويت مفتوح.");
+        const bad = this.endCheck(m.kind);
+        if (bad) return this.err(ws, bad);
+        s.vote = { id: sid(), kind: m.kind, by: pid, yes: [pid], at: Date.now() };
+        return this.checkVote();
+      }
+      case "voteAns": {
+        const v = s.vote;
+        if (!v || v.id !== m.id || v.yes.includes(pid)) return;
+        if (!m.yes) { s.vote = null; for (const id of s.order) this.notify(id, `${this.nm(pid)} ما وافق، الجولة كملت.`); return; }
+        v.yes.push(pid);
+        return this.checkVote();
+      }
+      case "pickApprover": {
+        const q = s.reqs.find((x) => x.id === m.id && x.pick);
+        const inv = q ? (q.type === "swap" ? [q.a, q.b] : [q.pid]) : [];
+        if (!q || !inv.includes(pid) || !P(m.who) || inv.includes(m.who)) return;
+        q.pick = false; q.need = [m.who]; q.pickedBy = pid;
+        this.notify(m.who, `${this.nm(pid)} اختارك تعتمد ${q.type === "swap" ? "بدلهم" : "طلبه"}.`);
+        return;
+      }
+      /* اعتماد أهل الثقة */
+      case "approve":
+      case "reject": {
+        const q = s.reqs.find((x) => x.id === m.id);
+        if (!q || !q.need.includes(pid) || q.ok.includes(pid)) return;
+        if (m.t === "reject") {
+          s.reqs = s.reqs.filter((x) => x !== q);
+          const who = q.type === "swap" ? [q.a, q.b] : [q.pid];
+          const what = { final: "مجموعك", swap: "البدل", secret: "طلب الجلسة السرية", fix: "طلب التعديل" }[q.type];
+          for (const id of who) this.notify(id, `${this.nm(pid)} ما اعتمد ${what}. ${q.type === "final" ? "حطه مرة ثانية." : ""}`);
+          if (q.type === "final" && r) this.push({ k: "rej", kind: "add", pid: q.pid, amt: q.amt, by: pid });
+          return;
+        }
+        q.ok.push(pid);
+        if (q.ok.length >= q.need.length) this.execReq(q);
+        return;
+      }
+    }
+  }
+
+  checkVote() {
+    const s = this.s, v = s.vote;
+    if (!v) return;
+    if (s.order.every((id) => v.yes.includes(id))) { s.vote = null; this.endRound(v.kind); }
+  }
+
+  execReq(q) {
+    const s = this.s;
+    s.reqs = s.reqs.filter((x) => x !== q);
+    if (q.type === "final") {
+      if (!this.roundLive() || q.round !== s.cur || !this.needs(q.pid)) return;
+      this.recordFinal(q.pid, q.amt, "self", null, q.calc);
+      this.maybeAdvance();
+    } else if (q.type === "swap") {
+      if (!this.roundOpen() || q.round !== s.cur) return;
+      this.push({ k: "swap", a: q.a, b: q.b, total: q.total, amtA: q.amtA, amtB: q.amtB, by: "free" });
+      const now = Date.now();
+      s.flash[q.a] = { id: sid(), total: q.total, with: this.nm(q.b), at: now };
+      s.flash[q.b] = { id: sid(), total: q.total, with: this.nm(q.a), at: now };
+      this.ev("swap", { a: this.nm(q.a), b: this.nm(q.b) });
+    } else if (q.type === "fix") {
+      const r = this.round();
+      if (!this.roundLive() || q.round !== s.cur) return;
+      const e = r.ev.filter((x) => x.k === "add" && x.final && x.pid === q.pid && !r.ev.some((c) => c.k === "cancel" && c.target === x.id)).pop();
+      if (!e) return;
+      this.push({ k: "cancel", target: e.id, by: "free" });
+      delete r.done[q.pid];
+      this.notify(q.pid, "انلغى مجموعك، حطه من جديد.");
+    } else if (q.type === "secret") {
+      if (s.phase !== "play" || s.secret) return;
+      s.secret = q.pid;
+      this.ev("secret", { name: this.nm(q.pid) });
+    }
   }
 
   /* ---------- أوامر اللاعب ---------- */
@@ -391,6 +606,42 @@ export class Parl extends DurableObject {
         return;
       }
     }
+  }
+
+  freeView(pub, pid) {
+    const s = this.s, r = this.round();
+    pub.trust = s.trust.slice();
+    pub.owner = s.owner;
+    const me = pub.me = { id: pid, name: this.nm(pid), owner: pid === s.owner, trusted: s.trust.includes(pid), resigned: !!(r && r.resigned.includes(pid)) };
+    if (s.secret === pid) pub.record = this.record();
+    const n = s.notice[pid]; if (n) me.notice = n;
+    const f = s.flash[pid]; if (f && Date.now() - f.at < FLASH_MS) me.flash = { ...f, left: FLASH_MS - (Date.now() - f.at) };
+    if (s.phase !== "play" || !r) return pub;
+    const myReq = s.reqs.find((q) => (q.type === "final" || q.type === "fix") && q.pid === pid);
+    me.ask = this.needs(pid) && !myReq;
+    me.waiting = !!(myReq && myReq.type === "final");
+    me.fixing = !!(myReq && myReq.type === "fix");
+    me.done = this.isDone(pid);
+    me.counting = r.status === "counting";
+    if (r.status === "counting") me.left = (r.need || []).filter((id) => !this.isDone(id)).length;
+    // البدل اللي أنا فيه
+    const w = s.swaps.find((x) => x.a === pid || x.b === pid);
+    if (w) me.swap = { id: w.id, with: this.nm(w.a === pid ? w.b : w.a), started: w.a === pid, mine: w.amt[pid] != null };
+    const wq = s.reqs.find((q) => q.type === "swap" && (q.a === pid || q.b === pid));
+    if (wq) me.swapWait = { with: this.nm(wq.a === pid ? wq.b : wq.a) };
+    me.secretAsked = s.reqs.some((q) => q.type === "secret" && q.pid === pid);
+    // أهل الثقة بدلوا ويا بعض: يختارون واحد يعتمد
+    const pk = s.reqs.find((q) => q.pick && (q.type === "swap" ? [q.a, q.b] : [q.pid]).includes(pid));
+    if (pk) me.pick = { id: pk.id, type: pk.type, with: pk.type === "swap" ? this.nm(pk.a === pid ? pk.b : pk.a) : null };
+    // التصويت على نهاية الجولة
+    if (s.vote) pub.vote = { id: s.vote.id, kind: s.vote.kind, by: this.nm(s.vote.by), yes: s.vote.yes.length, of: s.order.length, mine: s.vote.yes.includes(pid), waitingFor: s.order.filter((id) => !s.vote.yes.includes(id)).map((id) => this.nm(id)) };
+    // اللي ينطر اعتمادي: أشوف الرقم بس عشان أتأكد، وما أشوف أي مجموع
+    me.toApprove = s.reqs.filter((q) => q.need.includes(pid) && !q.ok.includes(pid)).map((q) => ({
+      id: q.id, type: q.type, name: q.pid ? this.nm(q.pid) : null, a: q.a ? this.nm(q.a) : null, b: q.b ? this.nm(q.b) : null,
+      amt: q.amt, amtA: q.amtA, amtB: q.amtB, total: q.total, okBy: q.ok.map((x) => this.nm(x)), at: q.at,
+    }));
+    pub.canEnd = { sort: !this.endCheck("sort"), cards: !this.endCheck("cards"), dissolve: !this.endCheck("dissolve") };
+    return pub;
   }
 
   /* ---------- اللي يوصل لكل واحد ---------- */
@@ -442,6 +693,7 @@ export class Parl extends DurableObject {
       return pub;
     }
     const pid = a.pid;
+    if (s.mode === "free") return this.freeView(pub, pid);
     pub.me = { id: pid, name: this.nm(pid), resigned: !!(r && r.resigned.includes(pid)) };
     if (s.secret === pid) pub.record = this.record();
     // اللاعب ما يشوف أي أرقام (ولا أرقامه) إلا بالجلسة السرية. يوصله بس سؤال البدل

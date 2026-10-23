@@ -57,10 +57,11 @@ export default {
     }
     /* ---------- تسجيل برلمان ---------- */
     if (url.pathname === "/api/parl/create" && req.method === "POST") {
-      const mode = url.searchParams.get("mode") === "manual" ? "manual" : "players";
+      const mp = url.searchParams.get("mode"), mode = mp === "manual" ? "manual" : mp === "free" ? "free" : "players";
+      const name = url.searchParams.get("name") || "";
       for (let i = 0; i < 25; i++) {
         const code = String(1000 + Math.floor(Math.random() * 9000));
-        const r = await env.PARL.get(env.PARL.idFromName(code)).create(code, mode);
+        const r = await env.PARL.get(env.PARL.idFromName(code)).create(code, mode, name);
         if (r) return json(r);
       }
       return json({ error: "ما قدرت أفتح جلسة، جرّب مرة ثانية." }, 503);
