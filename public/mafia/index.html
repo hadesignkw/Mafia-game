@@ -249,6 +249,8 @@ table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-bottom:1px s
 .medal .mn{font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .medal .ml{font-size:.75rem;color:var(--muted)}
 @keyframes medalIn{from{opacity:0;transform:translateY(24px) scale(.6)}}
+.btn.share{display:flex;align-items:center;justify-content:center;gap:8px;border-color:color-mix(in srgb,var(--brass) 55%,transparent);color:var(--brass-hi)}
+.btn.share svg{width:20px;height:20px}
 .links{display:flex;justify-content:center;gap:6px 22px;flex-wrap:wrap;margin-top:-4px}
 .lnk{font:inherit;font-size:.95rem;background:none;border:0;padding:6px 2px;color:var(--brass-hi);cursor:pointer;text-decoration:underline;text-decoration-color:rgb(201 163 91 / .4);text-underline-offset:6px}
 .lnk:disabled{opacity:.5}
@@ -685,6 +687,15 @@ async function joinCode(c){
 function submitName(n){n=String(n||"").trim();if(!n)return toast("اكتب اسمك");lsSet("mafia.name",n);send({t:"join",name:n})}
 function leave(){if(demo)return endDemo("");if(st&&st.me&&st.phase==="lobby")send({t:"leave"});endSession("")}
 
+/* رابط الغرفة: اللي يفتحه يدخل الغرفة على طول */
+async function shareRoom(){
+  const code=st&&st.code;if(!code)return;
+  const url=`${location.origin}/mafia/?r=${code}`;
+  const text=`تعال العب مافيا 🎭 رقم الغرفة ${code}`;
+  try{if(navigator.share){await navigator.share({title:"المافيا",text,url});return}}catch(e){if(e&&e.name==="AbortError")return}
+  try{await navigator.clipboard.writeText(text+"\n"+url);toast("نسخت الرابط، الصقه للربع")}
+  catch{prompt("انسخ الرابط:",url)}
+}
 /* ---------- وضع التجربة: قاضي ولاعبين وهميين على جهاز واحد ---------- */
 let demo=null; // {code, active, list:[{key,label,token,judge,ws,st,lastEv,notesSeen,lastGen}]}
 async function startDemo(n){
@@ -956,6 +967,7 @@ function judgeView(){
     const n=st.players.length;
     h+=`<div class="panel"><h3>اللاعبين يدخلون برقم الغرفة</h3><p style="font-family:var(--display);font-size:3rem;text-align:center;letter-spacing:.2em;color:var(--brass);margin:0">${ar(st.code)}</p>
     <p class="muted small">${ar(n)} لاعب دخل${J.mafiaNext?` · المافيا بتكون ${ar(J.mafiaNext)}`:` · تحتاج ${ar(st.minPlayers-n)} بعد`}</p>
+    <button class="btn share" data-a="share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v14"/></svg>ارسل رابط الغرفة</button>
     <button class="btn primary" data-a="cmd" data-c="start" ${n<st.minPlayers?"disabled":""}>وزّع الكروت</button></div>
     <div class="panel"><h3>منو دخل <span class="count">${ar(n)}</span></h3>${n?seats(true):`<p class="muted">ما أحد دخل للحين.</p>`}</div>`;
     return h;
@@ -1187,6 +1199,7 @@ document.addEventListener("click",e=>{
   if(a==="create")createRoom();
   else if(a==="leave")leave();
   else if(a==="endDemo")endDemo("");
+  else if(a==="share")shareRoom();
   else if(a==="demoOpen"){demoOpen=!demoOpen;render()}
   else if(a==="persona")switchPersona(+b.dataset.i);
   else if(a==="demo")startDemo(+($("#demoN")&&$("#demoN").value||8));
@@ -1209,7 +1222,12 @@ document.addEventListener("pointerdown",e=>{
 /* حفظ توكن اللاعب لكل غرفة عشان لو طلع ورجع */
 setInterval(()=>{if(sess&&!sess.judge&&sess.token)lsSet("mafia.tok."+sess.code,sess.token)},1500);
 
-if(sess&&sess.code){view="game";render();connect()}else render();
+const linkCode=(new URLSearchParams(location.search).get("r")||"").replace(/\D/g,"");
+if(linkCode)try{history.replaceState(null,"",location.pathname)}catch{}
+if(/^\d{4}$/.test(linkCode)&&!(sess&&sess.code===linkCode)){
+  if(sess){try{ws&&ws.close()}catch{}sess=null;lsSet("mafia.sess",null)}
+  render();const ci=$("#codeIn");if(ci)ci.value=linkCode;setTimeout(()=>joinCode(linkCode),1900);
+}else if(sess&&sess.code){view="game";render();connect()}else render();
 </script>
 </body>
 </html>
