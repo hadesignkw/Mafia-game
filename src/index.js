@@ -334,7 +334,7 @@ export class Room extends DurableObject {
     else if (k === sv) { msg = "اغتيال شامط، الطبيب موجووووود 🔥"; this.log(`الطبيب لحّق على ${this.nm(k)}`); this.ev("saved"); }
     else {
       this.eliminate(k, "اغتيال");
-      msg = `انغتال ${this.nm(k)} وطلع من اللعبة.`;
+      msg = `انغتال ${this.nm(k)} وطلع من اللعبة. صيدة سهلة والطبيب مدوّج 😴`;
       const sniper = s.roles[k] === "sniper";
       if (sniper) { msg += ` ${this.nm(k)} قناص، بيسحب واحد وياه.`; s.sniperPending = k; }
       this.ev("kill", { who: this.nm(k), sniper });
