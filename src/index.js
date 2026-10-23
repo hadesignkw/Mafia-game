@@ -2,8 +2,8 @@ import { DurableObject } from "cloudflare:workers";
 
 /* =========== قوانين اللعبة =========== */
 const ROLE_N = {
-  mafia: "مافيا", cop: "الشرطي الحقيقي",
-  doctor: "البيطري", sniper: "القناص", citizen: "مواطن",
+  mafia: "مافيا", cop: "الشريييف 👮",
+  doctor: "البيطري", sniper: "القناص", citizen: "فداوي",
 };
 const isM = (r) => r === "mafia";
 const mafiaCount = (n) => 2 + Math.floor((n - 6) / 4); // ٦–٩:٢ · ١٠–١٣:٣ · ١٤–١٧:٤
@@ -264,7 +264,7 @@ export class Room extends DurableObject {
           s.announce = `التصويت بالدور. أول واحد: ${this.nm(o[0])}.`;
         }
         break;
-      case "closeVote": if (s.phase === "vote" && !this.curVoter()) this.closeVote(); break; // التصويت إلزامي
+      case "closeVote": if (s.phase === "vote" && !this.curVoter()) this.closeVote(); break; // لازم الكل يصوّت
       case "voteFor": if (s.phase === "vote") this.castVote(this.curVoter(), id); break; // القاضي يصوّت بدال اللي تلفونه فيه مشكلة
       case "talk":
         if (s.phase === "day" && s.alive[id] && !s.sniperPending) { s.timer = { pid: id, name: this.nm(id), endsAt: Date.now() + TALK * 1000, dur: TALK, id: sid() }; (s.talked = s.talked || {})[id] = true; s.announce = ""; }
@@ -275,13 +275,13 @@ export class Room extends DurableObject {
         if (s.event) { s.event.closed = true; if (s.event.after) s.event.after.closed = true; }
         break;
       case "setFake":
-        if (s.phase === "night0" && isM(s.roles[id]) && s.alive[id]) { s.fakeCop = id; s.night.fakeByJudge = true; this.log(`القاضي عيّن ${this.nm(id)} نصاب`); }
+        if (s.phase === "night0" && isM(s.roles[id]) && s.alive[id]) { s.fakeCop = id; s.night.fakeByJudge = true; this.log(`القاضي حط ${this.nm(id)} نصاب`); }
         break;
       case "killFor": // تلفونات المافيا فيها مشكلة: القاضي يختار الاغتيال
         if (s.phase === "night" && s.step === "mafia" && s.alive[id]) { s.night.kill = id; s.night.killByJudge = true; this.log(`القاضي اختار الاغتيال بدال المافيا: ${this.nm(id)}`); }
         break;
       case "saveFor":
-        if (s.phase === "night" && s.step === "doctor" && s.alive[id]) { s.night.save = id; this.log(`القاضي اختار الإنقاذ بدال البيطري: ${this.nm(id)}`); }
+        if (s.phase === "night" && s.step === "doctor" && s.alive[id]) { s.night.save = id; this.log(`القاضي اختار الفزعة بدال البيطري: ${this.nm(id)}`); }
         break;
       case "queryFor": { const cop = this.aliveIds().find((i) => s.roles[i] === "cop"); if (cop) this.doQuery(cop, id); break; }
       case "pickKill":
