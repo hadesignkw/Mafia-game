@@ -340,7 +340,7 @@ export class Room extends DurableObject {
   resolveMorning() {
     const s = this.s, k = s.night.kill, sv = s.night.save;
     let msg;
-    if (!k) { msg = "ما صار فقص الليلة."; this.ev("nokill"); }
+    if (!k) { msg = "المافيا ما عرفوا يفقصون الليلة."; this.ev("nokill"); }
     else if (k === sv) { msg = "فقص شامط، البيطري موجووووود 🔥"; this.log(`البيطري لحّق على ${this.nm(k)}`); this.ev("saved"); }
     else {
       this.eliminate(k, "فقص");
