@@ -165,6 +165,7 @@ export class Room extends DurableObject {
     if (a.judge) {
       pub.judge = {
         roles: s.roles, fakeCop: s.fakeCop, night: s.night, votes: s.votes, log: s.log.slice(-60),
+        queriesLeft: Math.max(0, (s.queryMax || 0) - (s.queriesUsed || 0)), queryMax: s.queryMax || 0,
         mafiaNext: s.lobby.length >= MIN_PLAYERS ? mafiaCount(s.lobby.length) : null,
       };
       return pub;
@@ -173,6 +174,7 @@ export class Room extends DurableObject {
     pub.me = { id: pid, name: s.players[pid]?.name, inGame: s.order.includes(pid) && s.phase !== "lobby" };
     if (role && pub.me.inGame) {
       Object.assign(pub.me, { role, fake: s.fakeCop === pid, notes: s.notes[pid] || [] });
+      if (role === "cop") Object.assign(pub.me, { queriesLeft: Math.max(0, (s.queryMax || 0) - (s.queriesUsed || 0)), queryMax: s.queryMax || 0 });
       if (isM(role)) pub.me.team = s.order.filter((i) => isM(s.roles[i])).map((i) => ({ id: i, role: s.roles[i], fake: s.fakeCop === i }));
       const n = s.night;
       pub.me.sel = {
@@ -245,7 +247,7 @@ export class Room extends DurableObject {
     Object.assign(s, {
       gen: s.gen + 1, order: ids, roles, alive: Object.fromEntries(ids.map((i) => [i, true])),
       phase: "night0", step: "mafia", round: 0, timer: null, sniperPending: null, winner: null, canVote: false,
-      fakeCop: null, notes: {}, votes: {}, night: blankNight(), log: [],
+      fakeCop: null, notes: {}, votes: {}, night: blankNight(), log: [], queryMax: m, queriesUsed: 0,
       announce: "كل واحد يقلب كرته ويشوف دوره، وبعدين الكل يغمض عيونه.",
     });
     this.ev("deal");
@@ -364,8 +366,9 @@ export class Room extends DurableObject {
         if (s.phase === "night" && s.step === "doctor" && alive && role === "doctor" && tA) n.save = t;
         break;
       case "query":
-        if ((s.phase === "night" || s.phase === "night0") && s.step === "police" && alive && role === "cop" && tA && t !== pid && !n.queried) {
+        if ((s.phase === "night" || s.phase === "night0") && s.step === "police" && alive && role === "cop" && tA && t !== pid && !n.queried && (s.queriesUsed || 0) < (s.queryMax || 0)) {
           n.queried = t;
+          s.queriesUsed = (s.queriesUsed || 0) + 1;
           const ans = isM(s.roles[t]) ? "مافيا" : "شعب";
           this.note(pid, `${s.phase === "night0" ? "الليلة الأولى" : "الليلة " + s.round}: ${this.nm(t)} طلع ${ans}`);
           this.log(`الشرطي استعلم عن ${this.nm(t)} ← ${ans}`);

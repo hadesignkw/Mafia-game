@@ -473,7 +473,8 @@ function nightStatus(){
     }
     rows.push(`الإنقاذ: ${n.save?`<b style="color:var(--town)">${esc(nm(n.save))}</b>`:`<span class="muted">${isAlive(whoHas("doctor"))?"ما اختار":"الطبيب طالع"}</span>`}`);
   }
-  rows.push(`الاستعلام: ${n.queried?`<b>${esc(nm(n.queried))}</b> ← ${isM(J.roles[n.queried])?"مافيا":"شعب"}`:`<span class="muted">${isAlive(whoHas("cop"))?"ما استعلم":"الشرطي طالع"}</span>`}`);
+  rows.push(`<span class="small muted">استعلامات الشرطي: باقي ${ar(J.queriesLeft)} من ${ar(J.queryMax)}</span>`);
+  rows.push(`الاستعلام: ${n.queried?`<b>${esc(nm(n.queried))}</b> ← ${isM(J.roles[n.queried])?"مافيا":"شعب"}`:`<span class="muted">${!isAlive(whoHas("cop"))?"الشرطي طالع":J.queriesLeft?"ما استعلم":"خلصت استعلاماته"}</span>`}`);
   return`<div class="list">${rows.map(r=>`<div class="li"><span class="nm">${r}</span></div>`).join("")}</div>`;
 }
 
@@ -537,8 +538,11 @@ function actionView(){
   return aliveList();
 }
 function queryBox(others){
-  const q=st.me.sel.query;
-  return`<div class="panel"><h2>استعلم عن شخص</h2><p class="muted small">استعلام واحد بالليلة، والجواب يطلع بكرتك.</p>${q?`<p>استعلمت عن <b>${esc(nm(q))}</b>: الجواب بكرتك تحت «معلوماتك السرية».</p>`:picker("query",others)}</div>`;
+  const q=st.me.sel.query,left=st.me.queriesLeft,max=st.me.queryMax;
+  const count=`<span class="chip b">باقي لك ${ar(left)} من ${ar(max)}</span>`;
+  if(q)return`<div class="panel"><h2>استعلم عن شخص</h2>${count}<p>استعلمت عن <b>${esc(nm(q))}</b>: الجواب بكرتك تحت «معلوماتك السرية».</p></div>`;
+  if(!left)return`<div class="panel"><h2>خلصت استعلاماتك</h2><p class="muted">استعملت كل استعلاماتك (${ar(max)}، بعدد المافيا). غمّض عيونك.</p></div>`;
+  return`<div class="panel"><h2>استعلم عن شخص</h2>${count}<p class="muted small">استعلام واحد بالليلة، وعدد استعلاماتك كلها بعدد المافيا. الجواب يطلع بكرتك.</p>${picker("query",others)}</div>`;
 }
 function overView(){
   const w=st.winner;
