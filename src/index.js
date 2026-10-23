@@ -10,7 +10,7 @@ const mafiaCount = (n) => 2 + Math.floor((n - 6) / 4); // ٦–٩:٢ · ١٠–�
 const MIN_PLAYERS = 6;
 const MAX_PLAYERS = 30;
 const TALK = 40;
-const STEPS0 = ["police", "mafia"]; // الليلة الأولى: الشرطي يستعلم، والمافيا يتعارفون ويختارون النصاب
+const STEPS0 = ["police", "mafia"]; // الليلة الأولى: الشريف يفتش، والمافيا يتعارفون ويختارون النصاب
 const STEPS = ["mafia", "doctor", "police"];
 // الأغلبية: إذا فيه اختيار واحد فايز يرجع، وإذا تعادل يرجع المتعادلين
 function plurality(picks) {
@@ -277,8 +277,8 @@ export class Room extends DurableObject {
       case "setFake":
         if (s.phase === "night0" && isM(s.roles[id]) && s.alive[id]) { s.fakeCop = id; s.night.fakeByJudge = true; this.log(`القاضي حط ${this.nm(id)} نصاب`); }
         break;
-      case "killFor": // تلفونات المافيا فيها مشكلة: القاضي يختار الاغتيال
-        if (s.phase === "night" && s.step === "mafia" && s.alive[id]) { s.night.kill = id; s.night.killByJudge = true; this.log(`القاضي اختار الاغتيال بدال المافيا: ${this.nm(id)}`); }
+      case "killFor": // تلفونات المافيا فيها مشكلة: القاضي يختار الفقص
+        if (s.phase === "night" && s.step === "mafia" && s.alive[id]) { s.night.kill = id; s.night.killByJudge = true; this.log(`القاضي اختار الفقص بدال المافيا: ${this.nm(id)}`); }
         break;
       case "saveFor":
         if (s.phase === "night" && s.step === "doctor" && s.alive[id]) { s.night.save = id; this.log(`القاضي اختار الفزعة بدال البيطري: ${this.nm(id)}`); }
@@ -340,11 +340,11 @@ export class Room extends DurableObject {
   resolveMorning() {
     const s = this.s, k = s.night.kill, sv = s.night.save;
     let msg;
-    if (!k) { msg = "ما صار اغتيال الليلة."; this.ev("nokill"); }
-    else if (k === sv) { msg = "اغتيال شامط، البيطري موجووووود 🔥"; this.log(`البيطري لحّق على ${this.nm(k)}`); this.ev("saved"); }
+    if (!k) { msg = "ما صار فقص الليلة."; this.ev("nokill"); }
+    else if (k === sv) { msg = "فقص شامط، البيطري موجووووود 🔥"; this.log(`البيطري لحّق على ${this.nm(k)}`); this.ev("saved"); }
     else {
-      this.eliminate(k, "اغتيال");
-      msg = `${s.roles[k] === "sniper" ? "ودّع" : "انغتال"} ${this.nm(k)} وطلع من اللعبة. صيدة سهلة والبيطري مدوّج 😴`;
+      this.eliminate(k, "فقص");
+      msg = `${s.roles[k] === "sniper" ? "ودّع" : "انفقص"} ${this.nm(k)} وطلع من اللعبة. صيدة سهلة والبيطري مدوّج 😴`;
       const sniper = s.roles[k] === "sniper";
       if (sniper) { msg += ` ${this.nm(k)} قناص، بيسحب واحد وياه.`; s.sniperPending = k; }
       this.ev("kill", { who: this.nm(k), sniper });
@@ -411,7 +411,7 @@ export class Room extends DurableObject {
     this.log(s.announce);
   }
 
-  // استعلامات الشرطي كلها باللعبة بعدد المافيا، وحدة بالليلة
+  // تفتيشات الشريف كلها باللعبة بعدد المافيا، وحدة بالليلة
   doQuery(cop, t) {
     const s = this.s, n = s.night;
     if (!((s.phase === "night" || s.phase === "night0") && s.step === "police" && s.alive[cop] && s.alive[t] && t !== cop && !n.queried && (s.queriesUsed || 0) < (s.queryMax || 0))) return;
@@ -419,7 +419,7 @@ export class Room extends DurableObject {
     s.queriesUsed = (s.queriesUsed || 0) + 1;
     const ans = isM(s.roles[t]) ? "مافيا" : "شعب";
     this.note(cop, `${s.phase === "night0" ? "الليلة الأولى" : "الليلة " + s.round}: ${this.nm(t)} طلع ${ans}`);
-    this.log(`الشرطي استعلم عن ${this.nm(t)} ← ${ans}`);
+    this.log(`الشريف فتّش عن ${this.nm(t)} ← ${ans}`);
   }
 
   // هل الخطوة الحالية خلصت؟ ما نروح للي بعدها إلا لما يختارون
