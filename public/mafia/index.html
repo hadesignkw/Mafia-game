@@ -103,64 +103,41 @@ table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-bottom:1px s
 .seat.off{opacity:.55}.seat.off .on{background:var(--blood)}.seat.off .st{color:var(--blood)}
 .seat .kick{position:absolute;top:4px;left:4px;width:26px;height:26px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--muted);font:inherit;font-size:1.1rem;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
 .seat .kick:hover,.seat .kick:focus-visible{color:#fff;background:var(--blood);border-color:var(--blood);outline:none}
-/* ---------- الباب السري ---------- */
-.den{position:relative;display:flex;flex-direction:column;align-items:center;padding-top:56px;margin-top:-6px;animation:flick 7s 3s infinite}
-.den::before{content:"";position:absolute;left:50%;top:40%;width:min(420px,110vw);height:420px;transform:translate(-50%,-50%);background:radial-gradient(closest-side,rgb(150 10 10 / .35),transparent);pointer-events:none;animation:pulseRed 4s ease-in-out infinite}
-@keyframes pulseRed{50%{opacity:.45}}
-@keyframes flick{0%,90%,100%{filter:none}91%{filter:brightness(.25)}92%{filter:none}93.5%{filter:brightness(.4)}95%{filter:none}}
-.fog{position:relative;width:min(330px,92vw);height:70px;margin-top:-56px;pointer-events:none;z-index:2;overflow:hidden;-webkit-mask-image:radial-gradient(60% 100% at 50% 100%,#000 40%,transparent 100%);mask-image:radial-gradient(60% 100% at 50% 100%,#000 40%,transparent 100%)}
-.fog i{position:absolute;bottom:-10px;left:-40%;width:180%;height:70px;border-radius:50%;background:radial-gradient(closest-side,rgb(170 160 160 / .38),transparent);filter:blur(8px);animation:fogDrift 9s ease-in-out infinite alternate}
-.fog i:last-child{animation-duration:13s;animation-direction:alternate-reverse;opacity:.7;bottom:-22px}
-@keyframes fogDrift{from{transform:translateX(-12%)}to{transform:translateX(12%)}}
-.scratch{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.scratch path{stroke:rgb(0 0 0 / .55);stroke-width:1.1;fill:none;stroke-linecap:round}
-.drip{position:absolute;top:44.5%;left:30%;right:30%;height:30px;pointer-events:none}
-.drip i{position:absolute;top:0;width:5px;border-radius:0 0 4px 4px;background:linear-gradient(#5e0b0b,#8f1414);height:0;animation:drip 5s ease-in infinite}
-.drip i::after{content:"";position:absolute;bottom:-3px;left:-1px;width:7px;height:7px;border-radius:50%;background:#8f1414}
-.drip i:nth-child(1){left:18%;animation-delay:1.5s}.drip i:nth-child(2){left:52%;animation-delay:3s;width:4px}.drip i:nth-child(3){left:80%;animation-delay:4.2s}
-@keyframes drip{0%{height:0;opacity:1}55%{height:26px;opacity:1}100%{height:30px;opacity:0}}
-.dwrap{position:relative;z-index:1;width:min(210px,56vw);aspect-ratio:2/3;perspective:900px;border-radius:50% 50% 4px 4px/24% 24% 4px 4px;
-  background:#030101;box-shadow:0 0 0 10px #140b07,0 0 0 12px rgb(120 20 20 / .5),0 30px 70px rgb(0 0 0 / .85)}
-.dwrap .glow{position:absolute;inset:0;border-radius:inherit;background:radial-gradient(circle at 50% 62%,#ff9c8a,#d1281e 25%,#6a0808 55%,#140202 88%);opacity:0;transition:opacity 1s .3s}
-.door{position:absolute;inset:0;border-radius:inherit;transform-origin:100% 50%;transition:transform 1.2s .35s cubic-bezier(.6,.05,.3,1);backface-visibility:hidden;
-  background:radial-gradient(70% 50% at 50% 50%,transparent,rgb(0 0 0 / .55)),repeating-linear-gradient(90deg,rgb(0 0 0 / .18) 0 2px,transparent 2px 19px),linear-gradient(90deg,#1c100a,#3a2214 38%,#2e1a0f 62%,#170c06);
-  box-shadow:inset 0 0 0 4px #120a06,inset 0 0 60px rgb(0 0 0 / .8)}
-.pnl{position:absolute;left:15%;right:15%;border:3px solid rgb(0 0 0 / .35);box-shadow:inset 0 0 0 2px rgb(201 163 91 / .12),0 1px 0 rgb(255 220 160 / .08);border-radius:6px}
-.p1{top:52%;height:17%}.p2{top:73%;height:19%}
-.knob{position:absolute;left:11%;top:61%;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#a08a60,#5c4a2a 50%,#2a2010);box-shadow:0 3px 5px #000}
-.plaque{position:absolute;top:12%;left:50%;transform:translateX(-50%);padding:1px 14px 3px;border-radius:6px;font-family:var(--ruqaa);font-weight:700;font-size:1.25rem;line-height:1.3;color:#1a0f05;background:linear-gradient(180deg,#a8905a,#6e5a32 60%,#3e3018);box-shadow:0 2px 0 #241a0a,0 5px 12px rgb(0 0 0 / .6);white-space:nowrap;transform:translateX(-50%) rotate(-4deg)}
-.slot{position:absolute;top:30%;left:50%;transform:translateX(-50%);width:60%;height:15%;background:#050302;border-radius:7px;overflow:hidden;box-shadow:inset 0 4px 10px #000,0 0 0 3px #4a3a20,0 0 0 5px #120a06}
-.eyes{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:14%;background:#020101}
-.eye{position:relative;width:26%;aspect-ratio:2.4/1;background:radial-gradient(ellipse,#f5e2b0 30%,#d8a070 70%,#8a3a20);border-radius:50%;overflow:hidden;animation:blink 4.2s 2.4s infinite;box-shadow:0 0 14px 3px rgb(255 50 30 / .55)}
-.eye b{position:absolute;top:50%;left:50%;width:44%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#000 0 22%,#ff2b1a 28%,#8a0a05 60%,#2a0303 72%);transform:translate(-50%,-50%);animation:look 6s 2s ease-in-out infinite;box-shadow:0 0 6px #ff2b1a}
-@keyframes blink{0%,46%,50%,100%{transform:scaleY(1)}48%{transform:scaleY(.08)}}
-@keyframes look{0%,18%{transform:translate(-50%,-50%)}28%,44%{transform:translate(-115%,-50%)}54%,70%{transform:translate(15%,-50%)}80%,100%{transform:translate(-50%,-50%)}}
-.cover{position:absolute;inset:0;background:linear-gradient(180deg,#5a4628,#3a2c18 70%,#241a0e);box-shadow:inset 0 -3px 0 #120a04;transform:translateY(-102%);transition:transform .3s ease-in}
-.den.intro .cover{animation:slotOpen .45s 1s cubic-bezier(.2,.8,.2,1) both}
-@keyframes slotOpen{from{transform:translateY(0)}to{transform:translateY(-102%)}}
-.bubble{position:absolute;z-index:3;top:-4%;left:-22%;padding:4px 14px 6px;border-radius:16px;background:#120606;color:#ff4a3a;border:1px solid #6a1010;text-shadow:0 0 8px rgb(255 40 30 / .6);font-family:var(--ruqaa);font-weight:700;font-size:1.25rem;white-space:nowrap;
-  box-shadow:0 8px 20px rgb(0 0 0 / .5);transform:rotate(-6deg);transform-origin:80% 100%}
-.bubble::after{content:"";position:absolute;bottom:-8px;right:22px;border:8px solid transparent;border-top-color:#120606;border-bottom:0}
-.den.intro .bubble{animation:bubbleIn .5s 1.6s cubic-bezier(.2,1.6,.4,1) both}
-@keyframes bubbleIn{from{opacity:0;transform:rotate(-6deg) scale(.3)}}
-.den.intro .dwrap{animation:doorIn .9s .2s cubic-bezier(.2,.8,.2,1) both}
-@keyframes doorIn{from{opacity:0;transform:translateY(24px) scale(.94)}}
-/* غلط */
-.den.wrong .dwrap{animation:shake .4s 2}
-.den.wrong .bubble{background:#8a0d0d;color:#fff;animation:bubbleIn .4s cubic-bezier(.2,1.6,.4,1) both}
-.den.wrong .bubble::after{border-top-color:#8a0d0d}
-.den.wrong .eye{box-shadow:0 0 22px 6px rgb(255 30 20 / .85)}
-.den.wrong .eye::before{content:"";position:absolute;z-index:2;top:-35%;left:-15%;right:-15%;height:62%;background:#050302;transform:rotate(16deg)}
-.den.wrong .eye:last-child::before{transform:rotate(-16deg)}
-.den.wrong .eye b{animation:none;width:56%;background:radial-gradient(circle,#000 0 14%,#ff1a0a 20%,#a00 60%,#300 72%)}
-/* صح: الفتحة تتسكر والباب ينفتح */
-.den.open .cover{transform:translateY(0)}
-.den.open .door{transform:rotateY(-108deg)}
-.den.open .slot,.den.open .plaque,.den.open .knob,.den.open .pnl{opacity:0;transition:opacity .2s .5s}
-.den.open .glow{opacity:1}
-.den.open .bubble{background:#2a0505;color:#ffd0c8}
-.den.open .bubble::after{border-top-color:#2a0505}
-.den.open .drip,.den.open .scratch{opacity:0}
+/* ---------- الزقاق ---------- */
+.den{position:relative;margin:calc(-16px - env(safe-area-inset-top,0px)) calc(-1 * max(16px,env(safe-area-inset-left,0px))) 0;height:min(64vh,520px);min-height:400px;overflow:hidden;background:#040405}
+.den .alley{position:absolute;inset:0;width:100%;height:100%}
+.den .rain{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.den .vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(90% 70% at 62% 55%,transparent 30%,rgb(0 0 0 / .85) 100%),linear-gradient(transparent 70%,var(--bg))}
+.den .say{position:absolute;left:0;right:0;bottom:26px;margin:0;text-align:center;font-family:var(--ruqaa);font-weight:700;font-size:clamp(2rem,10vw,2.6rem);color:#efe3c8;text-shadow:0 2px 18px #000,0 0 30px rgb(0 0 0 / .9);letter-spacing:.02em}
+.den.intro .say{animation:sayIn 1.4s 1.6s ease-out both}
+@keyframes sayIn{from{opacity:0;filter:blur(8px);transform:translateY(8px)}}
+.den .lampg{animation:lampFlick 6s 2.4s infinite}
+@keyframes lampFlick{0%,86%,100%{opacity:1}87%{opacity:.15}88%{opacity:1}90%{opacity:.25}91.5%{opacity:1}}
+.den.intro .lampg{animation:lampOn 2.2s ease-out both,lampFlick 6s 2.4s infinite}
+@keyframes lampOn{0%,10%{opacity:0}12%{opacity:1}16%{opacity:.1}22%,30%{opacity:1}33%{opacity:.2}40%,100%{opacity:1}}
+.den .man{transition:transform 1.4s cubic-bezier(.5,0,.3,1),opacity 1.2s ease}
+.den.intro .man{animation:manIn 2.4s .4s ease-out both}
+@keyframes manIn{from{opacity:0}}
+.den .ember{animation:ember2 2.6s ease-in-out infinite}
+@keyframes ember2{0%,100%{fill:#a8321a;r:1px}40%{fill:#ff8a3a;r:1.7px}55%{fill:#ffb070;r:1.9px}}
+.den .smoke path{fill:none;stroke:#b8bcc2;stroke-width:1.6;stroke-linecap:round;opacity:0;transform-box:fill-box;transform-origin:50% 100%;animation:smk2 4.5s ease-out infinite}
+.den .smoke path:last-child{animation-delay:2.2s}
+@keyframes smk2{0%{opacity:0;transform:translateY(4px) scaleY(.3)}25%{opacity:.5}100%{opacity:0;transform:translate(8px,-34px) scaleY(1.3)}}
+.den .flick{opacity:0}
+/* غلط: يتقدم خطوة والضو يحمر */
+.den.wrong .man{transform:translate(-12px,-14px) scale(1.07);transform-box:view-box;transform-origin:231px 268px}
+.den.wrong .cone{fill:#ff2a1a;opacity:.5}
+.den.wrong .bulb3{fill:#ff5040}
+.den.wrong .pool{opacity:.2}
+.den.wrong .say{color:#ff4a3a;animation:shake .45s 2}
+.den.wrong .lampg{animation:lampFlick 1.4s infinite}
+/* صح: يرمي السيجارة ويطلع من الضو */
+.den.open .man{transform:translateX(150px);opacity:0;transition-delay:.5s}
+.den.open .cig,.den.open .ember,.den.open .smoke{opacity:0}
+.den.open .flick{animation:flickOut .9s cubic-bezier(.3,0,.7,1) forwards}
+@keyframes flickOut{0%{opacity:1;transform:translate(0,0)}55%{transform:translate(-26px,-18px)}100%{opacity:1;transform:translate(-48px,108px)}}
+.den.open .say{color:var(--brass-hi)}
+@media (prefers-reduced-motion:reduce){.den .man,.den .lampg,.den .ember{animation:none!important}}
 .pass{text-align:center}
 .pass label{text-align:center}
 /* ---------- كشف الدور ---------- */
@@ -256,6 +233,7 @@ table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-bottom:1px s
 .lnk:disabled{opacity:.5}
 .lnk:focus-visible{outline:2px solid var(--brass);outline-offset:3px;border-radius:4px}
 .demoset{animation:rise .3s cubic-bezier(.2,.8,.2,1)}
+.back.over{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));z-index:5;text-shadow:0 1px 6px #000}
 .back{position:relative;z-index:2;align-self:flex-start;color:var(--muted);text-decoration:none;font-size:.9rem;padding:4px 0}.back:hover{color:var(--brass)}
 .conn{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));inset-inline:16px;z-index:40;background:var(--blood);color:#fff;text-align:center;border-radius:10px;padding:6px 10px;font-size:.9rem}
 .toast{position:fixed;inset-inline:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 16px;text-align:center;z-index:60;animation:rise .25s ease}
@@ -687,6 +665,25 @@ async function joinCode(c){
 function submitName(n){n=String(n||"").trim();if(!n)return toast("اكتب اسمك");lsSet("mafia.name",n);send({t:"join",name:n})}
 function leave(){if(demo)return endDemo("");if(st&&st.me&&st.phase==="lobby")send({t:"leave"});endSession("")}
 
+/* مطر الزقاق */
+let rainStop=null;
+function startRain(){
+  if(rainStop){rainStop();rainStop=null}
+  const c=document.getElementById("rain");if(!c||matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+  const x=c.getContext("2d"),dpr=Math.min(2,devicePixelRatio||1);let W,H;
+  const size=()=>{W=c.width=c.clientWidth*dpr;H=c.height=c.clientHeight*dpr};size();
+  const drops=Array.from({length:150},()=>({x:Math.random()*W,y:Math.random()*H,l:(8+Math.random()*16)*dpr,v:(9+Math.random()*7)*dpr,a:.12+Math.random()*.3}));
+  const spl=[];let raf,on=true;
+  (function loop(){if(!on)return;if(!c.isConnected){on=false;return}
+    x.clearRect(0,0,W,H);x.lineWidth=dpr;x.lineCap="round";
+    for(const d of drops){d.y+=d.v;d.x-=d.v*.12;
+      if(d.y>H*(.72+Math.random()*.28)){if(Math.random()<.35)spl.push({x:d.x,y:d.y,r:0,a:.35});d.y=-d.l;d.x=Math.random()*W*1.1}
+      x.strokeStyle=`rgba(190,205,220,${d.a})`;x.beginPath();x.moveTo(d.x,d.y);x.lineTo(d.x+d.l*.12,d.y-d.l);x.stroke()}
+    for(let i=spl.length-1;i>=0;i--){const p=spl[i];p.r+=.6*dpr;p.a-=.03;if(p.a<=0){spl.splice(i,1);continue}
+      x.strokeStyle=`rgba(190,205,220,${p.a})`;x.beginPath();x.ellipse(p.x,p.y,p.r*2,p.r*.5,0,0,7);x.stroke()}
+    raf=requestAnimationFrame(loop)})();
+  rainStop=()=>{on=false;cancelAnimationFrame(raf)};
+}
 /* رابط الغرفة: اللي يفتحه يدخل الغرفة على طول */
 async function shareRoom(){
   const code=st&&st.code;if(!code)return;
@@ -866,7 +863,7 @@ function render(){
   const app=$("#app"),k=screenKey(),changed=k!==lastScreen;lastScreen=k;
   app.classList.remove("enter");if(changed){void app.offsetWidth;app.classList.add("enter")}
   const keep=document.activeElement&&document.activeElement.id;
-  if(view==="home")app.innerHTML=homeView();
+  if(view==="home"){app.innerHTML=homeView();startRain()}
   else if(view==="name")app.innerHTML=nameView();
   else if(!st)app.innerHTML=demoBar()+`<div><h1>غرفة المافيا</h1><p class="muted">قاعد أتصل بالغرفة…</p></div>`;
   else app.innerHTML=st.judge?judgeView():playerView();
@@ -877,14 +874,51 @@ function render(){
 function homeView(){
   const intro=!doorSeen;doorSeen=true;
   const say=doorState==="wrong"?"غلط! منو أنت؟":doorState==="open"?"تفضّل…":"كلمة السر؟";
-  return`<a class="back" href="/">→ كل الألعاب</a>
+  return`<a class="back over" href="/">→ كل الألعاب</a>
   <div class="den ${intro?"intro":""} ${doorState}" aria-hidden="true">
-    <div class="dwrap"><div class="glow"></div>
-      <div class="door"><svg class="scratch" viewBox="0 0 100 150" preserveAspectRatio="none"><path d="M18 64l14 30M22 62l14 31M26 61l13 30M70 100l12-24M74 102l12-25M66 30l20 6"/></svg><span class="drip"><i></i><i></i><i></i></span><span class="plaque">المافيا</span>
-        <span class="slot"><span class="eyes"><i class="eye"><b></b></i><i class="eye"><b></b></i></span><span class="cover"></span></span>
-        <span class="pnl p1"></span><span class="pnl p2"></span><span class="knob"></span></div>
-      <span class="bubble">${say}</span>
-    </div><div class="fog"><i></i><i></i></div>
+    <svg class="alley" viewBox="0 0 360 300" preserveAspectRatio="xMidYMax slice">
+      <defs>
+        <pattern id="brk" width="22" height="12" patternUnits="userSpaceOnUse"><rect width="22" height="12" fill="#120d0b"/><path d="M0 .5h22M0 6.5h22M.5 0v6M11.5 6v6" stroke="#060404" stroke-width="1.2"/></pattern>
+        <linearGradient id="cone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd9a0" stop-opacity=".55"/><stop offset=".7" stop-color="#ffcf8a" stop-opacity=".12"/><stop offset="1" stop-color="#ffcf8a" stop-opacity="0"/></linearGradient>
+        <radialGradient id="pool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffcf8a" stop-opacity=".45"/><stop offset="1" stop-color="#ffcf8a" stop-opacity="0"/></radialGradient>
+        <linearGradient id="wet" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d0d10"/><stop offset="1" stop-color="#050506"/></linearGradient>
+        <radialGradient id="far" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#3a3f4a" stop-opacity=".6"/><stop offset="1" stop-color="#3a3f4a" stop-opacity="0"/></radialGradient>
+        <filter id="blur6"><feGaussianBlur stdDeviation="6"/></filter><filter id="blur2"><feGaussianBlur stdDeviation="1.6"/></filter>
+      </defs>
+      <rect width="360" height="300" fill="#040405"/>
+      <ellipse cx="180" cy="150" rx="70" ry="60" fill="url(#far)"/>
+      <path d="M0 0H120L150 200H0z" fill="url(#brk)"/><path d="M0 0H120L150 200H0z" fill="#000" opacity=".45"/>
+      <path d="M360 0H240L210 200H360z" fill="url(#brk)"/><path d="M360 0H240L210 200H360z" fill="#000" opacity=".55"/>
+      <path d="M150 200L120 0M210 200L240 0" stroke="#000" stroke-width="2"/>
+      <rect x="18" y="70" width="34" height="46" fill="#0a0808" stroke="#1d1613"/><rect x="21" y="73" width="28" height="40" fill="#1b0d0a" opacity=".7"/>
+      <path d="M0 200H360V300H0z" fill="url(#wet)"/>
+      <g class="lampg"><path d="M276 40h-34" stroke="#1c1916" stroke-width="3"/><path d="M276 30v40" stroke="#1c1916" stroke-width="4"/>
+        <path d="M232 40h20l4 8h-28z" fill="#2a2520"/><ellipse class="bulb3" cx="242" cy="49" rx="9" ry="2.6" fill="#fff0cf"/>
+        <path class="cone" d="M233 49h18l62 210H170z" fill="url(#cone)" filter="url(#blur2)"/>
+        <ellipse class="pool" cx="226" cy="262" rx="90" ry="16" fill="url(#pool)"/></g>
+      <ellipse class="refl-l" cx="242" cy="285" rx="6" ry="16" fill="#ffd9a0" opacity=".35" filter="url(#blur2)"/>
+      <g class="man">
+        <g class="body">
+          <path d="M222 238h7v26h-7zM233 238h7v26h-7z" fill="#020202"/><path d="M228 264h-11v5h13zM234 264h11v5h-13z" fill="#000"/>
+          <path d="M216 162Q231 156 246 162L252 176L256 232L263 262L242 264L238 240H224L220 264L199 262L206 232L210 176Z" fill="#030303"/>
+          <path d="M224 162l7 20 7-20" fill="none" stroke="#181512" stroke-width="1.1"/>
+          <path d="M208 212h47" stroke="#0d0c0b" stroke-width="3"/>
+          <path d="M213 168q-6 22-2 46M249 168q6 22 2 46" fill="none" stroke="#0a0909" stroke-width="2"/>
+          <ellipse cx="231" cy="151" rx="7.5" ry="9" fill="#040303"/>
+          <path d="M220 144q0-13 11-14 11 1 11 14z" fill="#040404"/><path d="M220 140h22" stroke="#1f1b17" stroke-width="2"/>
+          <ellipse cx="231" cy="144" rx="19" ry="3.2" fill="#040404"/>
+          <path d="M246 162L252 176L256 232L263 262M242 144q0-13-11-14M250 144.5a19 3.2 0 0 1-6 2.5M238.5 151a7.5 9 0 0 1-2 6" fill="none" stroke="#ffd9a0" stroke-opacity=".38" stroke-width="1.1"/>
+          <path class="cig" d="M236 154.5l7 1.4" stroke="#cfc4b4" stroke-opacity=".85" stroke-width="1.1" stroke-linecap="round"/>
+          <circle class="ember" cx="243.6" cy="156" r="1.2" fill="#ff5a2a"/>
+        </g>
+        <g class="smoke"><path d="M244 153c-5-8 5-12 0-20s5-12 0-20"/><path d="M244 153c5-8-5-12 0-20s-5-12 0-20"/></g>
+        <g class="refl" transform="translate(0 540) scale(1 -1)" opacity=".16" filter="url(#blur2)"><path d="M216 162Q231 156 246 162L252 176L256 232L263 262L242 264L238 240H224L220 264L199 262L206 232L210 176Z" fill="#000"/></g>
+      </g>
+      <circle class="flick" cx="243.6" cy="156" r="1.6" fill="#ff7a3a"/>
+    </svg>
+    <canvas class="rain" id="rain"></canvas>
+    <div class="vig"></div>
+    <p class="say">${say}</p>
   </div>
   ${homeErr?`<p class="err" style="text-align:center">${esc(homeErr)}</p>`:""}
   <form class="panel pass" id="joinF">
