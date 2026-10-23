@@ -341,7 +341,7 @@ export class Room extends DurableObject {
     const s = this.s, k = s.night.kill, sv = s.night.save;
     let msg;
     if (!k) { msg = "المافيا ما عرفوا يفقصون الليلة."; this.ev("nokill"); }
-    else if (k === sv) { msg = "فقص شامط، البيطري موجووووود 🔥"; this.log(`البيطري لحّق على ${this.nm(k)}`); this.ev("saved"); }
+    else if (k === sv) { msg = "اغتيال شامط، البيطري موجووووود 🔥"; this.log(`البيطري لحّق على ${this.nm(k)}`); this.ev("saved"); }
     else {
       this.eliminate(k, "فقص");
       msg = `${s.roles[k] === "sniper" ? "ودّع" : "انفقص"} ${this.nm(k)} وطلع من اللعبة. صيدة سهلة والبيطري مدوّج 😴`;
