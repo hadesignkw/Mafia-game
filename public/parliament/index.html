@@ -508,12 +508,9 @@ function playerView(){
   h+=`<div style="text-align:center;margin-top:8px"><h1 style="font-size:2.6rem">الجولة <span class="num">${s.round.no}</span></h1><p class="muted small">من ${fmt(s.round.of)} جولات</p></div>`+roundsStrip();
   if(me.resigned){h+=`<div class="panel" style="text-align:center"><h2>استقلت بهالجولة</h2><p class="muted">أصواتك محفوظة، وترجع تسجل الجولة الجاية.</p></div>`}
   else{
-    if(me.swapWait)h+=`<div class="ballot" style="margin-top:14px"><b>بدل ويا ${esc(me.swapWait.with)}</b><p class="small">المجموع ${fmt(me.swapWait.total)} ينطر الحكم يعتمده.</p></div>`;
-    h+=`<div class="panel"><h2>سجّل أصواتك</h2><p class="muted small">اكتب اللي جمعته الحين، يروح للحكم يعتمده. محد غيره يشوفه.</p><div style="margin-top:10px">${calcHTML()}</div>
+    h+=`<div class="panel"><h2>سجّل أصواتك</h2><p class="muted small">اكتب اللي جمعته الحين، يروح للحكم يعتمده. أرقامك ومجموعك ما تبين لك ولا لأحد غير الحكم.</p><div style="margin-top:10px">${calcHTML()}</div>
     <button class="btn gold block" style="margin-top:10px" data-a="submit" ${calcEval(calcExpr)>0?"":"disabled"}>ارسل ${calcEval(calcExpr)>0?fmt(calcEval(calcExpr)):""} للحكم</button></div>`;
   }
-  const mine=me.mine||[];
-  if(mine.length)h+=`<div class="panel rec"><h2>أرقامك بهالجولة</h2><ul style="margin-top:10px">${mine.map(x=>`<li class="${x.st==="cancel"||x.st==="rej"?"x":""}"><span class="t">${hm(x.at)}</span><b class="grow num">+${Number(x.amt).toLocaleString("en-US")}</b><span class="chip ${x.st==="ok"?"green":x.st==="wait"?"gold":"red"}">${{ok:"انعتمد",wait:"ينطر",rej:"انرفض",cancel:"انلغى"}[x.st]}</span>${x.st==="wait"?`<button class="btn sm ghost" data-a="unsubmit" data-id="${x.id}">اسحبه</button>`:""}</li>`).join("")}</ul></div>`;
   return h;
 }
 

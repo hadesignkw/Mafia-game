@@ -399,18 +399,9 @@ export class Parl extends DurableObject {
     const pid = a.pid;
     pub.me = { id: pid, name: this.nm(pid), resigned: !!(r && r.resigned.includes(pid)) };
     if (s.secret === pid) pub.record = this.record();
-    // اللاعب يشوف أرقامه هو بس بهالجولة، وحالة كل رقم
-    if (r && s.phase === "play") {
-      const cancelled = new Set(r.ev.filter((e) => e.k === "cancel").map((e) => e.target));
-      pub.me.mine = [
-        ...r.ev.filter((e) => (e.k === "add" && e.pid === pid && e.by === "self") || (e.k === "rej" && e.kind === "add" && e.pid === pid))
-          .map((e) => ({ id: e.id, amt: e.k === "add" ? e.amt : e.amt, asked: e.asked, at: e.at, st: e.k === "rej" ? "rej" : cancelled.has(e.id) ? "cancel" : "ok" })),
-        ...s.pending.filter((p) => p.kind === "add" && p.pid === pid).map((p) => ({ id: p.id, amt: p.amt, at: p.at, st: "wait" })),
-      ].sort((x, y) => x.at - y.at);
-      if (s.swapAsk && (s.swapAsk.a === pid || s.swapAsk.b === pid)) pub.me.swapAsk = { with: this.nm(s.swapAsk.a === pid ? s.swapAsk.b : s.swapAsk.a) };
-      const ps = s.pending.find((p) => p.kind === "swap" && (p.a === pid || p.b === pid));
-      if (ps) pub.me.swapWait = { with: this.nm(ps.a === pid ? ps.b : ps.a), total: ps.total };
-    }
+    // اللاعب ما يشوف أي أرقام (ولا أرقامه) إلا بالجلسة السرية. يوصله بس سؤال البدل
+    if (r && s.phase === "play" && s.swapAsk && (s.swapAsk.a === pid || s.swapAsk.b === pid))
+      pub.me.swapAsk = { with: this.nm(s.swapAsk.a === pid ? s.swapAsk.b : s.swapAsk.a) };
     return pub;
   }
 }
