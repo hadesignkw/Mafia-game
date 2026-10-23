@@ -331,7 +331,7 @@ export class Room extends DurableObject {
     const s = this.s, k = s.night.kill, sv = s.night.save;
     let msg;
     if (!k) { msg = "ما صار اغتيال الليلة."; this.ev("nokill"); }
-    else if (k === sv) { msg = "اغتيال شامط، الطبيب لحّق عليه."; this.log(`الطبيب لحّق على ${this.nm(k)}`); this.ev("saved"); }
+    else if (k === sv) { msg = "اغتيال شامط، الطبيب موجووووود 🔥"; this.log(`الطبيب لحّق على ${this.nm(k)}`); this.ev("saved"); }
     else {
       this.eliminate(k, "اغتيال");
       msg = `انغتال ${this.nm(k)} وطلع من اللعبة.`;
