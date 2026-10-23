@@ -276,7 +276,7 @@ const isM=r=>r==="mafia";
 const STEPS0=["police","mafia"],STEPN=["mafia","doctor","police"];
 const stepsOf=p=>p==="night0"?STEPS0:STEPN;
 const STEP_N={mafia:"المافيا",doctor:"الطبيب",police:"الشرطي"};
-const PHASE_N={lobby:"الانتظار",night0:"الليلة الأولى",night:"الليل",day:"النهار",vote:"التصويت",result:"نتيجة التصويت",over:"انتهت اللعبة"};
+const PHASE_N={lobby:"الانتظار",deal:"توزيع الكروت",night0:"الليلة الأولى",night:"الليل",day:"النهار",vote:"التصويت",result:"نتيجة التصويت",over:"انتهت اللعبة"};
 const ICON={
   mafia:'<svg viewBox="0 0 64 64" fill="currentColor"><path d="M4 26c8-6 18-8 28-8s20 2 28 8c-2 14-10 22-18 22-5 0-7-6-10-6s-5 6-10 6C14 48 6 40 4 26zm14 4c-3 0-6 2-7 4 3 2 6 3 9 3s5-2 5-4-3-3-7-3zm28 0c-4 0-7 1-7 3s2 4 5 4 6-1 9-3c-1-2-4-4-7-4z"/></svg>',
   cop:'<svg viewBox="0 0 64 64" fill="currentColor"><path d="M32 4 8 12v18c0 15 10 26 24 30 14-4 24-15 24-30V12zm0 14 4 9 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z"/></svg>',
@@ -300,8 +300,7 @@ const buzz=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch{}};
 let sess=lsGet("mafia.sess"); // {code, token, judge}
 let view="home", st=null, ws=null, offset=0, lastEv=null, firstState=true, retry=0, homeErr="", busy=false;
 let cardOpen=false, dealAnim=false, lastGen=null, notesSeen=null, rolesOpen=false;
-const cardKey=()=>"mafia.card."+st.code+"."+st.gen+"."+st.me.id;
-const cardDone=()=>!!lsGet(cardKey());
+
 
 /* ---------- الاتصال ---------- */
 function connect(){
@@ -553,7 +552,7 @@ function judgeView(){
     const n=st.players.length;
     h+=`<div class="panel"><h3>اللاعبين يدخلون برقم الغرفة</h3><p style="font-family:var(--display);font-size:3rem;text-align:center;letter-spacing:.2em;color:var(--brass);margin:0">${ar(st.code)}</p>
     <p class="muted small">${ar(n)} لاعب دخل${J.mafiaNext?` · المافيا بتكون ${ar(J.mafiaNext)}`:` · تحتاج ${ar(st.minPlayers-n)} بعد`}</p>
-    <button class="btn primary" data-a="cmd" data-c="start" ${n<st.minPlayers?"disabled":""}>ابدأ اللعبة ووزّع الأدوار</button></div>
+    <button class="btn primary" data-a="cmd" data-c="start" ${n<st.minPlayers?"disabled":""}>وزّع الكروت</button></div>
     <div class="panel"><h3>منو دخل</h3><div class="list">${st.players.map(p=>`<div class="li ${rowCls("j"+p.id)}">${dot(p)}<span class="nm">${esc(p.name)}</span>${p.online?"":`<span class="chip m">طلع</span>`}<button class="btn sm ghost danger" data-a="cmd" data-c="kick" data-id="${p.id}">شيل</button></div>`).join("")||`<p class="muted">ما أحد دخل للحين.</p>`}</div></div>`;
     return h;
   }
@@ -587,7 +586,9 @@ const whoHas=r=>Object.keys(st.judge.roles).find(i=>st.judge.roles[i]===r);
 const isAlive=id=>!!(id&&P(id).alive);
 function judgeControls(){
   const p=st.phase,J=st.judge;let h=`<div class="panel">`;
-  if(p==="night0"||p==="night"){
+  if(p==="deal"){
+    h+=`<p class="script"><b>كل واحد يشوف دوره</b> بكرته. لما يخلصون دوس «ابدأ اللعبة» والكروت تنشال من جوالاتهم.</p><button class="btn primary" data-a="cmd" data-c="begin">ابدأ اللعبة</button>`;
+  }else if(p==="night0"||p==="night"){
     const say={night0:{police:"<b>الشرطي</b> يستعلم من جواله عن مجرم.",mafia:"<b>المافيا</b> يتعرفون على بعض ويختارون الشرطي المزيف من جوالاتهم."},
       night:{mafia:"<b>المافيا</b> يختارون منو يغتالون.",doctor:"<b>الطبيب</b> يختار منو ينقذ.",police:"<b>الشرطي</b> يستعلم من جواله."}}[p][st.step];
     const S=stepsOf(p),i=S.indexOf(st.step),last=i===S.length-1;
@@ -645,7 +646,7 @@ function playerView(){
   if(!me.inGame)return h+`<div class="panel"><p>اللعبة بدت وأنت مو فيها. انتظر لين تخلص وتبدا وحدة جديدة.</p></div>`;
   if(st.phase==="over")return h+overView();
   const alive=P(me.id).alive;
-  if(!cardDone())h+=cardView();
+  if(st.phase==="deal")return h+cardView()+`<div class="panel nightbox"><div class="moon"></div><h2>احفظ دورك</h2><p class="muted">أول ما يبدا القاضي اللعبة الكرت ينشال.</p></div>`;
   if(!alive&&st.sniperPending!==me.id)return h+`<div class="panel"><h2>طلعت من اللعبة</h2><p class="muted">لا تتكلم ولا تأشر، تابع لين تخلص.</p></div>`+aliveList();
   return h+actionView();
 }
@@ -656,7 +657,7 @@ function cardView(){
     <p class="muted">${r.d}${me.fake?" ربعك عيّنوك شرطي مزيف: إذا قال القاضي الشرطة يرفعون إيدهم، ارفع إيدك وضلّلهم.":""}</p>`;
   if(me.team)front+=`<div class="sep"></div><h3>ربعك المافيا</h3><div class="list">${me.team.map(t=>`<div class="li ${isAlive(t.id)?"":"out"}"><span class="nm">${esc(nm(t.id))}${t.id===me.id?" (أنت)":""}</span><span class="chip m">${ROLE[t.role].n}${t.fake?" · مزيف":""}</span></div>`).join("")}</div>`;
   if(me.notes&&me.notes.length)front+=`<div class="sep"></div><h3>معلوماتك السرية</h3><ul class="notes">${me.notes.map(n=>`<li>${esc(ar(n))}</li>`).join("")}</ul>`;
-  front+=`<span class="muted small">احفظ دورك. أول ما تضغط الكرت يختفي وما يرجع</span>`;
+  front+=`<span class="muted small">اضغط عشان تقلبه وتخبيه</span>`;
   return`<button class="flip ${cardOpen?"open":""} ${dealAnim?"deal":""}" data-a="card" aria-label="كرتك" style="--accent:${accent}"><div class="flip-in">
     <div class="face back"><span class="emb">${ICON.emblem}</span><span style="font-family:var(--display);font-size:1.5rem">كرتك</span><span class="muted small hint">اضغط عشان تقلبه، وغطّ الشاشة عن اللي جنبك</span></div>
     <div class="face front">${front}</div></div></button>`;
@@ -725,8 +726,7 @@ document.addEventListener("click",e=>{
   else if(a==="demo")startDemo(+($("#demoN")&&$("#demoN").value||8));
   else if(a==="cmd")send({t:b.dataset.c,id});
   else if(a==="card"){
-    if(cardOpen){cardOpen=false;b.classList.remove("open");lsSet(cardKey(),1);setTimeout(()=>{b.classList.add("gone");setTimeout(render,450)},500)}
-    else{cardOpen=true;b.classList.add("open")}
+    cardOpen=!cardOpen;b.classList.toggle("open",cardOpen);
     buzz(15)}
   else if(a==="roles"){const body=document.querySelector(".roles-body");
     if(rolesOpen&&body){body.classList.add("closing");document.querySelector(".chev").classList.remove("up");setTimeout(()=>{rolesOpen=false;render()},230)}

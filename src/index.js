@@ -231,6 +231,10 @@ export class Room extends DurableObject {
         }
         break;
       case "start": return this.start();
+      case "begin":
+        // القاضي يبدا اللعبة بعد ما شاف الكل أدوارهم، والكروت تنشال
+        if (s.phase === "deal") { Object.assign(s, { phase: "night0", step: "police", announce: "الليلة الأولى بدت." }); this.ev("dusk"); }
+        break;
       case "next": return this.next();
       case "night": return this.goNight();
       case "vote":
@@ -267,7 +271,7 @@ export class Room extends DurableObject {
     sh.forEach((id, i) => { roles[id] = i < m ? "mafia" : i === m ? "cop" : i === m + 1 ? "doctor" : i === m + 2 ? "sniper" : "citizen"; });
     Object.assign(s, {
       gen: s.gen + 1, order: ids, roles, alive: Object.fromEntries(ids.map((i) => [i, true])),
-      phase: "night0", step: "police", round: 0, timer: null, sniperPending: null, winner: null, canVote: false,
+      phase: "deal", step: null, round: 0, timer: null, sniperPending: null, winner: null, canVote: false,
       fakeCop: null, notes: {}, votes: {}, night: blankNight(), log: [], queryMax: m, queriesUsed: 0,
       announce: "كل واحد يقلب كرته ويشوف دوره.",
     });
