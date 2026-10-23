@@ -27,7 +27,7 @@
 <meta name="twitter:image" content="https://ha-games.habeeb3.workers.dev/mafia/og.png?v=2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=Aref+Ruqaa:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=Aref+Ruqaa:wght@400;700&family=Caveat:wght@700&display=swap">
 <link rel="stylesheet" href="/noir.css">
 <style>
 /* لوحة واحدة بعرض الجوال، والليل والنهار يغيّرون لون الخلفية */
@@ -122,11 +122,11 @@ table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-bottom:1px s
 .seat .kick{position:absolute;top:4px;left:4px;width:26px;height:26px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--muted);font:inherit;font-size:1.1rem;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
 .seat .kick:hover,.seat .kick:focus-visible{color:#fff;background:var(--blood);border-color:var(--blood);outline:none}
 /* ---------- الزقاق ---------- */
-.den{position:relative;margin:calc(-16px - env(safe-area-inset-top,0px)) calc(-1 * max(16px,env(safe-area-inset-left,0px))) 0;height:min(64vh,520px);min-height:400px;overflow:hidden;background:#040405}
+.den{-webkit-mask-image:linear-gradient(#000 78%,transparent);mask-image:linear-gradient(#000 78%,transparent);position:relative;margin:calc(-16px - env(safe-area-inset-top,0px)) calc(-1 * max(16px,env(safe-area-inset-left,0px))) 0;height:min(64vh,520px);min-height:400px;overflow:hidden;background:#040405}
 .den .alley{position:absolute;inset:0;width:100%;height:100%}
 .den .rain{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .den .vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(90% 70% at 62% 55%,transparent 30%,rgb(0 0 0 / .85) 100%),linear-gradient(transparent 70%,var(--bg))}
-.den .say{position:absolute;left:0;right:0;bottom:26px;margin:0;text-align:center;font-family:var(--ruqaa);font-weight:700;font-size:clamp(2rem,10vw,2.6rem);color:#efe3c8;text-shadow:0 2px 18px #000,0 0 30px rgb(0 0 0 / .9);letter-spacing:.02em}
+.den .say{position:absolute;left:0;right:0;top:calc(46px + env(safe-area-inset-top,0px));margin:0;text-align:center;font-family:var(--ruqaa);font-weight:700;font-size:clamp(2rem,10vw,2.6rem);color:#efe3c8;text-shadow:0 2px 18px #000,0 0 30px rgb(0 0 0 / .9);letter-spacing:.02em}
 .den.intro .say{animation:sayIn 1.4s 1.6s ease-out both}
 @keyframes sayIn{from{opacity:0;filter:blur(8px);transform:translateY(8px)}}
 .den .lampg{animation:lampFlick 6s 2.4s infinite}
@@ -152,10 +152,63 @@ table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-bottom:1px s
 /* صح: يرمي السيجارة ويطلع من الضو */
 .den.open .man{transform:translateX(150px);opacity:0;transition-delay:.5s}
 .den.open .cig,.den.open .ember,.den.open .smoke{opacity:0}
-.den.open .flick{animation:flickOut .9s cubic-bezier(.3,0,.7,1) forwards}
+.den.welcome .cig,.den.welcome .ember,.den.welcome .smoke{opacity:0}
+.den.welcome .flick{animation:flickOut .9s cubic-bezier(.3,0,.7,1) forwards}
+.den.open .flick{display:none}
+.den.welcome .say,.den.open .say{color:var(--brass-hi);animation:sayIn .6s ease-out both}
 @keyframes flickOut{0%{opacity:1;transform:translate(0,0)}55%{transform:translate(-26px,-18px)}100%{opacity:1;transform:translate(-48px,108px)}}
 .den.open .say{color:var(--brass-hi)}
 @media (prefers-reduced-motion:reduce){.den .man,.den .lampg,.den .ember{animation:none!important}}
+/* يد المافيا والورقة */
+.den .held{opacity:0;transition:opacity .25s}
+.den.reading .held,.den.welcome .held,.den.wrong .held{opacity:1}
+.den.reading .note{transform-box:view-box;transform-origin:227px 180px;animation:readNote 1.5s ease-in-out both}
+@keyframes readNote{0%{transform:scale(.6) rotate(10deg)}25%{transform:none}50%{transform:translateY(-1px) rotate(-2deg)}75%{transform:translateY(1px) rotate(1deg)}}
+.den.reading .say{animation:sayIn .5s ease-out both}
+.den.wrong .note{transform-box:view-box;transform-origin:227px 180px;animation:noteFall 1.1s .25s cubic-bezier(.5,0,.8,.4) forwards}
+@keyframes noteFall{to{transform:translate(-18px,88px) rotate(-120deg) scale(.85);opacity:.5}}
+.den.welcome .note{transform-box:view-box;transform-origin:227px 180px;animation:pocket .8s .9s ease-in forwards}
+@keyframes pocket{to{transform:translate(4px,30px) scale(.5);opacity:0}}
+/* ---------- النوتة واليدين ---------- */
+.pov{position:relative;z-index:3;margin-top:-118px;display:flex;flex-direction:column;align-items:center;gap:10px;padding-bottom:6px}
+.pad{position:relative;width:min(290px,78vw);aspect-ratio:1.55;transform:rotate(-3deg);border-radius:4px 4px 6px 6px;cursor:text;filter:drop-shadow(0 18px 26px rgb(0 0 0 / .7))}
+.pad.nope{animation:shake .35s 2}
+.pad .spiral{position:absolute;top:-9px;left:6%;right:6%;height:16px;z-index:4;background:radial-gradient(circle at 50% 60%,#2a2622 0 3px,transparent 3.5px) 0 0/15px 16px repeat-x,
+  repeating-linear-gradient(90deg,transparent 0 4px,#9a968e 4px 6px,#d8d4cc 6px 8px,#9a968e 8px 10px,transparent 10px 15px)}
+.pad .pages{position:absolute;inset:0;perspective:900px}
+.pad .page{position:absolute;inset:0;border-radius:3px 3px 5px 5px;padding:24px 16px 10px 34px;display:flex;flex-direction:column;justify-content:space-around;
+  background:linear-gradient(#efe6cf,#e8ddc0);box-shadow:inset 0 0 30px rgb(120 90 40 / .18),0 2px 0 #d6caa8,0 4px 0 #cbbf9b;transform-origin:50% 0;backface-visibility:hidden}
+.pad .page::before{content:"";position:absolute;top:0;bottom:0;left:24px;width:1.5px;background:rgb(200 60 50 / .55)}
+.pad .page.cur{z-index:2}
+.pad .page.blank{z-index:1}
+.pad .page.gone{visibility:hidden}
+.pad .page.flip{z-index:3;animation:pageFlip .8s cubic-bezier(.5,0,.3,1) forwards}
+@keyframes pageFlip{0%{transform:rotateX(0)}100%{transform:rotateX(-170deg);opacity:.2}}
+.ln{position:relative;height:42%;display:flex;align-items:flex-end;gap:2px;border-bottom:1.5px solid rgb(70 110 170 / .45);padding:0 4px 2px;direction:ltr;
+  font-family:"Caveat",cursive;font-weight:700;font-size:clamp(2.3rem,11vw,2.9rem);line-height:1;color:#1c2b52}
+.ln .dg{display:inline-block;transform:rotate(-2deg)}
+.ln .dg:nth-child(2n){transform:rotate(2deg) translateY(1px)}
+.ln .dg.w{animation:ink .3s ease-out both}
+@keyframes ink{from{clip-path:inset(0 100% 0 0);opacity:.4}to{clip-path:inset(0 0 0 0);opacity:1}}
+.ln .strike{position:absolute;left:0;bottom:.42em;height:3px;width:0;background:#c4271d;border-radius:3px;transform:rotate(-4deg);transform-origin:0 50%;box-shadow:0 0 0 .5px rgb(196 39 29 / .4)}
+.ln.struck .strike{width:var(--sw,100%);animation:strike .32s ease-out both}
+.ln.struck .strike::after{content:"";position:absolute;inset:-4px 0 auto 6%;height:3px;background:#c4271d;border-radius:3px;transform:rotate(7deg);opacity:.85}
+.ln.struck .dg{opacity:.55}
+@keyframes strike{from{width:0}}
+.padin{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;border:0;z-index:5;caret-color:transparent;color:transparent;background:transparent}
+.pen{position:absolute;left:0;top:0;width:150px;height:150px;margin:-3px 0 0 -3px;z-index:6;pointer-events:none;transition:transform .28s cubic-bezier(.3,.8,.3,1),opacity .3s;filter:drop-shadow(-6px 10px 8px rgb(0 0 0 / .45))}
+.pen.scrib{animation:scrib .28s ease-in-out}
+@keyframes scrib{25%{margin:-6px 0 0 -1px}50%{margin:-2px 0 0 -5px}75%{margin:-5px 0 0 -2px}}
+.pen.away{opacity:0;transform:translate(260px,200px)!important}
+.lhand{position:absolute;width:150px;height:150px;left:calc(50% - min(145px,39vw) - 62px);top:calc(min(290px,78vw)/1.55 - 64px);z-index:0;pointer-events:none;filter:drop-shadow(0 10px 14px rgb(0 0 0 / .6))}
+.thumb{position:absolute;left:-14px;bottom:-12px;width:46px;height:46px;z-index:7;pointer-events:none;transform:rotate(-20deg)}
+.padhint{margin:0;font-size:.85rem;color:var(--muted);min-height:1.2em;animation:breathe 1.8s ease-in-out infinite}
+.pov .btn.primary{width:min(290px,78vw)}
+/* الورقة اللي تطير للمافيا */
+.page.fly{position:fixed;z-index:90;margin:0;border-radius:3px;padding:24px 16px 10px 34px;display:flex;flex-direction:column;justify-content:space-around;pointer-events:none;
+  background:linear-gradient(#efe6cf,#e8ddc0);box-shadow:0 20px 40px rgb(0 0 0 / .6);
+  clip-path:polygon(0 6px,4% 0,8% 6px,12% 1px,16% 7px,20% 0,24% 6px,28% 2px,32% 7px,36% 0,40% 6px,44% 1px,48% 7px,52% 0,56% 6px,60% 2px,64% 7px,68% 0,72% 6px,76% 1px,80% 7px,84% 0,88% 6px,92% 2px,96% 7px,100% 0,100% 100%,0 100%)}
+.page.fly::before{content:"";position:absolute;top:0;bottom:0;left:24px;width:1.5px;background:rgb(200 60 50 / .55)}
 .pass{text-align:center}
 .pass label{text-align:center}
 /* ---------- كشف الدور ---------- */
@@ -612,7 +665,7 @@ const buzz=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch{}};
 
 /* ---------- الحالة ---------- */
 let sess=lsGet("mafia.sess"); // {code, token, judge}
-let doorSeen=false,doorState="";const nap=ms=>new Promise(r=>setTimeout(r,ms));
+let doorSeen=false,doorState="";const SAY={wrong:"غلط! منو أنت؟",reading:"خلني أشوف…",welcome:"حياك",open:"حياك"};const nap=ms=>new Promise(r=>setTimeout(r,ms));
 let demoOpen=false,view="home", st=null, ws=null, offset=0, lastEv=null, firstState=true, retry=0, homeErr="", busy=false;
 let cardOpen=false, dealAnim=false, lastGen=null, notesSeen=null, rolesOpen=false;
 
@@ -658,25 +711,100 @@ function voteFx(prev){
     fxQ.push({id:"c"+v+st.gen,type:"cast",voter:nm(v),target:nm(t),me:st.me&&st.me.id,v,t,next:nx?nm(nx):null,nextMe:!!(nx&&st.me&&nx===st.me.id)})});
   playNext();
 }
-function endSession(msg){doorSeen=false;doorState="";if(demo){endDemo(msg);return}sess=null;lsSet("mafia.sess",null);try{ws&&ws.close()}catch{}ws=null;st=null;view="home";homeErr=msg;render()}
+function endSession(msg){doorSeen=false;doorState="";nbReset();if(demo){endDemo(msg);return}sess=null;lsSet("mafia.sess",null);try{ws&&ws.close()}catch{}ws=null;st=null;view="home";homeErr=msg;render()}
 
 /* ---------- الدخول ---------- */
+/* ---------- النوتة: تكتب كلمة السر بخط إيدك ---------- */
+const nb={lines:[{t:"",s:0},{t:"",s:0}],cur:0,prev:"",flipping:false};
+const lnHtml=(l,i)=>`<div class="ln ${l.s?"struck":""}" data-i="${i}">${[...l.t].map(d=>`<span class="dg">${d}</span>`).join("")}<i class="strike"></i></div>`;
+function nbPage(){return`<div class="page cur">${nb.lines.map(lnHtml).join("")}</div>`}
+function nbReset(){nb.lines=[{t:"",s:0},{t:"",s:0}];nb.cur=0;nb.prev="";nb.flipping=false;const i=$("#codeIn");if(i)i.value=""}
+function lineEl(i){return document.querySelector(`.pad .page.cur .ln[data-i="${i}"]`)}
+// نرسم الصفحة من الحالة: الأرقام الجديدة تنكتب بالقلم، والقديمة تبقى
+function nbDraw(){
+  if(nb.flipping)return;
+  const page=$(".pad .page.cur");if(!page)return;
+  let k=0;
+  nb.lines.forEach((l,i)=>{
+    const el=lineEl(i);if(!el)return;
+    const have=[...el.querySelectorAll(".dg")].map(x=>x.textContent).join("");
+    const keep=l.t.startsWith(have);
+    if(!keep)el.querySelectorAll(".dg").forEach(x=>x.remove());
+    [...l.t].slice(keep?have.length:0).forEach(d=>{const sp=document.createElement("span");sp.className="dg w";sp.textContent=d;sp.style.animationDelay=(k++*.14)+"s";el.insertBefore(sp,el.querySelector(".strike"))});
+    if(l.s)strikeNow(i);
+  });
+  movePen();if(k)setTimeout(movePen,k*140);
+}
+function movePen(){
+  const pen=$("#pen"),el=lineEl(nb.cur);if(!pen||!el)return;
+  const dg=el.querySelectorAll(".dg"),last=dg[dg.length-1];
+  const x=el.offsetLeft+(last?last.offsetLeft+last.offsetWidth+1:8),y=el.offsetTop+el.offsetHeight-10;
+  pen.style.transform=`translate(${x}px,${y}px)`;
+  pen.classList.remove("scrib");void pen.offsetWidth;pen.classList.add("scrib");
+}
+function strikeNow(i){const el=lineEl(i);if(!el||el.classList.contains("struck"))return;const dg=el.querySelectorAll(".dg"),last=dg[dg.length-1];el.style.setProperty("--sw",(last?last.offsetLeft+last.offsetWidth+10:40)+"px");el.classList.add("struck")}
+function nbInput(raw){
+  const inp=$("#codeIn"),v=en(raw).replace(/\D/g,"").slice(0,4);if(inp&&inp.value!==v)inp.value=v;
+  const p=nb.prev;if(v===p)return;nb.prev=v;
+  const h=$(".padhint");if(h)h.textContent="";
+  const line=nb.lines[nb.cur];
+  if(v.length>p.length&&v.startsWith(p)&&line.t===p){line.t=v;buzz(8);nbDraw();return}
+  if(!line.t){line.t=v;nbDraw();return}
+  // مسح: نشطب السطر بالأحمر ونكتب الرقم الصحيح بالسطر اللي بعده
+  line.s=1;if(!nb.flipping)strikeNow(nb.cur);buzz([10,30,10]);
+  if(nb.cur<nb.lines.length-1){nb.cur++;nb.lines[nb.cur].t=v;setTimeout(nbDraw,380);return}
+  // خلصت السطور: نقلب الصفحة
+  nb.lines=[{t:v,s:0},{t:"",s:0}];nb.cur=0;
+  if(nb.flipping)return;nb.flipping=true;
+  setTimeout(()=>{
+    const pages=$(".pad .pages"),old=pages&&pages.querySelector(".page.cur");
+    if(old){old.classList.remove("cur");old.classList.add("flip");setTimeout(()=>old.remove(),900);
+      pages.insertAdjacentHTML("afterbegin",`<div class="page cur">${[0,1].map(i=>lnHtml({t:"",s:0},i)).join("")}</div>`)}
+    nb.flipping=false;setTimeout(nbDraw,480);
+  },420);
+}
+document.addEventListener("input",e=>{if(e.target.id==="codeIn")nbInput(e.target.value)});
+function setDen(cls){doorState=cls;const d=$(".den");if(d){d.classList.remove("intro","wrong","reading","welcome","open");if(cls)d.classList.add(cls);const s=d.querySelector(".say");if(s)s.textContent=SAY[cls]||"كلمة السر؟"}}
+/* تشق الورقة وتعطيها للمافيا */
+async function handOver(){
+  const page=$(".pad .page.cur"),t=$("#notepos"),pen=$("#pen");if(!page||!t)return;
+  if(pen)pen.classList.add("away");
+  const r=page.getBoundingClientRect(),tr=t.getBoundingClientRect();
+  const fly=page.cloneNode(true);fly.classList.remove("cur");fly.classList.add("fly");
+  Object.assign(fly.style,{left:r.left+"px",top:r.top+"px",width:r.width+"px",height:r.height+"px"});
+  document.body.appendChild(fly);
+  page.classList.add("gone");$(".pad .pages").insertAdjacentHTML("afterbegin",`<div class="page cur blank">${nb.lines.map((l,i)=>lnHtml({t:"",s:0},i)).join("")}</div>`);
+  buzz([20,20,20,20,40]);
+  await fly.animate([{transform:"rotate(0)"},{transform:"translate(-6px,-10px) rotate(-5deg)",offset:.5},{transform:"translate(4px,-22px) rotate(-10deg)"}],{duration:420,easing:"cubic-bezier(.3,1.5,.5,1)",fill:"forwards"}).finished;
+  const dx=tr.left+tr.width/2-(r.left+r.width/2),dy=tr.top+tr.height/2-(r.top+r.height/2),sc=Math.max(.06,tr.width/r.width);
+  await fly.animate([{transform:"translate(4px,-22px) rotate(-10deg)"},{transform:`translate(${dx*.5}px,${dy*.5-60}px) rotate(14deg) scale(${(1+sc)/2})`,offset:.55},{transform:`translate(${dx}px,${dy}px) rotate(-8deg) scale(${sc})`}],{duration:850,easing:"cubic-bezier(.5,0,.3,1)",fill:"forwards"}).finished;
+  fly.remove();
+}
+async function welcomeIn(){setDen("welcome");buzz(30);await nap(1500);setDen("open");await nap(1000)}
 async function createRoom(){
-  busy=true;render();
+  if(busy)return;busy=true;
   try{const r=await fetch("/api/create",{method:"POST"});const j=await r.json();if(!r.ok)throw new Error(j.error);
-    doorState="open";homeErr="";busy=false;render();await nap(1500);
+    homeErr="";window.scrollTo({top:0,behavior:"smooth"});await welcomeIn();busy=false;
     sess={code:j.code,token:j.token,judge:true};lsSet("mafia.sess",sess);firstState=true;connect();}
   catch(e){homeErr=e.message||"ما قدرت أفتح غرفة.";}
   busy=false;render();
 }
 async function joinCode(c){
-  c=en(c).trim();homeErr="";doorState="";
-  if(!/^\d{4}$/.test(c)){homeErr="كلمة السر 4 أرقام.";doorState="wrong";buzz([40,30,40]);return render()}
-  busy=true;render();
-  try{const r=await fetch("/api/exists?code="+c);const j=await r.json();
-    if(!j.ok){homeErr="ما في غرفة بهالرقم، تأكد من القاضي.";doorState="wrong";buzz([40,30,40]);busy=false;return render()}}
-  catch{homeErr="ما في إنترنت؟ جرّب مرة ثانية.";busy=false;return render()}
-  doorState="open";busy=false;render();buzz(30);await nap(1500);
+  c=en(c).trim();
+  if(busy)return;
+  if(!/^\d{4}$/.test(c)){const p=$("#pad");if(p){p.classList.remove("nope");void p.offsetWidth;p.classList.add("nope")}toast("كلمة السر 4 أرقام");buzz([40,30,40]);return}
+  busy=true;homeErr="";const er=$(".err");if(er)er.remove();
+  try{document.activeElement&&document.activeElement.blur()}catch{}
+  window.scrollTo({top:0,behavior:"smooth"});await nap(380);
+  const ex=fetch("/api/exists?code="+c).then(r=>r.json()).then(j=>!!j.ok).catch(()=>null);
+  await handOver();setDen("reading");
+  const [ok]=await Promise.all([ex,nap(1500)]);
+  if(ok!==true){
+    setDen("wrong");buzz([60,40,60,40,200]);await nap(1800);
+    homeErr=ok===null?"ما في إنترنت؟ جرّب مرة ثانية.":"ما في غرفة بهالرقم، تأكد من القاضي.";
+    doorState="";busy=false;nbReset();render();return;
+  }
+  await welcomeIn();busy=false;
   const old=lsGet("mafia.tok."+c);
   sess={code:c,token:old||null,judge:false};lsSet("mafia.sess",sess);busy=false;firstState=true;connect();
 }
@@ -881,7 +1009,7 @@ function render(){
   const app=$("#app"),k=screenKey(),changed=k!==lastScreen;lastScreen=k;
   app.classList.remove("enter");if(changed){void app.offsetWidth;app.classList.add("enter")}
   const keep=document.activeElement&&document.activeElement.id;
-  if(view==="home"){app.innerHTML=homeView();startRain()}
+  if(view==="home"){app.innerHTML=homeView();startRain();const i=$("#codeIn");if(i)i.value=nb.prev;requestAnimationFrame(movePen)}
   else if(view==="name")app.innerHTML=nameView();
   else if(!st)app.innerHTML=demoBar()+`<div><h1>غرفة المافيا</h1><p class="muted">قاعد أتصل بالغرفة…</p></div>`;
   else app.innerHTML=st.judge?judgeView():playerView();
@@ -891,7 +1019,7 @@ function render(){
 }
 function homeView(){
   const intro=!doorSeen;doorSeen=true;
-  const say=doorState==="wrong"?"غلط! منو أنت؟":doorState==="open"?"تفضّل…":"كلمة السر؟";
+  const say=SAY[doorState]||"كلمة السر؟";
   return`<a class="back over" href="/">→ كل الألعاب</a>
   <div class="den ${intro?"intro":""} ${doorState}" aria-hidden="true">
     <svg class="alley" viewBox="0 0 360 300" preserveAspectRatio="xMidYMax slice">
@@ -929,6 +1057,10 @@ function homeView(){
           <path class="cig" d="M236 154.5l7 1.4" stroke="#cfc4b4" stroke-opacity=".85" stroke-width="1.1" stroke-linecap="round"/>
           <circle class="ember" cx="243.6" cy="156" r="1.2" fill="#ff5a2a"/>
         </g>
+        <g class="held"><path class="rarm" d="M213 168q-8 12 4 22" fill="none" stroke="#050505" stroke-width="7" stroke-linecap="round"/>
+          <g class="note"><rect id="notepos" x="215" y="171" width="24" height="18" rx="1" fill="#efe6cf" transform="rotate(-8 227 180)"/>
+          <path d="M219 177h14M219 181h11M219 185h15" stroke="#3a4a6a" stroke-width=".9" transform="rotate(-8 227 180)"/></g>
+          <circle cx="217" cy="188" r="3.4" fill="#2a1d16"/></g>
         <g class="smoke"><path d="M244 153c-5-8 5-12 0-20s5-12 0-20"/><path d="M244 153c5-8-5-12 0-20s-5-12 0-20"/></g>
         <g class="refl" transform="translate(0 540) scale(1 -1)" opacity=".16" filter="url(#blur2)"><path d="M216 162Q231 156 246 162L252 176L256 232L263 262L242 264L238 240H224L220 264L199 262L206 232L210 176Z" fill="#000"/></g>
       </g>
@@ -939,10 +1071,22 @@ function homeView(){
     <p class="say">${say}</p>
   </div>
   ${homeErr?`<p class="err" style="text-align:center">${esc(homeErr)}</p>`:""}
-  <form class="panel pass" id="joinF">
-    <label class="muted small" for="codeIn">كلمة السر هي رقم الغرفة</label>
-    <input class="big" id="codeIn" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off">
-    <button class="btn primary" ${busy?"disabled":""}>ادخل</button></form>
+  <form class="pov" id="joinF">
+    <svg class="lhand" viewBox="0 0 200 200" aria-hidden="true"><path d="M-40 230L40 120 96 150 30 260z" fill="#0d0d10"/><path d="M40 120l56 30" stroke="#2a2a30" stroke-width="2"/>
+      <path d="M36 112l12-14 58 30-10 18z" fill="#e8e2d6"/><circle cx="74" cy="122" r="3" fill="#c9a35b"/>
+      <path d="M52 96c6-24 30-36 58-30 22 5 34 16 36 30l-8 24-74-6z" fill="#b98663"/><path d="M60 100c10-10 34-14 70-6" stroke="#8f6246" stroke-width="2" fill="none"/></svg>
+    <div class="pad" id="pad" aria-hidden="true"><span class="spiral"></span><div class="pages">${nbPage()}</div>
+      <svg class="pen" id="pen" viewBox="0 0 220 220"><path d="M118 118L250 250 210 290 82 160z" fill="#0d0d10"/><path d="M98 132l34-30" stroke="#2a2a30" stroke-width="2"/>
+        <path d="M88 124l34-30 16 16-34 30z" fill="#e8e2d6"/><circle cx="112" cy="116" r="3" fill="#c9a35b"/>
+        <path d="M4 4l14 6 70 70-8 8-70-70z" fill="#141414"/><path d="M4 4l14 6-8 8z" fill="#c9a35b"/><path d="M60 52l12 12-8 8-12-12z" fill="#c9a35b"/>
+        <path d="M30 44c10-6 22-4 30 4l26 30c4 6 2 12-4 14l-34-10z" fill="#c49270"/><path d="M28 34c4-4 10-4 14 0l30 34-10 8z" fill="#b98663"/>
+        <path d="M54 92c10-12 30-16 46-6l18 28-28 26c-22-6-36-24-36-48z" fill="#b98663"/><path d="M58 98c10-8 24-10 36-4" stroke="#8f6246" stroke-width="2" fill="none"/></svg>
+      <svg class="thumb" viewBox="0 0 60 60" aria-hidden="true"><path d="M6 44c2-16 14-26 30-26 10 0 16 6 14 14-2 10-14 18-30 20z" fill="#c49270"/><path d="M34 22c8 0 12 6 10 12" stroke="#8f6246" stroke-width="1.6" fill="none"/></svg>
+      <input id="codeIn" class="padin" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" aria-label="كلمة السر: رقم الغرفة">
+    </div>
+    <p class="padhint">${nb.prev?"":"دوس على النوتة واكتب رقم الغرفة"}</p>
+    <button class="btn primary" ${busy?"disabled":""}>تأكيد</button>
+  </form>
   <div class="links">
     <button class="lnk" data-a="create" ${busy?"disabled":""}>افتح غرفة للقاضي</button>
     <button class="lnk" data-a="demoOpen" aria-expanded="${demoOpen}">جرّب اللعبة</button>
@@ -1278,7 +1422,7 @@ const linkCode=(new URLSearchParams(location.search).get("r")||"").replace(/\D/g
 if(linkCode)try{history.replaceState(null,"",location.pathname)}catch{}
 if(/^\d{4}$/.test(linkCode)&&!(sess&&sess.code===linkCode)){
   if(sess){try{ws&&ws.close()}catch{}sess=null;lsSet("mafia.sess",null)}
-  render();const ci=$("#codeIn");if(ci)ci.value=linkCode;setTimeout(()=>joinCode(linkCode),1900);
+  render();(async()=>{await nap(1700);for(let k=1;k<=4;k++){nbInput(linkCode.slice(0,k));await nap(260)}await nap(600);joinCode(linkCode)})();
 }else if(sess&&sess.code){view="game";render();connect()}else render();
 </script>
 </body>
