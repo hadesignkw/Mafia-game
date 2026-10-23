@@ -1,0 +1,28 @@
+/* أجواء أفلام المافيا: دخان، حبيبات فيلم، وتعتيم الأطراف. مشتركة بين صفحة الألعاب والمافيا */
+.noir{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.noir .smoke{position:absolute;width:140vmax;height:60vmax;left:-20vmax;border-radius:50%;filter:blur(40px);opacity:.16;
+  background:radial-gradient(closest-side,rgb(170 180 186 / .9),rgb(170 180 186 / 0));will-change:transform}
+.noir .s1{top:8%;animation:drift 38s linear infinite}
+.noir .s2{top:45%;animation:drift 52s linear infinite reverse;opacity:.11}
+.noir .s3{top:75%;animation:drift 44s -20s linear infinite;opacity:.09}
+@keyframes drift{0%{transform:translateX(-25%) translateY(0) scale(1)}50%{transform:translateX(15%) translateY(-6%) scale(1.15)}100%{transform:translateX(-25%) translateY(0) scale(1)}}
+.noir .vig{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 35%,transparent 45%,rgb(0 0 0 / .7) 100%)}
+.noir .grain{position:absolute;inset:-50%;opacity:.09;mix-blend-mode:overlay;animation:grain .9s steps(4) infinite;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+@keyframes grain{0%{transform:translate(0,0)}25%{transform:translate(-3%,2%)}50%{transform:translate(2%,-3%)}75%{transform:translate(-2%,-1%)}100%{transform:translate(0,0)}}
+
+/* اللمبة المعلقة */
+.lamp{position:relative;width:100%;display:flex;flex-direction:column;align-items:center;pointer-events:none}
+.lamp .rig{transform-origin:50% 0;animation:swing 7s ease-in-out infinite;display:flex;flex-direction:column;align-items:center}
+.lamp .cord{width:2px;background:linear-gradient(#2a2420,#4a3f36)}
+.lamp svg.shade{display:block}
+.lamp .bulb{animation:bulbOn 2.4s ease-out both}
+.lamp .beam{position:absolute;left:50%;transform:translateX(-50%);clip-path:polygon(38% 0,62% 0,100% 100%,0 100%);
+  background:linear-gradient(rgb(255 214 140 / .42),rgb(255 214 140 / .06) 70%,transparent);filter:blur(2px);animation:beamOn 2.4s ease-out both}
+@keyframes swing{0%,100%{transform:rotate(-2.5deg)}50%{transform:rotate(2.5deg)}}
+@keyframes bulbOn{0%,8%{opacity:.15}10%{opacity:1}13%{opacity:.25}17%,24%{opacity:1}27%{opacity:.4}32%,100%{opacity:1}}
+@keyframes beamOn{0%,8%{opacity:0}10%{opacity:1}13%{opacity:.1}17%,24%{opacity:1}27%{opacity:.2}32%,100%{opacity:1}}
+
+@media (prefers-reduced-motion:reduce){
+  .noir .smoke,.noir .grain,.lamp .rig,.lamp .bulb,.lamp .beam{animation:none!important}
+}

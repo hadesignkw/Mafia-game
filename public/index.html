@@ -2,67 +2,138 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0f1217">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0e0b09">
 <title>الألعاب</title>
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Aref+Ruqaa:wght@400;700&display=swap">
+<link rel="stylesheet" href="/noir.css">
 <style>
 :root{
-  --bg:#0f1217;--panel:#181d25;--panel2:#202733;--line:#2c3441;
-  --fg:#ece6d6;--muted:#9b978b;--brass:#d2a74c;--brass-ink:#1b1408;
-  --font:"Almarai",Tahoma,"Segoe UI",sans-serif;
+  --ink:#0e0b09;--wood:#1c1410;--felt:#10251c;--brass:#c9a35b;--brass-hi:#ecd29a;
+  --blood:#b8322c;--paper:#efe3c8;--smoke:#8f9aa0;
+  --ruqaa:"Aref Ruqaa","Almarai",serif;--body:"Almarai",Tahoma,sans-serif;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%}
-body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px;line-height:1.6;-webkit-tap-highlight-color:transparent}
-.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-top:calc(28px + env(safe-area-inset-top,0px));padding-bottom:calc(48px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:20px}
-h1{font-size:2.4rem;font-weight:800;margin:0;line-height:1.3;color:var(--brass)}
-h2{font-size:1.3rem;font-weight:800;margin:0;line-height:1.3}
-p{margin:0}
-.muted{color:var(--muted)}
-.games{display:grid;gap:12px}
-.game{display:flex;align-items:center;gap:16px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;color:inherit;text-decoration:none;transition:transform .12s ease,border-color .2s ease,background .2s ease;animation:rise .45s cubic-bezier(.2,.9,.3,1) both}
-.game:hover{border-color:color-mix(in srgb,var(--brass) 55%,transparent)}
-.game:active{transform:scale(.98)}
-.game:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
-.game .ic{flex:none;width:64px;height:64px;border-radius:14px;background:var(--panel2);display:grid;place-items:center;color:var(--brass)}
-.game .ic svg{width:40px;height:40px}
-.game .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-.game .go{flex:none;color:var(--muted);font-size:1.4rem}
-.game.soon{opacity:.5;pointer-events:none;border-style:dashed}
-.game.soon .ic{color:var(--muted)}
-@keyframes rise{from{opacity:0;transform:translateY(10px)}}
-@media (prefers-reduced-motion:reduce){.game{animation:none}}
+html,body{margin:0;min-height:100%;max-width:100%;overflow-x:hidden;overflow-x:clip;touch-action:pan-x pan-y;-webkit-text-size-adjust:100%;overscroll-behavior-x:none}
+body{background:var(--ink);color:var(--paper);font-family:var(--body);line-height:1.6;-webkit-tap-highlight-color:transparent}
+main{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-left,0px)) calc(40px + env(safe-area-inset-bottom,0px))}
+
+/* ---------- المشهد: لمبة فوق طاولة ---------- */
+.scene{position:relative;height:min(66vh,560px);min-height:440px;width:100vw;margin-inline:calc(50% - 50vw);overflow:hidden;display:flex;flex-direction:column;align-items:center}
+.scene .lamp{position:absolute;top:0;left:0;right:0}
+.scene .cord{height:calc(54px + env(safe-area-inset-top,0px))}
+.scene .beam{top:calc(118px + env(safe-area-inset-top,0px));width:min(560px,130vw);height:min(62vh,500px)}
+.title{position:relative;z-index:2;margin-top:calc(150px + env(safe-area-inset-top,0px));text-align:center;animation:rise 1s 1.1s cubic-bezier(.2,.8,.2,1) both}
+.title h1{margin:0;font-family:var(--ruqaa);font-weight:700;font-size:clamp(4.2rem,24vw,6.4rem);line-height:1;color:var(--paper);
+  text-shadow:0 2px 0 #6b5428,0 0 30px rgb(255 214 140 / .35),0 18px 40px rgb(0 0 0 / .8)}
+.title p{margin:10px 0 0;color:var(--smoke);font-size:1.02rem}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}}
+
+/* الطاولة والكروت */
+.table{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:max(150vw,620px);height:140px;border-radius:50% 50% 0 0/100% 100% 0 0;
+  background:radial-gradient(70% 120% at 50% 0%,#1d4434,var(--felt) 55%,#07120d);box-shadow:inset 0 6px 0 #3a2a1d,inset 0 9px 0 #120c09,0 -10px 50px rgb(255 214 140 / .08)}
+.fan{position:absolute;bottom:62px;left:50%;width:0;height:0;z-index:2}
+.card{position:absolute;left:-34px;bottom:0;width:68px;height:98px;border-radius:8px;transform-origin:50% 140%;
+  background:linear-gradient(160deg,#f6ecd6,#e2d2ad);box-shadow:0 8px 18px rgb(0 0 0 / .55),inset 0 0 0 3px #f6ecd6,inset 0 0 0 4px rgb(107 84 40 / .5);
+  display:grid;justify-items:center;align-items:start;padding-top:9px;animation:deal .8s cubic-bezier(.2,1.2,.4,1) both}
+.card svg{width:30px;height:30px}
+.card.back{background:repeating-linear-gradient(45deg,#2a0f0e 0 5px,#3a1513 5px 10px);box-shadow:0 8px 18px rgb(0 0 0 / .55),inset 0 0 0 3px #3a1513,inset 0 0 0 4px var(--brass)}
+@keyframes deal{from{transform:translateY(-220px) rotate(0) scale(.6);opacity:0}}
+
+/* ---------- الألعاب ---------- */
+.games{position:relative;z-index:2;display:flex;flex-direction:column;gap:14px;margin-top:-6px}
+.poster{position:relative;display:grid;grid-template-columns:1fr 112px;align-items:end;min-height:200px;padding:20px 18px 18px;border-radius:6px 6px 22px 22px;
+  color:inherit;text-decoration:none;overflow:hidden;isolation:isolate;
+  background:radial-gradient(90% 120% at 15% 100%,#5b1512 0%,#2a0c0a 45%,#120807 100%);
+  box-shadow:0 0 0 1px rgb(201 163 91 / .45),0 0 0 5px #120807,0 0 0 6px rgb(201 163 91 / .25),0 24px 50px rgb(0 0 0 / .6);
+  animation:rise .8s 1.6s cubic-bezier(.2,.8,.2,1) both;transition:transform .2s cubic-bezier(.2,.8,.2,1)}
+.poster::after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;background:linear-gradient(105deg,transparent 35%,rgb(255 236 190 / .16) 48%,transparent 60%);transform:translateX(120%);animation:sheen 5s 2.6s ease-in-out infinite}
+@keyframes sheen{0%,70%{transform:translateX(120%)}100%{transform:translateX(-120%)}}
+.poster:active{transform:scale(.98)}
+.poster:focus-visible{outline:2px solid var(--brass-hi);outline-offset:4px}
+.poster .txt{display:flex;flex-direction:column;gap:6px;min-width:0;position:relative;z-index:2}
+.poster h2{margin:0;font-family:var(--ruqaa);font-weight:700;font-size:3.1rem;line-height:1;color:var(--paper);text-shadow:0 3px 0 #000}
+.poster p{margin:0;color:#d9c8a8;font-size:.95rem}
+.poster .go{margin-top:8px;align-self:flex-start;font-weight:800;font-size:.95rem;padding:9px 18px;border-radius:99px;color:#1d1408;
+  background:linear-gradient(180deg,var(--brass-hi),var(--brass) 55%,#8c6b2e);box-shadow:0 2px 0 #5a4219,0 6px 16px rgb(0 0 0 / .45)}
+.poster .man{position:relative;z-index:1;width:112px;height:150px;margin-bottom:-18px;filter:drop-shadow(0 0 16px rgb(184 50 44 / .45))}
+.poster .players{position:absolute;top:14px;left:16px;z-index:2;font-size:.78rem;color:var(--brass-hi);border:1px solid rgb(201 163 91 / .5);border-radius:99px;padding:2px 10px;background:rgb(0 0 0 / .3)}
+.soon{display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:16px;border:1px dashed rgb(201 163 91 / .3);color:var(--smoke);
+  background:rgb(28 20 16 / .55);animation:rise .8s 1.8s cubic-bezier(.2,.8,.2,1) both}
+.soon .q{flex:none;width:52px;height:72px;border-radius:7px;display:grid;place-items:center;font-family:var(--ruqaa);font-size:2rem;color:rgb(201 163 91 / .6);
+  background:repeating-linear-gradient(45deg,#1b1512 0 5px,#221a15 5px 10px);box-shadow:inset 0 0 0 2px rgb(201 163 91 / .3)}
+.soon b{display:block;color:var(--paper);font-size:1.05rem}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important}}
 </style>
 </head>
 <body>
-<main class="wrap">
-  <div>
-    <h1>الألعاب</h1>
-    <p class="muted">اختار اللعبة اللي تبي تلعبها.</p>
-  </div>
-  <nav class="games" id="games"></nav>
+<div class="noir" aria-hidden="true"><span class="smoke s1"></span><span class="smoke s2"></span><span class="smoke s3"></span><span class="vig"></span><span class="grain"></span></div>
+<main>
+  <section class="scene">
+    <div class="lamp" aria-hidden="true">
+      <div class="rig">
+        <span class="cord"></span>
+        <svg class="shade" width="120" height="70" viewBox="0 0 120 70">
+          <defs><linearGradient id="sh" x1="0" x2="1"><stop offset="0" stop-color="#1f1a16"/><stop offset=".45" stop-color="#4e4237"/><stop offset="1" stop-color="#16120f"/></linearGradient></defs>
+          <rect x="54" y="0" width="12" height="12" rx="2" fill="#2d2621"/>
+          <path d="M44 12h32l40 46H4z" fill="url(#sh)"/>
+          <path d="M4 58h112" stroke="#c9a35b" stroke-opacity=".5" stroke-width="2"/>
+          <ellipse class="bulb" cx="60" cy="60" rx="16" ry="7" fill="#ffe2a6"/>
+        </svg>
+      </div>
+      <span class="beam"></span>
+    </div>
+    <div class="title">
+      <h1>الألعاب</h1>
+      <p>سهرة الربع تبدا من هني</p>
+    </div>
+    <div class="table" aria-hidden="true"></div>
+    <div class="fan" id="fan" aria-hidden="true"></div>
+  </section>
+
+  <nav class="games" aria-label="الألعاب">
+    <a class="poster" href="/mafia/">
+      <span class="players">6 إلى 30 لاعب</span>
+      <span class="txt">
+        <h2>المافيا</h2>
+        <p>القاضي يفتح غرفة، والربع يدخلون من جوالاتهم ويكتشفون منو المافيا بينهم.</p>
+        <span class="go">ادخل اللعبة</span>
+      </span>
+      <svg class="man" viewBox="0 0 120 160" aria-hidden="true">
+        <path d="M10 160c4-40 24-56 50-56s46 16 50 56z" fill="#0b0807" stroke="#c9a35b" stroke-opacity=".35" stroke-width="1.5"/>
+        <path d="M46 104l14 34 14-34z" fill="#e8dcc0"/>
+        <path d="M56.5 110h7l2.5 28-6 9-6-9z" fill="#b8322c"/>
+        <path d="M46 104l-8 10 18 30zM74 104l8 10-18 30z" fill="#16100d"/>
+        <ellipse cx="60" cy="80" rx="21" ry="22" fill="#14100e"/>
+        <path d="M39 70q21 9 42 0v-8H39z" fill="#000" fill-opacity=".75"/>
+        <path d="M30 56c0-24 12-34 30-34s30 10 30 34z" fill="#0d0a09" stroke="#c9a35b" stroke-opacity=".35" stroke-width="1.5"/>
+        <path d="M50 26q10 8 20 0" stroke="#000" stroke-width="3" fill="none"/>
+        <rect x="30" y="48" width="60" height="8" fill="#5b1512"/>
+        <ellipse cx="60" cy="58" rx="48" ry="9" fill="#0d0a09" stroke="#c9a35b" stroke-opacity=".4" stroke-width="1.5"/>
+      </svg>
+    </a>
+    <div class="soon"><span class="q">؟</span><span><b>لعبة جاية</b>نجهزها لسهرة ثانية</span></div>
+  </nav>
 </main>
 <script>
 "use strict";
-/* لإضافة لعبة جديدة: حط ملفاتها في مجلد باسمها داخل public وزيد سطر هني */
-const GAMES=[
-  {href:"/mafia/",name:"المافيا",desc:"القاضي يفتح غرفة والربع يدخلون من جوالاتهم.",
-   icon:'<svg viewBox="0 0 64 64" fill="currentColor"><path d="M10 40h44l-4 6H14zM18 38c0-10 6-18 14-18s14 8 14 18zM22 20h20l-2-8H24z"/></svg>'},
-  {soon:true,name:"لعبة جاية",desc:"قريباً",
-   icon:'<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"><path d="M32 16v32M16 32h32"/></svg>'}
+/* الكروت المفرودة على الطاولة: أدوار المافيا */
+const ICONS=[
+  ["back",""],
+  ["#b8322c",'<path d="M4 26c8-6 18-8 28-8s20 2 28 8c-2 14-10 22-18 22-5 0-7-6-10-6s-5 6-10 6C14 48 6 40 4 26zm14 4c-3 0-6 2-7 4 3 2 6 3 9 3s5-2 5-4-3-3-7-3zm28 0c-4 0-7 1-7 3s2 4 5 4 6-1 9-3c-1-2-4-4-7-4z"/>'],
+  ["#2f6b55",'<path d="M32 4 8 12v18c0 15 10 26 24 30 14-4 24-15 24-30V12zm0 14 4 9 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z"/>'],
+  ["#2f6b55",'<path d="M24 6h16v18h18v16H40v18H24V40H6V24h18z"/>'],
+  ["back",""]
 ];
-document.getElementById("games").innerHTML=GAMES.map((g,i)=>
-  `<a class="game${g.soon?" soon":""}" ${g.soon?'aria-disabled="true"':`href="${g.href}"`} style="animation-delay:${i*70}ms">
-    <span class="ic">${g.icon}</span>
-    <span class="tx"><h2>${g.name}</h2><span class="muted">${g.desc}</span></span>
-    ${g.soon?"":'<span class="go" aria-hidden="true">←</span>'}
-  </a>`).join("");
+const rot=[-34,-17,0,17,34];
+document.getElementById("fan").innerHTML=ICONS.map(([c,p],i)=>c==="back"
+  ?`<span class="card back" style="transform:rotate(${rot[i]}deg);animation-delay:${1.9+i*.08}s"></span>`
+  :`<span class="card" style="transform:rotate(${rot[i]}deg);animation-delay:${1.9+i*.08}s"><svg viewBox="0 0 64 64" fill="${c}">${p}</svg></span>`).join("");
 </script>
 </body>
 </html>
