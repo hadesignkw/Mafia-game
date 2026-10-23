@@ -35,7 +35,7 @@ h1{font-family:var(--ruqaa);font-weight:700;font-size:3.2rem;line-height:1.1;col
 .hero{position:relative;text-align:center;padding-top:118px;margin-top:-16px;display:flex;flex-direction:column;align-items:center;gap:6px}
 .hero .lamp{position:absolute;top:calc(-1 * env(safe-area-inset-top,0px));left:0;right:0}
 .hero .cord{height:calc(24px + env(safe-area-inset-top,0px))}
-.hero .beam{top:calc(82px + env(safe-area-inset-top,0px));width:min(520px,120vw);height:300px;opacity:.8}
+.hero .beam{top:calc(82px + env(safe-area-inset-top,0px));width:min(520px,100vw);height:300px;opacity:.8}
 .hero h1{position:relative;font-size:clamp(3.6rem,20vw,5rem)}
 .hero p{position:relative;max-width:30ch}
 h2{font-size:1.35rem}
@@ -87,7 +87,12 @@ table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-bottom:1px s
 .notes{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
 .notes li{background:var(--bg);border-radius:10px;padding:8px 12px;font-size:.95rem}
 .sep{height:1px;background:var(--line)}
-.back{align-self:flex-start;color:var(--muted);text-decoration:none;font-size:.9rem;padding:4px 0}.back:hover{color:var(--brass)}
+.links{display:flex;justify-content:center;gap:6px 22px;flex-wrap:wrap;margin-top:-4px}
+.lnk{font:inherit;font-size:.95rem;background:none;border:0;padding:6px 2px;color:var(--brass-hi);cursor:pointer;text-decoration:underline;text-decoration-color:rgb(201 163 91 / .4);text-underline-offset:6px}
+.lnk:disabled{opacity:.5}
+.lnk:focus-visible{outline:2px solid var(--brass);outline-offset:3px;border-radius:4px}
+.demoset{animation:rise .3s cubic-bezier(.2,.8,.2,1)}
+.back{position:relative;z-index:2;align-self:flex-start;color:var(--muted);text-decoration:none;font-size:.9rem;padding:4px 0}.back:hover{color:var(--brass)}
 .conn{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));inset-inline:16px;z-index:40;background:var(--blood);color:#fff;text-align:center;border-radius:10px;padding:6px 10px;font-size:.9rem}
 .toast{position:fixed;inset-inline:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 16px;text-align:center;z-index:60;animation:rise .25s ease}
 @keyframes rise{from{transform:translateY(12px);opacity:0}}
@@ -372,7 +377,7 @@ const buzz=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch{}};
 
 /* ---------- الحالة ---------- */
 let sess=lsGet("mafia.sess"); // {code, token, judge}
-let view="home", st=null, ws=null, offset=0, lastEv=null, firstState=true, retry=0, homeErr="", busy=false;
+let demoOpen=false,view="home", st=null, ws=null, offset=0, lastEv=null, firstState=true, retry=0, homeErr="", busy=false;
 let cardOpen=false, dealAnim=false, lastGen=null, notesSeen=null, rolesOpen=false;
 
 
@@ -618,19 +623,21 @@ function render(){
   if(demo){const t=document.querySelector(".tab.on");if(t)t.scrollIntoView({block:"nearest",inline:"center"})}
 }
 function homeView(){
-  return`<div class="hero">${LAMP}<h1>المافيا</h1><p class="muted">القاضي يفتح غرفة، والباقين يدخلون برقمها من جوالاتهم.</p></div>
-  <a class="back" href="/">→ كل الألعاب</a>
+  return`<a class="back" href="/">→ كل الألعاب</a><div class="hero">${LAMP}<h1>المافيا</h1><p class="muted">القاضي يفتح غرفة، والباقين يدخلون برقمها من جوالاتهم.</p></div>
+
   ${homeErr?`<p class="err">${esc(homeErr)}</p>`:""}
-  <form class="panel" id="joinF"><h2>دخول لاعب</h2>
+  <form class="panel" id="joinF">
     <label class="muted small" for="codeIn">رقم الغرفة</label>
     <input class="big" id="codeIn" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off">
     <button class="btn primary" ${busy?"disabled":""}>دخول</button></form>
-  <div class="panel"><h2>أنا القاضي</h2><p class="muted small">تفتح غرفة جديدة، تشوف كل الأدوار، وتدير الليل والنهار.</p>
-    <button class="btn" data-a="create" ${busy?"disabled":""}>إنشاء غرفة</button></div>
-  <div class="panel"><h2>جرّب اللعبة</h2><p class="muted small">غرفة تجربة فيها لاعبين وهميين. تتنقل بين شاشة القاضي وشاشة كل لاعب، وتسوي اختياراتهم بنفسك.</p>
+  <div class="links">
+    <button class="lnk" data-a="create" ${busy?"disabled":""}>إنشاء غرفة للقاضي</button>
+    <button class="lnk" data-a="demoOpen" aria-expanded="${demoOpen}">جرّب اللعبة</button>
+  </div>
+  ${demoOpen?`<div class="panel demoset"><p class="muted small">غرفة تجربة فيها لاعبين وهميين. تتنقل بين شاشة القاضي وشاشة كل لاعب وتسوي اختياراتهم بنفسك.</p>
     <label class="muted small" for="demoN">عدد اللاعبين</label>
-    <select id="demoN">${[6,7,8,9,10,11,12,13,14,15].map(n=>`<option value="${n}" ${n===8?"selected":""}>${n} لاعبين · ${2+Math.floor((n-6)/4)} مافيا</option>`).join("")}</select>
-    <button class="btn" data-a="demo" ${busy?"disabled":""}>ابدأ التجربة</button></div>`;
+    <select id="demoN">${[6,7,8,9,10,11,12,13,14,15].map(n=>`<option value="${n}" ${n===8?"selected":""}>${n} لاعبين، ${2+Math.floor((n-6)/4)} مافيا</option>`).join("")}</select>
+    <button class="btn" data-a="demo" ${busy?"disabled":""}>ابدأ التجربة</button></div>`:""}`;
 }
 function nameView(){
   return`<div><h1>غرفة ${ar(sess.code)}</h1><p class="muted">اكتب اسمك عشان يشوفه القاضي والربع.</p></div>
@@ -872,6 +879,7 @@ document.addEventListener("click",e=>{
   if(a==="create")createRoom();
   else if(a==="leave")leave();
   else if(a==="endDemo")endDemo("");
+  else if(a==="demoOpen"){demoOpen=!demoOpen;render()}
   else if(a==="persona")switchPersona(+b.dataset.i);
   else if(a==="demo")startDemo(+($("#demoN")&&$("#demoN").value||8));
   else if(a==="cmd")send({t:b.dataset.c,id});
