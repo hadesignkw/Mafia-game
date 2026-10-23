@@ -1,0 +1,384 @@
+import { DurableObject } from "cloudflare:workers";
+
+/* =========== قوانين اللعبة =========== */
+const ROLE_N = {
+  leader: "زعيم المافيا", mafia: "مافيا", cop: "الشرطي الحقيقي",
+  doctor: "الطبيب", sniper: "القناص", citizen: "مواطن",
+};
+const isM = (r) => r === "leader" || r === "mafia";
+const mafiaCount = (n) => 2 + Math.floor((n - 6) / 4); // ٦–٩:٢ · ١٠–١٣:٣ · ١٤–١٧:٤
+const MIN_PLAYERS = 6;
+const MAX_PLAYERS = 30;
+const TALK = 40;
+const STEPS = ["mafia", "doctor", "police"];
+const ROOM_TTL = 12 * 3600e3; // الغرفة تنمسح بعد ١٢ ساعة بدون استخدام
+
+const tok = () => crypto.randomUUID().replace(/-/g, "");
+const sid = () => crypto.randomUUID().slice(0, 8);
+const json = (o, status = 200) =>
+  new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
+
+/* =========== المدخل =========== */
+export default {
+  async fetch(req, env) {
+    const url = new URL(req.url);
+    if (url.pathname === "/api/create" && req.method === "POST") {
+      for (let i = 0; i < 25; i++) {
+        const code = String(1000 + Math.floor(Math.random() * 9000));
+        const r = await env.ROOM.get(env.ROOM.idFromName(code)).create(code);
+        if (r) return json(r);
+      }
+      return json({ error: "ما قدرت أفتح غرفة، جرّب مرة ثانية." }, 503);
+    }
+    if (url.pathname === "/api/exists") {
+      const code = url.searchParams.get("code") || "";
+      if (!/^\d{4}$/.test(code)) return json({ ok: false });
+      return json({ ok: await env.ROOM.get(env.ROOM.idFromName(code)).exists() });
+    }
+    if (url.pathname === "/api/ws") {
+      const code = url.searchParams.get("code") || "";
+      if (!/^\d{4}$/.test(code)) return new Response("bad code", { status: 400 });
+      if (req.headers.get("Upgrade") !== "websocket") return new Response("websocket only", { status: 426 });
+      return env.ROOM.get(env.ROOM.idFromName(code)).fetch(req);
+    }
+    if (url.pathname.startsWith("/api/")) return json({ error: "not found" }, 404);
+    return env.ASSETS.fetch(req);
+  },
+};
+
+/* =========== الغرفة =========== */
+export class Room extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    this.s = null;
+    ctx.blockConcurrencyWhile(async () => { this.s = (await ctx.storage.get("s")) || null; });
+  }
+
+  alive() { return !!this.s && Date.now() - (this.s.touched || 0) < ROOM_TTL; }
+  async exists() { return this.alive(); }
+
+  async create(code) {
+    if (this.alive()) return null;
+    const judgeToken = tok();
+    this.s = {
+      code, judgeToken, createdAt: Date.now(), touched: Date.now(),
+      players: {}, lobby: [], order: [], phase: "lobby", step: null, round: 0, gen: 0, canVote: false,
+      alive: {}, roles: {}, fakeCop: null, notes: {}, night: blankNight(), votes: {},
+      sniperPending: null, winner: null, announce: "", timer: null, event: null, log: [],
+    };
+    await this.save();
+    await this.ctx.storage.setAlarm(Date.now() + ROOM_TTL + 60e3);
+    return { code, token: judgeToken };
+  }
+
+  async alarm() {
+    if (this.s && Date.now() - (this.s.touched || 0) < ROOM_TTL) {
+      await this.ctx.storage.setAlarm((this.s.touched || Date.now()) + ROOM_TTL + 60e3);
+      return;
+    }
+    for (const ws of this.ctx.getWebSockets()) try { ws.close(4000, "expired"); } catch {}
+    this.s = null;
+    await this.ctx.storage.deleteAll();
+  }
+
+  async save() { this.s.touched = Date.now(); await this.ctx.storage.put("s", this.s); }
+
+  async fetch() {
+    const pair = new WebSocketPair();
+    this.ctx.acceptWebSocket(pair[1]);
+    pair[1].serializeAttachment({});
+    return new Response(null, { status: 101, webSocket: pair[0] });
+  }
+
+  async webSocketMessage(ws, raw) {
+    let m; try { m = JSON.parse(raw); } catch { return; }
+    if (!m || m.t === "ping") return;
+    if (!this.alive()) { this.send(ws, { t: "gone" }); return; }
+    const att = ws.deserializeAttachment() || {};
+    const s = this.s;
+
+    if (m.t === "hello") {
+      if (m.token && m.token === s.judgeToken) { ws.serializeAttachment({ judge: true }); return this.broadcast(); }
+      const pid = Object.keys(s.players).find((id) => s.players[id].token === m.token);
+      if (m.token && pid) { ws.serializeAttachment({ pid }); return this.broadcast(); }
+      this.send(ws, { t: "need-name", phase: s.phase });
+      return;
+    }
+    if (m.t === "join") {
+      const name = String(m.name || "").trim().replace(/\s+/g, " ").slice(0, 24);
+      if (!name) return this.err(ws, "اكتب اسمك.");
+      if (s.phase !== "lobby") return this.err(ws, "اللعبة بدت، انتظر لين تخلص الجولة.");
+      if (s.lobby.length >= MAX_PLAYERS) return this.err(ws, "الغرفة فلّت.");
+      if (s.lobby.some((id) => s.players[id].name === name)) return this.err(ws, "هالاسم مستخدم، غيّره شوي.");
+      const pid = sid(), token = tok();
+      s.players[pid] = { name, token, at: Date.now() };
+      s.lobby.push(pid);
+      ws.serializeAttachment({ pid });
+      this.send(ws, { t: "joined", token });
+      await this.save();
+      return this.broadcast();
+    }
+
+    if (att.judge) await this.judgeCmd(m);
+    else if (att.pid && s.players[att.pid]) await this.playerCmd(att.pid, m, ws);
+    else return;
+    await this.save();
+    this.broadcast();
+  }
+
+  async webSocketClose(ws) { try { ws.close(1000); } catch {} this.broadcast(ws); }
+  async webSocketError(ws) { this.broadcast(ws); }
+
+  send(ws, o) { try { ws.send(JSON.stringify(o)); } catch {} }
+  err(ws, text) { this.send(ws, { t: "error", text }); }
+
+  /* ---------- من موجود الحين ---------- */
+  onlineSet(skip) {
+    const on = new Set();
+    for (const w of this.ctx.getWebSockets()) { if (w === skip) continue; const a = w.deserializeAttachment(); if (a && a.pid) on.add(a.pid); }
+    return on;
+  }
+
+  broadcast(skip) {
+    if (!this.s) return;
+    const on = this.onlineSet(skip);
+    for (const w of this.ctx.getWebSockets()) {
+      if (w === skip) continue;
+      const a = w.deserializeAttachment() || {};
+      if (!a.judge && !a.pid) continue;
+      this.send(w, { t: "state", ...this.view(a, on) });
+    }
+  }
+
+  view(a, on) {
+    const s = this.s;
+    const ids = s.phase === "lobby" ? s.lobby : s.order;
+    const pub = {
+      code: s.code, phase: s.phase, step: s.step, round: s.round, gen: s.gen, canVote: s.canVote,
+      announce: s.announce, sniperPending: s.sniperPending, winner: s.winner, now: Date.now(),
+      timer: s.timer, event: s.event, minPlayers: MIN_PLAYERS,
+      players: ids.filter((id) => s.players[id]).map((id) => ({
+        id, name: s.players[id].name, alive: s.phase === "lobby" ? true : !!s.alive[id], online: on.has(id),
+      })),
+    };
+    if (s.phase === "over") pub.reveal = Object.fromEntries(s.order.map((id) => [id, { role: s.roles[id], fake: s.fakeCop === id }]));
+    if (a.judge) {
+      pub.judge = {
+        roles: s.roles, fakeCop: s.fakeCop, night: s.night, votes: s.votes, log: s.log.slice(-60),
+        mafiaNext: s.lobby.length >= MIN_PLAYERS ? mafiaCount(s.lobby.length) : null,
+      };
+      return pub;
+    }
+    const pid = a.pid, role = s.roles[pid];
+    pub.me = { id: pid, name: s.players[pid]?.name, inGame: s.order.includes(pid) && s.phase !== "lobby" };
+    if (role && pub.me.inGame) {
+      Object.assign(pub.me, { role, fake: s.fakeCop === pid, notes: s.notes[pid] || [] });
+      if (isM(role)) pub.me.team = s.order.filter((i) => isM(s.roles[i])).map((i) => ({ id: i, role: s.roles[i], fake: s.fakeCop === i }));
+      const n = s.night;
+      pub.me.sel = {
+        fakecop: role === "leader" ? s.fakeCop : null,
+        kill: isM(role) ? (n.sugg[pid] || (role === "leader" ? n.kill : null)) : null,
+        save: role === "doctor" ? n.save : null,
+        query: role === "cop" ? n.queried : null,
+        vote: s.votes[pid] || null,
+      };
+    }
+    return pub;
+  }
+
+  /* ---------- أدوات ---------- */
+  nm(id) { return this.s.players[id]?.name || "لاعب"; }
+  aliveIds() { return this.s.order.filter((i) => this.s.alive[i]); }
+  leaderAlive() { return this.aliveIds().some((i) => this.s.roles[i] === "leader"); }
+  log(t) { this.s.log.push(t); if (this.s.log.length > 120) this.s.log.shift(); }
+  ev(type, extra = {}) { this.s.event = { id: sid(), at: Date.now(), type, ...extra }; }
+  note(id, t) { (this.s.notes[id] = this.s.notes[id] || []).push(t); }
+
+  /* ---------- أوامر القاضي ---------- */
+  async judgeCmd(m) {
+    const s = this.s, id = m.id;
+    switch (m.t) {
+      case "kick":
+        if (s.phase === "lobby" && s.players[id]) {
+          s.lobby = s.lobby.filter((x) => x !== id); delete s.players[id];
+          for (const w of this.ctx.getWebSockets()) {
+            const a = w.deserializeAttachment();
+            if (a && a.pid === id) { this.send(w, { t: "kicked" }); w.serializeAttachment({}); }
+          }
+        }
+        break;
+      case "start": return this.start();
+      case "next": return this.next();
+      case "night": return this.goNight();
+      case "vote":
+        if (s.phase === "day" && s.canVote && !s.sniperPending) {
+          s.votes = {}; s.phase = "vote"; s.timer = null;
+          s.announce = "التصويت: كل واحد يختار من جواله الشخص اللي يشك إنه مافيا.";
+        }
+        break;
+      case "closeVote": if (s.phase === "vote") this.closeVote(); break;
+      case "talk":
+        if (s.phase === "day" && s.alive[id]) s.timer = { pid: id, name: this.nm(id), endsAt: Date.now() + TALK * 1000, dur: TALK, id: sid() };
+        break;
+      case "stopT": s.timer = null; break;
+      case "setFake":
+        if (s.phase === "night0" && isM(s.roles[id])) { s.fakeCop = id; this.log(`القاضي عيّن ${this.nm(id)} شرطي مزيف`); }
+        break;
+      case "pickKill":
+        if (s.phase === "night" && s.step === "mafia" && !this.leaderAlive() && Object.values(s.night.sugg).includes(id)) s.night.kill = id;
+        break;
+      case "snipeFor": if (s.sniperPending && s.alive[id] && id !== s.sniperPending) this.resolveSnipe(s.sniperPending, id); break;
+      case "newGame":
+        Object.assign(s, { phase: "lobby", step: null, round: 0, timer: null, sniperPending: null, winner: null, announce: "", event: null, order: [], alive: {}, roles: {}, fakeCop: null, notes: {}, votes: {}, night: blankNight() });
+        break;
+    }
+  }
+
+  start() {
+    const s = this.s;
+    const ids = s.lobby.filter((id) => s.players[id]);
+    if (s.phase !== "lobby" || ids.length < MIN_PLAYERS) return;
+    const sh = [...ids];
+    for (let i = sh.length - 1; i > 0; i--) { const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1); [sh[i], sh[j]] = [sh[j], sh[i]]; }
+    const m = mafiaCount(ids.length), roles = {};
+    sh.forEach((id, i) => { roles[id] = i === 0 ? "leader" : i < m ? "mafia" : i === m ? "cop" : i === m + 1 ? "doctor" : i === m + 2 ? "sniper" : "citizen"; });
+    Object.assign(s, {
+      gen: s.gen + 1, order: ids, roles, alive: Object.fromEntries(ids.map((i) => [i, true])),
+      phase: "night0", step: "mafia", round: 0, timer: null, sniperPending: null, winner: null, canVote: false,
+      fakeCop: null, notes: {}, votes: {}, night: blankNight(), log: [],
+      announce: "كل واحد يقلب كرته ويشوف دوره، وبعدين الكل يغمض عيونه.",
+    });
+    this.ev("deal");
+    this.log(`بدت اللعبة: ${ids.length} لاعبين، ${m} مافيا`);
+  }
+
+  next() {
+    const s = this.s;
+    if (s.phase !== "night0" && s.phase !== "night") return;
+    const i = STEPS.indexOf(s.step);
+    if (i < STEPS.length - 1) { s.step = STEPS[i + 1]; return; }
+    if (s.phase === "night0") {
+      Object.assign(s, { phase: "day", step: null, round: 1, canVote: false, announce: "الكل يفتح عيونه. الشرطة يرفعون إيدهم." });
+      this.ev("dawn");
+      return;
+    }
+    this.resolveMorning();
+  }
+
+  goNight() {
+    const s = this.s;
+    if (s.sniperPending) return;
+    if (!(s.phase === "result" || (s.phase === "day" && !s.canVote))) return;
+    Object.assign(s, { phase: "night", step: "mafia", timer: null, votes: {}, night: blankNight(), announce: "الكل يغمض عيونه." });
+    this.ev("dusk");
+  }
+
+  eliminate(id, why) { this.s.alive[id] = false; this.log(`${this.nm(id)} طلع (${why}) ← ${ROLE_N[this.s.roles[id]]}`); }
+
+  resolveMorning() {
+    const s = this.s, k = s.night.kill, sv = s.night.save;
+    let msg;
+    if (!k) { msg = "ما صار اغتيال الليلة."; this.ev("nokill"); }
+    else if (k === sv) { msg = "الاغتيال فشل، الطبيب أنقذ المغتال."; this.log(`الطبيب أنقذ ${this.nm(k)}`); this.ev("saved"); }
+    else {
+      this.eliminate(k, "اغتيال");
+      msg = `عملية الاغتيال نجحت، ${this.nm(k)} طلع من اللعبة.`;
+      const sniper = s.roles[k] === "sniper";
+      if (sniper) { msg += ` ${this.nm(k)} قناص، بيسحب واحد وياه.`; s.sniperPending = k; }
+      this.ev("kill", { who: this.nm(k), sniper });
+    }
+    Object.assign(s, { phase: "day", step: null, round: s.round + 1, canVote: true, announce: msg, timer: null });
+    if (!s.sniperPending) this.checkWin();
+  }
+
+  closeVote() {
+    const s = this.s, t = {};
+    this.aliveIds().forEach((v) => { const x = s.votes[v]; if (x && s.alive[x]) t[x] = (t[x] || 0) + 1; });
+    const max = Math.max(0, ...Object.values(t));
+    const top = Object.keys(t).filter((k) => t[k] === max);
+    let msg;
+    if (max === 0) { msg = "ما أحد صوّت، التصويت لاغي."; this.ev("tie", { none: true }); }
+    else if (top.length > 1) { msg = "تعادل بالأصوات، التصويت لاغي."; this.log("تعادل بالتصويت"); this.ev("tie"); }
+    else {
+      const o = top[0];
+      this.eliminate(o, "تصويت");
+      msg = `${this.nm(o)} طلع بالتصويت (${max} صوت).`;
+      const sniper = s.roles[o] === "sniper";
+      if (sniper) { msg += ` ${this.nm(o)} قناص، بيسحب واحد وياه.`; s.sniperPending = o; }
+      this.ev("out", { who: this.nm(o), votes: max, sniper });
+    }
+    s.announce = msg;
+    s.phase = "result";
+    if (!s.sniperPending) this.checkWin();
+  }
+
+  resolveSnipe(sn, t) {
+    const s = this.s;
+    this.eliminate(t, "سحبه القناص");
+    this.note(sn, `سحبت ${this.nm(t)} وياك، دوره: ${ROLE_N[s.roles[t]]}${s.fakeCop === t ? " (الشرطي المزيف)" : ""}`);
+    s.sniperPending = null;
+    s.announce = (s.announce || "") + ` القناص سحب ${this.nm(t)} وياه.`;
+    this.ev("snipe", { who: this.nm(t) });
+    this.checkWin();
+  }
+
+  checkWin() {
+    const s = this.s, al = this.aliveIds();
+    const m = al.filter((i) => isM(s.roles[i])).length, t = al.length - m;
+    let w = null;
+    if (m === 0) w = "town"; else if (m >= t) w = "mafia";
+    if (!w) return;
+    Object.assign(s, { phase: "over", winner: w, timer: null, step: null });
+    s.announce = w === "town" ? "الشعب فاز! صادوا كل المافيا." : "المافيا فازت! تعادلوا مع الشعب.";
+    const prev = s.event;
+    this.ev("win", { winner: w, after: prev && prev.type !== "win" ? prev : null });
+    this.log(s.announce);
+  }
+
+  /* ---------- اختيارات اللاعبين ---------- */
+  async playerCmd(pid, m, ws) {
+    const s = this.s;
+    if (m.t === "leave") {
+      if (s.phase === "lobby") { s.lobby = s.lobby.filter((x) => x !== pid); delete s.players[pid]; ws.serializeAttachment({}); }
+      return;
+    }
+    if (m.t !== "act" || m.gen !== s.gen) return;
+    const role = s.roles[pid], alive = s.alive[pid], t = m.id, tA = s.alive[t], n = s.night;
+    switch (m.k) {
+      case "fakecop":
+        if (s.phase === "night0" && s.step === "mafia" && role === "leader" && isM(s.roles[t])) {
+          s.fakeCop = t; this.log(`الزعيم عيّن ${this.nm(t)} شرطي مزيف`);
+        }
+        break;
+      case "kill":
+        if (s.phase === "night" && s.step === "mafia" && alive && isM(role) && tA && t !== pid) {
+          if (this.leaderAlive()) { if (role === "leader") n.kill = t; }
+          else {
+            n.sugg[pid] = t;
+            const picks = this.aliveIds().filter((i) => isM(s.roles[i])).map((i) => n.sugg[i]);
+            n.kill = picks.every((p) => p && p === picks[0]) ? picks[0] : null;
+          }
+        }
+        break;
+      case "save":
+        if (s.phase === "night" && s.step === "doctor" && alive && role === "doctor" && tA) n.save = t;
+        break;
+      case "query":
+        if ((s.phase === "night" || s.phase === "night0") && s.step === "police" && alive && role === "cop" && tA && t !== pid && !n.queried) {
+          n.queried = t;
+          const ans = isM(s.roles[t]) ? "مافيا" : "شعب";
+          this.note(pid, `${s.phase === "night0" ? "الليلة الأولى" : "الليلة " + s.round}: ${this.nm(t)} طلع ${ans}`);
+          this.log(`الشرطي استعلم عن ${this.nm(t)} ← ${ans}`);
+        }
+        break;
+      case "vote":
+        if (s.phase === "vote" && alive && tA && t !== pid) s.votes[pid] = t;
+        break;
+      case "snipe":
+        if (s.sniperPending === pid && tA && t !== pid) this.resolveSnipe(pid, t);
+        break;
+    }
+  }
+}
+
+function blankNight() { return { sugg: {}, kill: null, save: null, queried: null }; }
