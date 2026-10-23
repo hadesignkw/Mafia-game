@@ -22,6 +22,7 @@ function plurality(picks) {
 }
 const ROOM_TTL = 12 * 3600e3; // الغرفة تنمسح بعد ١٢ ساعة بدون استخدام
 
+const DEMO_NAMES = ["أحمد", "يوسف", "فهد", "ناصر", "بدر", "سالم", "مشعل", "عبدالله", "خالد", "سعود", "فيصل", "راشد", "حمد", "علي", "محمد"];
 const tok = () => crypto.randomUUID().replace(/-/g, "");
 const sid = () => crypto.randomUUID().slice(0, 8);
 const json = (o, status = 200) =>
@@ -31,10 +32,12 @@ const json = (o, status = 200) =>
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
-    if (url.pathname === "/api/create" && req.method === "POST") {
+    if ((url.pathname === "/api/create" || url.pathname === "/api/demo") && req.method === "POST") {
+      // وضع التجربة: غرفة فيها لاعبين وهميين يتحكم فيهم القاضي من جهاز واحد
+      const demo = url.pathname === "/api/demo" ? Math.min(15, Math.max(MIN_PLAYERS, parseInt(url.searchParams.get("n") || "8", 10) || 8)) : 0;
       for (let i = 0; i < 25; i++) {
         const code = String(1000 + Math.floor(Math.random() * 9000));
-        const r = await env.ROOM.get(env.ROOM.idFromName(code)).create(code);
+        const r = await env.ROOM.get(env.ROOM.idFromName(code)).create(code, demo);
         if (r) return json(r);
       }
       return json({ error: "ما قدرت أفتح غرفة، جرّب مرة ثانية." }, 503);
@@ -66,18 +69,25 @@ export class Room extends DurableObject {
   alive() { return !!this.s && Date.now() - (this.s.touched || 0) < ROOM_TTL; }
   async exists() { return this.alive(); }
 
-  async create(code) {
+  async create(code, demo = 0) {
     if (this.alive()) return null;
     const judgeToken = tok();
     this.s = {
       code, judgeToken, createdAt: Date.now(), touched: Date.now(),
       players: {}, lobby: [], order: [], phase: "lobby", step: null, round: 0, gen: 0, canVote: false,
       alive: {}, roles: {}, fakeCop: null, notes: {}, night: blankNight(), votes: {},
-      sniperPending: null, winner: null, announce: "", timer: null, event: null, log: [],
+      sniperPending: null, winner: null, announce: "", timer: null, event: null, log: [], demo: !!demo,
     };
+    const players = [];
+    for (let i = 0; i < demo; i++) {
+      const pid = sid(), token = tok(), name = DEMO_NAMES[i];
+      this.s.players[pid] = { name, token, at: Date.now() + i };
+      this.s.lobby.push(pid);
+      players.push({ id: pid, name, token });
+    }
     await this.save();
     await this.ctx.storage.setAlarm(Date.now() + ROOM_TTL + 60e3);
-    return { code, token: judgeToken };
+    return { code, token: judgeToken, players };
   }
 
   async alarm() {

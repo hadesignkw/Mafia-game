@@ -9,15 +9,15 @@
 <link rel="apple-touch-icon" href="/icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=IBM+Plex+Sans+Arabic:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap">
 <style>
 /* لوحة واحدة بعرض الجوال، والليل والنهار يغيّرون لون الخلفية */
 :root{
   --bg:#0f1217;--panel:#181d25;--panel2:#202733;--line:#2c3441;
   --fg:#ece6d6;--muted:#9b978b;--brass:#d2a74c;--brass-ink:#1b1408;
   --blood:#cf5c55;--town:#72b096;
-  --display:"Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;
-  --body:"IBM Plex Sans Arabic",Tahoma,"Segoe UI",sans-serif;
+  --display:"Almarai",Tahoma,"Segoe UI",sans-serif;
+  --body:"Almarai",Tahoma,"Segoe UI",sans-serif;
   color-scheme:dark;
 }
 body[data-phase="night"]{--bg:#07090d;--panel:#10141b;--panel2:#161c25;--line:#222a35}
@@ -26,7 +26,7 @@ body[data-phase="day"]{--bg:#17130e;--panel:#221c14;--panel2:#2b241a;--line:#3b3
 html,body{margin:0;min-height:100%}
 body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.6;transition:background .9s ease;-webkit-tap-highlight-color:transparent}
 .wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-top:calc(16px + env(safe-area-inset-top,0px));padding-bottom:calc(48px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:16px}
-h1,h2,h3{font-family:var(--display);font-weight:700;margin:0;line-height:1.3;text-wrap:balance}
+h1,h2,h3{font-family:var(--display);font-weight:800;margin:0;line-height:1.3;text-wrap:balance}
 h1{font-size:2.4rem;color:var(--brass)}
 h2{font-size:1.35rem}
 h3{font-size:1.02rem;color:var(--muted);font-weight:500}
@@ -79,6 +79,21 @@ table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-bottom:1px s
 .conn{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));inset-inline:16px;z-index:40;background:var(--blood);color:#fff;text-align:center;border-radius:10px;padding:6px 10px;font-size:.9rem}
 .toast{position:fixed;inset-inline:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 16px;text-align:center;z-index:60;animation:rise .25s ease}
 @keyframes rise{from{transform:translateY(12px);opacity:0}}
+
+/* ---------- وضع التجربة ---------- */
+select{font:inherit;font-size:1rem;width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.demobar{position:sticky;top:env(safe-area-inset-top,0px);z-index:8;background:var(--bg);border:1px solid color-mix(in srgb,var(--brass) 55%,transparent);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px;box-shadow:0 8px 24px rgb(0 0 0 / .35)}
+.demohead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.demohead b{color:var(--brass)}.demohead .muted{flex:1;min-width:0}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.tab{position:relative;flex:none;font:inherit;font-weight:700;font-size:.9rem;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:6px 12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;line-height:1.3}
+.tab small{font-weight:400;font-size:.72rem;color:var(--muted)}
+.tab.m small{color:var(--blood)}.tab.t small{color:var(--town)}
+.tab.on{background:var(--brass);color:var(--brass-ink);border-color:var(--brass)}
+.tab.on small{color:var(--brass-ink)}
+.tab.out{opacity:.45;text-decoration:line-through}
+.tab .need{position:absolute;top:-4px;left:-4px;width:12px;height:12px;border-radius:50%;background:var(--blood);box-shadow:0 0 0 3px var(--bg);animation:breathe 1.2s ease-in-out infinite}
+.demobar~.timer{top:calc(env(safe-area-inset-top,0px) + 118px)}
 
 /* ---------- المؤقت ---------- */
 .timer{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--brass);color:var(--brass-ink);border-radius:16px;padding:10px 14px;display:flex;align-items:center;gap:14px;box-shadow:0 10px 28px rgb(0 0 0 / .4)}
@@ -144,7 +159,8 @@ table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-bottom:1px s
 @keyframes cut{to{stroke-dashoffset:0}}
 .fx-kill .big{animation:slam .5s .45s cubic-bezier(.2,1.6,.4,1) both}
 @keyframes slam{from{transform:scale(2.4);opacity:0}}
-.fx-kill .sub{animation:fxin .4s .9s both}
+.fx-kill .sub{animation:fxin .4s .9s both;text-shadow:0 0 14px #120405,0 0 4px #120405}
+.fx-kill .slash path{opacity:.85}
 /* الإنقاذ */
 .fx-saved{background:radial-gradient(circle at 50% 45%,#0f3b31,#04110e 70%);color:#e9fff8}
 .fx-saved .ecg{width:min(320px,80vw);height:90px}
@@ -224,7 +240,7 @@ const ICON={
 /* ---------- أدوات ---------- */
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const ar=n=>String(n).replace(/\d/g,d=>"٠١٢٣٤٥٦٧٨٩"[d]);
+const ar=n=>String(n); // الأرقام إنجليزي
 const en=s=>String(s||"").replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d));
 function lsGet(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null}catch{return null}}
 function lsSet(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,JSON.stringify(v))}catch{}}
@@ -246,7 +262,7 @@ function connect(){
   sock.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch{return}onMsg(m)};
   sock.onclose=()=>{if(ws!==sock||!sess)return;$("#conn").hidden=view!=="game";retry++;setTimeout(()=>{if(ws===sock&&sess)connect()},Math.min(8000,700*retry))};
 }
-setInterval(()=>{if(ws&&ws.readyState===1)ws.send('{"t":"ping"}')},25000);
+setInterval(()=>{if(ws&&ws.readyState===1)ws.send('{"t":"ping"}');if(demo)demo.list.forEach(p=>{if(p.ws&&p.ws.readyState===1&&p.ws!==ws)p.ws.send('{"t":"ping"}')})},25000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&sess&&(!ws||ws.readyState>1))connect()});
 function send(o){if(ws&&ws.readyState===1)ws.send(JSON.stringify(o));else toast("ما في اتصال، لحظة ويرجع.")}
 
@@ -267,7 +283,7 @@ function onMsg(m){
     render();
   }
 }
-function endSession(msg){sess=null;lsSet("mafia.sess",null);try{ws&&ws.close()}catch{}ws=null;st=null;view="home";homeErr=msg;render()}
+function endSession(msg){if(demo){endDemo(msg);return}sess=null;lsSet("mafia.sess",null);try{ws&&ws.close()}catch{}ws=null;st=null;view="home";homeErr=msg;render()}
 
 /* ---------- الدخول ---------- */
 async function createRoom(){
@@ -279,7 +295,7 @@ async function createRoom(){
 }
 async function joinCode(c){
   c=en(c).trim();homeErr="";
-  if(!/^\d{4}$/.test(c)){homeErr="رقم الغرفة ٤ أرقام.";return render()}
+  if(!/^\d{4}$/.test(c)){homeErr="رقم الغرفة 4 أرقام.";return render()}
   busy=true;render();
   try{const r=await fetch("/api/exists?code="+c);const j=await r.json();
     if(!j.ok){homeErr="ما لقيت غرفة بهالرقم، تأكد من القاضي.";busy=false;return render()}}
@@ -288,7 +304,68 @@ async function joinCode(c){
   sess={code:c,token:old||null,judge:false};lsSet("mafia.sess",sess);busy=false;firstState=true;connect();
 }
 function submitName(n){n=String(n||"").trim();if(!n)return toast("اكتب اسمك");lsSet("mafia.name",n);send({t:"join",name:n})}
-function leave(){if(st&&st.me&&st.phase==="lobby")send({t:"leave"});endSession("")}
+function leave(){if(demo)return endDemo("");if(st&&st.me&&st.phase==="lobby")send({t:"leave"});endSession("")}
+
+/* ---------- وضع التجربة: قاضي ولاعبين وهميين على جهاز واحد ---------- */
+let demo=null; // {code, active, list:[{key,label,token,judge,ws,st,lastEv,notesSeen,lastGen}]}
+async function startDemo(n){
+  busy=true;render();
+  try{
+    const r=await fetch("/api/demo?n="+n,{method:"POST"});const j=await r.json();if(!r.ok)throw new Error(j.error);
+    if(ws){try{ws.close()}catch{}}sess=null;lsSet("mafia.sess",null);
+    demo={code:j.code,active:0,list:[{key:"judge",label:"القاضي",token:j.token,judge:true},...j.players.map(p=>({key:p.id,label:p.name,token:p.token}))]};
+    demo.list.forEach(demoConnect);ws=demo.list[0].ws;st=null;lastEv=null;notesSeen=null;lastGen=null;firstState=false;view="game";homeErr="";
+  }catch(e){homeErr=e.message||"ما قدرت أفتح التجربة.";}
+  busy=false;render();
+}
+function demoConnect(p){
+  const proto=location.protocol==="https:"?"wss":"ws";
+  const sock=new WebSocket(`${proto}://${location.host}/api/ws?code=${demo.code}`);p.ws=sock;
+  if(demo.list[demo.active]===p)ws=sock;
+  sock.onopen=()=>sock.send(JSON.stringify({t:"hello",token:p.token}));
+  sock.onmessage=e=>{
+    let m;try{m=JSON.parse(e.data)}catch{return}
+    if(!demo)return;
+    if(demo.list[demo.active]===p){onMsg(m);if(demo){p.st=st;p.lastEv=lastEv;p.notesSeen=notesSeen;p.lastGen=lastGen}return}
+    if(m.t==="state"){p.st=m;p.lastEv=m.event?m.event.id:null;p.notesSeen=m.me&&m.me.notes?m.me.notes.length:null;p.lastGen=m.gen;render()}
+    else if(m.t==="error")toast(p.label+": "+m.text);
+  };
+  sock.onclose=()=>{setTimeout(()=>{if(demo&&p.ws===sock)demoConnect(p)},1500)};
+}
+function switchPersona(i){
+  if(!demo||!demo.list[i])return;
+  const p=demo.list[i];demo.active=i;ws=p.ws;st=p.st;lastEv=p.lastEv;notesSeen=p.notesSeen;lastGen=p.lastGen;firstState=false;cardOpen=false;
+  fxQ.length=0;if(!$("#fx").hidden)closeFx();
+  render();window.scrollTo({top:0});
+}
+function endDemo(msg){
+  const d=demo;demo=null;if(d)d.list.forEach(p=>{try{p.ws.close()}catch{}});
+  ws=null;st=null;view="home";homeErr=msg||"";render();
+}
+/* منو عليه الدور الحين (عشان تنتقل له) */
+function demoNeeds(){
+  const need=new Set();if(!demo)return need;
+  const J=demo.list[0].st;if(!J||!J.judge)return need;
+  const R=J.judge.roles,alive=id=>{const p=J.players.find(x=>x.id===id);return p&&p.alive};
+  const ids=Object.keys(R).filter(alive);
+  if(J.sniperPending)need.add(J.sniperPending);
+  else if(J.phase==="night0"||J.phase==="night"){
+    if(J.step==="police")ids.filter(i=>R[i]==="cop").forEach(i=>{if(!J.judge.night.queried&&J.judge.queriesLeft)need.add(i)});
+    if(J.step==="mafia")ids.filter(i=>isM(R[i])).forEach(i=>{const m=J.phase==="night0"?J.judge.night.fake:J.judge.night.sugg;if(!(m&&m[i]))need.add(i)});
+    if(J.step==="doctor")ids.filter(i=>R[i]==="doctor").forEach(i=>{if(!J.judge.night.save)need.add(i)});
+  }else if(J.phase==="vote")ids.forEach(i=>{if(!J.judge.votes[i])need.add(i)});
+  if(!J.players.length||J.phase==="lobby")need.clear();
+  return need;
+}
+function demoBar(){
+  if(!demo)return"";
+  const J=demo.list[0].st,R=J&&J.judge?J.judge.roles:{},need=demoNeeds(),j=J&&J.judge;
+  return`<div class="demobar"><div class="demohead"><b>وضع التجربة</b><span class="muted small">اضغط على أي واحد تشوف شاشته</span><button class="btn sm ghost" data-a="endDemo">إنهاء التجربة</button></div>
+  <div class="tabs">${demo.list.map((p,i)=>{
+    const r=R[p.key],pl=J&&J.players.find(x=>x.id===p.key),out=pl&&!pl.alive;
+    const lab=p.judge?"القاضي":`${esc(p.label)}${r?`<small>${ROLE[r].n}${j.fakeCop===p.key?" · مزيف":""}</small>`:""}`;
+    return`<button class="tab ${i===demo.active?"on":""} ${r?ROLE[r].team:""} ${out?"out":""}" data-a="persona" data-i="${i}">${need.has(p.key)?`<i class="need"></i>`:""}${lab}</button>`}).join("")}</div></div>`;
+}
 
 /* ---------- الحركات ---------- */
 const fxQ=[];let fxBusy=false,fxTimer=null,confettiStop=null;
@@ -360,7 +437,7 @@ function drawTimer(){
   if(!st||!st.timer){el.hidden=true;return}
   const left=Math.max(0,(st.timer.endsAt-(Date.now()+offset))/1000);
   el.hidden=false;el.classList.toggle("end",left<=0);
-  el.querySelector(".t").textContent=left<=0?"٠":ar(Math.ceil(left));
+  el.querySelector(".t").textContent=left<=0?"0":ar(Math.ceil(left));
   const C=2*Math.PI*26;el.querySelector(".fgc").style.strokeDashoffset=String(C*(1-left/st.timer.dur));
   if(left<=0&&lastBuzzT!==st.timer.id){lastBuzzT=st.timer.id;buzz([200,80,200])}
 }
@@ -374,20 +451,25 @@ function render(){
   const keep=document.activeElement&&document.activeElement.id;
   if(view==="home")app.innerHTML=homeView();
   else if(view==="name")app.innerHTML=nameView();
-  else if(!st)app.innerHTML=`<div><h1>غرفة المافيا</h1><p class="muted">قاعد أتصل بالغرفة…</p></div>`;
+  else if(!st)app.innerHTML=demoBar()+`<div><h1>غرفة المافيا</h1><p class="muted">قاعد أتصل بالغرفة…</p></div>`;
   else app.innerHTML=st.judge?judgeView():playerView();
   if(keep){const k=document.getElementById(keep);if(k&&k.tagName==="INPUT")k.focus()}
   drawTimer();dealAnim=false;
+  if(demo){const t=document.querySelector(".tab.on");if(t)t.scrollIntoView({block:"nearest",inline:"center"})}
 }
 function homeView(){
   return`<div><h1>غرفة المافيا</h1><p class="muted">القاضي يفتح غرفة، والباقين يدخلون برقمها من جوالاتهم.</p></div>
   ${homeErr?`<p class="err">${esc(homeErr)}</p>`:""}
   <form class="panel" id="joinF"><h2>دخول لاعب</h2>
     <label class="muted small" for="codeIn">رقم الغرفة</label>
-    <input class="big" id="codeIn" inputmode="numeric" maxlength="4" placeholder="٠٠٠٠" autocomplete="off">
+    <input class="big" id="codeIn" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off">
     <button class="btn primary" ${busy?"disabled":""}>دخول</button></form>
   <div class="panel"><h2>أنا القاضي</h2><p class="muted small">تفتح غرفة جديدة، تشوف كل الأدوار، وتدير الليل والنهار.</p>
-    <button class="btn" data-a="create" ${busy?"disabled":""}>إنشاء غرفة</button></div>`;
+    <button class="btn" data-a="create" ${busy?"disabled":""}>إنشاء غرفة</button></div>
+  <div class="panel"><h2>جرّب اللعبة</h2><p class="muted small">غرفة تجربة فيها لاعبين وهميين. تتنقل بين شاشة القاضي وشاشة كل لاعب، وتسوي اختياراتهم بنفسك.</p>
+    <label class="muted small" for="demoN">عدد اللاعبين</label>
+    <select id="demoN">${[6,7,8,9,10,11,12,13,14,15].map(n=>`<option value="${n}" ${n===8?"selected":""}>${n} لاعبين · ${2+Math.floor((n-6)/4)} مافيا</option>`).join("")}</select>
+    <button class="btn" data-a="demo" ${busy?"disabled":""}>ابدأ التجربة</button></div>`;
 }
 function nameView(){
   return`<div><h1>غرفة ${ar(sess.code)}</h1><p class="muted">اكتب اسمك عشان يشوفه القاضي والربع.</p></div>
@@ -401,9 +483,9 @@ const nm=id=>P(id).name||"لاعب";
 const aliveIds=()=>st.players.filter(p=>p.alive).map(p=>p.id);
 function header(){
   const me=st.me;
-  return`<div class="top"><div><h2>${st.judge?"القاضي":esc(me&&me.name||"")}</h2><span class="chip b">${PHASE_N[st.phase]||""}${st.round&&st.phase!=="lobby"&&st.phase!=="over"?" · الجولة "+ar(st.round):""}</span></div>
+  return demoBar()+`<div class="top"><div><h2>${st.judge?"القاضي":esc(me&&me.name||"")}</h2><span class="chip b">${PHASE_N[st.phase]||""}${st.round&&st.phase!=="lobby"&&st.phase!=="over"?" · الجولة "+ar(st.round):""}</span></div>
   <div class="row" style="align-items:center"><span class="code">${ar(st.code)}</span><button class="btn sm ghost" data-a="leave">خروج</button></div></div>
-  <div class="timer" id="timer" hidden><div class="ring"><svg viewBox="0 0 62 62"><circle class="bgc" cx="31" cy="31" r="26"/><circle class="fgc" cx="31" cy="31" r="26" stroke-dasharray="163.36" stroke-dashoffset="0"/></svg><div class="t">٤٠</div></div><div class="who">${st.timer?"يتكلم: "+esc(st.timer.name):""}</div></div>
+  <div class="timer" id="timer" hidden><div class="ring"><svg viewBox="0 0 62 62"><circle class="bgc" cx="31" cy="31" r="26"/><circle class="fgc" cx="31" cy="31" r="26" stroke-dasharray="163.36" stroke-dashoffset="0"/></svg><div class="t">40</div></div><div class="who">${st.timer?"يتكلم: "+esc(st.timer.name):""}</div></div>
   ${st.announce&&st.phase!=="lobby"?`<p class="announce">${esc(ar(st.announce))}</p>`:""}`;
 }
 const dot=p=>`<span class="dot ${p.online?"on":""}" title="${p.online?"موجود":"طلع من الموقع"}"></span>`;
@@ -436,7 +518,7 @@ function rolesBoard(){
 function roleChip(id){const J=st.judge,r=J.roles[id];if(!r)return"";return`<span class="chip ${ROLE[r].team}">${ROLE[r].n}${J.fakeCop===id?" · مزيف":""}</span>`}
 function judgeRow(p){
   const J=st.judge,speaking=st.timer&&st.timer.pid===p.id;let extra="";
-  if(p.alive&&st.phase==="day")extra=speaking?`<button class="btn sm" data-a="cmd" data-c="stopT">إيقاف</button>`:`<button class="btn sm" data-a="cmd" data-c="talk" data-id="${p.id}">٤٠ ث</button>`;
+  if(p.alive&&st.phase==="day")extra=speaking?`<button class="btn sm" data-a="cmd" data-c="stopT">إيقاف</button>`:`<button class="btn sm" data-a="cmd" data-c="talk" data-id="${p.id}">40 ث</button>`;
   if(st.phase==="vote"&&p.alive){const v=J.votes[p.id];extra=`<span class="small muted">${v?"صوّت ← "+esc(nm(v)):"ما صوّت"}</span>`}
   if(st.sniperPending&&p.alive&&p.id!==st.sniperPending)extra=`<button class="btn sm ghost" data-a="cmd" data-c="snipeFor" data-id="${p.id}">القناص سحبه</button>`;
   return`<div class="li ${p.alive?"":"out"} ${speaking?"speak":""}">${dot(p)}<span class="nm">${esc(p.name)}</span>${roleChip(p.id)}${extra}</div>`;
@@ -452,7 +534,7 @@ function judgeControls(){
     h+=`<div class="steps">${S.map((s,k)=>`<span class="${k===i?"cur":k<i?"done":""}">${STEP_N[s]}</span>`).join("")}</div><p class="script">${say}</p>${nightStatus()}`;
     h+=`<button class="btn primary" data-a="cmd" data-c="next">${last?(p==="night0"?"الصبح: الكل يفتح عيونه":"الصبح: أعلن النتيجة"):"التالي: "+STEP_N[S[i+1]]}</button>`;
   }else if(p==="day"){
-    h+=`<p class="script">${st.round===1?"<b>الشرطة يرفعون إيدهم.</b> اختار منو يبدا، وكل واحد له ٤٠ ثانية.":"اختار منو يبدا الكلام، وكل واحد له ٤٠ ثانية. الشرطة يتكلمون عن استعلامهم أول."}</p>`;
+    h+=`<p class="script">${st.round===1?"<b>الشرطة يرفعون إيدهم.</b> اختار منو يبدا، وكل واحد له 40 ثانية.":"اختار منو يبدا الكلام، وكل واحد له 40 ثانية. الشرطة يتكلمون عن استعلامهم أول."}</p>`;
     if(st.sniperPending)h+=`<p class="err">القناص ${esc(nm(st.sniperPending))} لازم يسحب واحد قبل لا تكمل.</p>`;
     h+=st.canVote?`<button class="btn primary" data-a="cmd" data-c="vote" ${st.sniperPending?"disabled":""}>ابدأ التصويت</button>`:`<p class="muted small">أول نهار بدون تصويت.</p><button class="btn primary" data-a="cmd" data-c="night">الليل</button>`;
   }else if(p==="vote"){
@@ -523,7 +605,7 @@ function picker(k,ids,red){
 function teamPicks(){
   const t=(st.me.team||[]).filter(x=>x.id!==st.me.id&&isAlive(x.id));
   if(!t.length)return"";
-  return`<div class="list">${t.map(x=>`<div class="li"><span class="nm">${esc(nm(x.id))}</span>${x.pick?`<span class="chip m">اختار ${x.pick===st.me.id?"أنت":esc(nm(x.pick))}</span>`:`<span class="small muted">ما اختار للحين</span>`}</div>`).join("")}</div>`;
+  return`<div class="list">${t.map(x=>`<div class="li"><span class="nm">${esc(nm(x.id))}</span>${x.pick?`<span class="chip m">${x.pick===x.id?"اختار نفسه":x.pick===st.me.id?"اختارك أنت":"اختار "+esc(nm(x.pick))}</span>`:`<span class="small muted">ما اختار للحين</span>`}</div>`).join("")}</div>`;
 }
 function aliveList(){
   return`<div class="panel"><h3>اللاعبين</h3><div class="list">${st.players.map(p=>`<div class="li ${p.alive?"":"out"} ${st.timer&&st.timer.pid===p.id?"speak":""}">${dot(p)}<span class="nm">${esc(p.name)}${p.id===st.me.id?" (أنت)":""}</span></div>`).join("")}</div></div>`;
@@ -564,6 +646,9 @@ document.addEventListener("click",e=>{
   const b=e.target.closest("[data-a]");if(!b||b.disabled)return;const a=b.dataset.a,id=b.dataset.id;
   if(a==="create")createRoom();
   else if(a==="leave")leave();
+  else if(a==="endDemo")endDemo("");
+  else if(a==="persona")switchPersona(+b.dataset.i);
+  else if(a==="demo")startDemo(+($("#demoN")&&$("#demoN").value||8));
   else if(a==="cmd")send({t:b.dataset.c,id});
   else if(a==="card"){cardOpen=!cardOpen;b.classList.toggle("open",cardOpen);buzz(15)}
   else if(a==="act"){const k=b.dataset.k;if(k==="query"&&st.me.sel.query)return;send({t:"act",k,id,gen:st.gen});buzz(25)}
