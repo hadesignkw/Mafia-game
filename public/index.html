@@ -53,7 +53,8 @@ input.big{font-family:var(--display);font-size:2.2rem;text-align:center;letter-s
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
 .pick{font:inherit;font-weight:500;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:12px;padding:14px 10px;cursor:pointer;min-width:0;overflow-wrap:anywhere;transition:transform .12s ease,background .2s ease}
 .pick:active{transform:scale(.96)}
-.pick.on{background:var(--brass);color:var(--brass-ink);border-color:var(--brass);font-weight:700;animation:pop .3s ease}
+.pick.on{background:var(--brass);color:var(--brass-ink);border-color:var(--brass);font-weight:700}
+.pick.pop{animation:pop .35s cubic-bezier(.2,1.6,.4,1)}
 .pick.red.on{background:var(--blood);border-color:var(--blood);color:#fff}
 @keyframes pop{50%{transform:scale(1.06)}}
 .list{display:flex;flex-direction:column}
@@ -87,7 +88,9 @@ table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-bottom:1px s
 .roles-head .muted{flex:1}
 .chev{font-size:1.4rem;line-height:1;transition:transform .25s ease;color:var(--brass)}
 .chev.up{transform:rotate(180deg)}
-.roles-body{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px;animation:rise .25s ease}
+.roles-body{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
+.roles-body.anim{animation:rise .3s cubic-bezier(.2,.8,.2,1)}
+.roles-body.anim .li{animation:slideIn .35s cubic-bezier(.2,.8,.2,1) both}
 .pick small{font-weight:400;font-size:.75rem}
 /* نتيجة استعلام الشرطي على الاسم نفسه */
 .pick.res{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;color:#fff;font-weight:800;opacity:1;cursor:default}
@@ -100,6 +103,32 @@ table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-bottom:1px s
 @keyframes resPulse{0%{transform:scale(1) rotateY(90deg)}15%{transform:scale(1.12) rotateY(0)}25%{transform:scale(1.08)}35%{transform:scale(1.12)}55%{transform:scale(1.04)}100%{transform:scale(1)}}
 @keyframes resFlash{0%,70%{opacity:1;letter-spacing:.05em}100%{opacity:0;letter-spacing:.3em}}
 .pick.dim{opacity:.35;cursor:default}
+/* ---------- حركات عامة سلسة ---------- */
+html{scroll-behavior:smooth}
+.btn,.pick,.tab,.roles-head{position:relative;overflow:hidden;transition:transform .16s cubic-bezier(.2,.8,.2,1),background-color .25s ease,border-color .25s ease,opacity .25s ease,box-shadow .25s ease}
+.btn:hover:not(:disabled),.pick:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 18px rgb(0 0 0 / .25)}
+.btn:active:not(:disabled),.pick:active:not(:disabled),.tab:active{transform:scale(.96)}
+.rip{position:absolute;border-radius:50%;background:currentColor;opacity:.22;transform:scale(0);animation:rip .6s cubic-bezier(.2,.8,.2,1) forwards;pointer-events:none}
+@keyframes rip{to{transform:scale(1);opacity:0}}
+.grid:has(.pick.on) .pick:not(.on):not(.res){opacity:.55}
+.enter>*{animation:enterUp .5s cubic-bezier(.2,.8,.2,1) both}
+.enter>*:nth-child(2){animation-delay:.05s}.enter>*:nth-child(3){animation-delay:.1s}.enter>*:nth-child(4){animation-delay:.15s}.enter>*:nth-child(5){animation-delay:.2s}.enter>*:nth-child(n+6){animation-delay:.25s}
+.enter .grid>*{animation:enterUp .45s cubic-bezier(.2,.8,.2,1) both}
+.enter .grid>*:nth-child(2){animation-delay:.25s}.enter .grid>*:nth-child(3){animation-delay:.29s}.enter .grid>*:nth-child(4){animation-delay:.33s}.enter .grid>*:nth-child(5){animation-delay:.37s}.enter .grid>*:nth-child(6){animation-delay:.41s}.enter .grid>*:nth-child(n+7){animation-delay:.45s}
+.enter .grid>*:first-child{animation-delay:.21s}
+@keyframes enterUp{from{opacity:0;transform:translateY(14px)}}
+.demobar,.enter>.demobar{animation:none}
+.li.new{animation:slideIn .45s cubic-bezier(.2,.8,.2,1) both}
+@keyframes slideIn{from{opacity:0;transform:translateX(-24px)}}
+.announce.changed{animation:annIn .6s cubic-bezier(.2,.8,.2,1) both}
+@keyframes annIn{from{opacity:0;transform:translateY(-8px);border-inline-start-color:transparent}}
+.roles-body.closing{animation:fold .22s ease forwards}
+@keyframes fold{to{opacity:0;transform:translateY(-8px)}}
+.ring .t.tick{animation:tick .5s ease}
+@keyframes tick{30%{transform:scale(1.35)}}
+.chip{transition:color .3s ease,border-color .3s ease}
+.dot{transition:background-color .4s ease,box-shadow .4s ease}
+.toast{animation:rise .3s cubic-bezier(.2,.8,.2,1)}
 /* ---------- وضع التجربة ---------- */
 select{font:inherit;font-size:1rem;width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 .demobar{position:sticky;top:env(safe-area-inset-top,0px);z-index:8;background:var(--bg);border:1px solid color-mix(in srgb,var(--brass) 55%,transparent);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px;box-shadow:0 8px 24px rgb(0 0 0 / .35)}
@@ -459,7 +488,8 @@ function drawTimer(){
   if(!st||!st.timer){el.hidden=true;return}
   const left=Math.max(0,(st.timer.endsAt-(Date.now()+offset))/1000);
   el.hidden=false;el.classList.toggle("end",left<=0);
-  el.querySelector(".t").textContent=left<=0?"0":ar(Math.ceil(left));
+  const tt=el.querySelector(".t"),sec=left<=0?"0":ar(Math.ceil(left));
+  if(tt.textContent!==sec){tt.textContent=sec;if(left<=10){tt.classList.remove("tick");void tt.offsetWidth;tt.classList.add("tick")}}
   const C=2*Math.PI*26;el.querySelector(".fgc").style.strokeDashoffset=String(C*(1-left/st.timer.dur));
   if(left<=0&&lastBuzzT!==st.timer.id){lastBuzzT=st.timer.id;buzz([200,80,200])}
 }
@@ -467,9 +497,13 @@ setInterval(drawTimer,200);
 
 /* ---------- العرض ---------- */
 function phaseAttr(){if(!st||view!=="game")return"";if(st.phase==="night"||st.phase==="night0")return"night";if(["day","vote","result"].includes(st.phase))return"day";return""}
+let lastScreen=null,lastAnn=null,rolesJust=false;const seenRows=new Set();
+function screenKey(){if(view!=="game"||!st)return view+(st?"":"-wait");return[demo?demo.active:"",st.judge?"j":"p",st.phase,st.step||"",st.round,st.sniperPending||"",st.me&&st.me.sel&&st.me.sel.vote?"v":""].join("|")}
+const rowCls=id=>{if(seenRows.has(id))return"";seenRows.add(id);return"new"};
 function render(){
   document.body.dataset.phase=phaseAttr();
-  const app=$("#app");
+  const app=$("#app"),k=screenKey(),changed=k!==lastScreen;lastScreen=k;
+  app.classList.remove("enter");if(changed){void app.offsetWidth;app.classList.add("enter")}
   const keep=document.activeElement&&document.activeElement.id;
   if(view==="home")app.innerHTML=homeView();
   else if(view==="name")app.innerHTML=nameView();
@@ -508,7 +542,7 @@ function header(){
   return demoBar()+`<div class="top"><div><h2>${st.judge?"القاضي":esc(me&&me.name||"")}</h2><span class="chip b">${PHASE_N[st.phase]||""}${st.round&&st.phase!=="lobby"&&st.phase!=="over"?" · الجولة "+ar(st.round):""}</span></div>
   <div class="row" style="align-items:center">${st.phase==="lobby"?`<span class="code">${ar(st.code)}</span>`:""}<button class="btn sm ghost" data-a="leave">خروج</button></div></div>
   <div class="timer" id="timer" hidden><div class="ring"><svg viewBox="0 0 62 62"><circle class="bgc" cx="31" cy="31" r="26"/><circle class="fgc" cx="31" cy="31" r="26" stroke-dasharray="163.36" stroke-dashoffset="0"/></svg><div class="t">40</div></div><div class="who">${st.timer?"يتكلم: "+esc(st.timer.name):""}</div></div>
-  ${st.announce&&st.phase!=="lobby"?`<p class="announce">${esc(ar(st.announce))}</p>`:""}`;
+  ${st.announce&&st.phase!=="lobby"?`<p class="announce ${(()=>{const c=st.announce!==lastAnn;lastAnn=st.announce;return c?"changed":""})()}">${esc(ar(st.announce))}</p>`:""}`;
 }
 const dot=p=>`<span class="dot ${p.online?"on":""}" title="${p.online?"موجود":"طلع من الموقع"}"></span>`;
 
@@ -520,7 +554,7 @@ function judgeView(){
     h+=`<div class="panel"><h3>اللاعبين يدخلون برقم الغرفة</h3><p style="font-family:var(--display);font-size:3rem;text-align:center;letter-spacing:.2em;color:var(--brass);margin:0">${ar(st.code)}</p>
     <p class="muted small">${ar(n)} لاعب دخل${J.mafiaNext?` · المافيا بتكون ${ar(J.mafiaNext)}`:` · تحتاج ${ar(st.minPlayers-n)} بعد`}</p>
     <button class="btn primary" data-a="cmd" data-c="start" ${n<st.minPlayers?"disabled":""}>ابدأ اللعبة ووزّع الأدوار</button></div>
-    <div class="panel"><h3>منو دخل</h3><div class="list">${st.players.map(p=>`<div class="li">${dot(p)}<span class="nm">${esc(p.name)}</span>${p.online?"":`<span class="chip m">طلع</span>`}<button class="btn sm ghost danger" data-a="cmd" data-c="kick" data-id="${p.id}">شيل</button></div>`).join("")||`<p class="muted">ما أحد دخل للحين.</p>`}</div></div>`;
+    <div class="panel"><h3>منو دخل</h3><div class="list">${st.players.map(p=>`<div class="li ${rowCls("j"+p.id)}">${dot(p)}<span class="nm">${esc(p.name)}</span>${p.online?"":`<span class="chip m">طلع</span>`}<button class="btn sm ghost danger" data-a="cmd" data-c="kick" data-id="${p.id}">شيل</button></div>`).join("")||`<p class="muted">ما أحد دخل للحين.</p>`}</div></div>`;
     return h;
   }
   h+=judgeControls();
@@ -535,7 +569,7 @@ function rolesBoard(){
   const cell=(r,i)=>{const p=P(i);return`<div class="li ${p.alive?"":"out"}">${dot(p)}<span class="ico" style="width:22px;height:22px;flex:none;color:var(--${ROLE[r].team==="m"?"blood":"town"})">${ICON[r]}</span><span class="nm">${esc(p.name||"لاعب")}</span><span class="chip ${ROLE[r].team}">${ROLE[r].n}${J.fakeCop===i?" · مزيف":""}</span>${p.alive?"":`<span class="small muted">طالع</span>`}</div>`};
   const group=(t,title)=>`<div><h3 style="color:var(--${t==="m"?"blood":"town"})">${title}</h3><div class="list">${order.filter(r=>ROLE[r].team===t).flatMap(r=>by(r).map(i=>cell(r,i))).join("")}</div></div>`;
   const out=ids.filter(i=>!P(i).alive).length;
-  return`<div class="panel roles"><button class="roles-head" data-a="roles" aria-expanded="${rolesOpen}"><h2>الأدوار</h2><span class="muted small">${ids.length-out} باقين${out?` · ${out} طلعوا`:""}</span><span class="chev ${rolesOpen?"up":""}">⌄</span></button>${rolesOpen?`<div class="roles-body">${group("m","المافيا")}${group("t","الشعب")}</div>`:""}</div>`;
+  return`<div class="panel roles"><button class="roles-head" data-a="roles" aria-expanded="${rolesOpen}"><h2>الأدوار</h2><span class="muted small">${ids.length-out} باقين${out?` · ${out} طلعوا`:""}</span><span class="chev ${rolesOpen?"up":""}">⌄</span></button>${rolesOpen?`<div class="roles-body ${rolesJust?"anim":""}">${group("m","المافيا")}${group("t","الشعب")}</div>`:""}</div>`;
 }
 function roleChip(id){const J=st.judge,r=J.roles[id];if(!r)return"";return`<span class="chip ${ROLE[r].team}">${ROLE[r].n}${J.fakeCop===id?" · مزيف":""}</span>`}
 function judgeRow(p){
@@ -606,7 +640,7 @@ function playerView(){
   const me=st.me;let h=header();
   if(st.phase==="lobby"){
     return h+`<div class="panel nightbox"><div class="moon"></div><h2>ننتظر القاضي يبدا</h2><p class="muted">${ar(st.players.length)} لاعب بالغرفة · أقل شي ${ar(st.minPlayers)}</p></div>
-    <div class="panel"><div class="list">${st.players.map(p=>`<div class="li">${dot(p)}<span class="nm">${esc(p.name)}${p.id===me.id?" (أنت)":""}</span></div>`).join("")}</div></div>`;
+    <div class="panel"><div class="list">${st.players.map(p=>`<div class="li ${rowCls("p"+p.id)}">${dot(p)}<span class="nm">${esc(p.name)}${p.id===me.id?" (أنت)":""}</span></div>`).join("")}</div></div>`;
   }
   if(!me.inGame)return h+`<div class="panel"><p>اللعبة بدت وأنت مو فيها. انتظر لين تخلص وتبدا وحدة جديدة.</p></div>`;
   if(st.phase==="over")return h+overView();
@@ -627,9 +661,11 @@ function cardView(){
     <div class="face back"><span class="emb">${ICON.emblem}</span><span style="font-family:var(--display);font-size:1.5rem">كرتك</span><span class="muted small hint">اضغط عشان تقلبه، وغطّ الشاشة عن اللي جنبك</span></div>
     <div class="face front">${front}</div></div></button>`;
 }
+const popSeen=new Set();
 function picker(k,ids,red){
   const sel=st.me.sel&&st.me.sel[k];
-  return`<div class="grid">${ids.map(id=>`<button class="pick ${red?"red":""} ${sel===id?"on":""}" data-a="act" data-k="${k}" data-id="${id}">${id===st.me.id&&k==="fakecop"?"أنا":esc(nm(id))+(id===st.me.id?" (أنت)":"")}</button>`).join("")}</div>`;
+  const pk=[st.gen,st.phase,st.round,k,sel].join("|"),pop=sel&&!popSeen.has(pk);if(pop)popSeen.add(pk);
+  return`<div class="grid">${ids.map(id=>`<button class="pick ${red?"red":""} ${sel===id?"on"+(pop?" pop":""):""}" data-a="act" data-k="${k}" data-id="${id}">${id===st.me.id&&k==="fakecop"?"أنا":esc(nm(id))+(id===st.me.id?" (أنت)":"")}</button>`).join("")}</div>`;
 }
 function teamPicks(){
   const t=(st.me.team||[]).filter(x=>x.id!==st.me.id&&isAlive(x.id));
@@ -692,8 +728,17 @@ document.addEventListener("click",e=>{
     if(cardOpen){cardOpen=false;b.classList.remove("open");lsSet(cardKey(),1);setTimeout(()=>{b.classList.add("gone");setTimeout(render,450)},500)}
     else{cardOpen=true;b.classList.add("open")}
     buzz(15)}
-  else if(a==="roles"){rolesOpen=!rolesOpen;render()}
+  else if(a==="roles"){const body=document.querySelector(".roles-body");
+    if(rolesOpen&&body){body.classList.add("closing");document.querySelector(".chev").classList.remove("up");setTimeout(()=>{rolesOpen=false;render()},230)}
+    else{rolesOpen=true;rolesJust=true;render();rolesJust=false}}
   else if(a==="act"){const k=b.dataset.k;if((k==="query"||k==="vote")&&st.me.sel[k])return;send({t:"act",k,id,gen:st.gen});buzz(25)}
+});
+/* تموّج خفيف عند الضغط على أي زر */
+document.addEventListener("pointerdown",e=>{
+  const b=e.target.closest(".btn,.pick,.tab,.roles-head");if(!b||b.disabled||matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+  const r=b.getBoundingClientRect(),d=Math.max(r.width,r.height)*1.4,sp=document.createElement("span");
+  sp.className="rip";sp.style.cssText=`width:${d}px;height:${d}px;left:${e.clientX-r.left-d/2}px;top:${e.clientY-r.top-d/2}px`;
+  b.appendChild(sp);setTimeout(()=>sp.remove(),650);
 });
 /* حفظ توكن اللاعب لكل غرفة عشان لو طلع ورجع */
 setInterval(()=>{if(sess&&!sess.judge&&sess.token)lsSet("mafia.tok."+sess.code,sess.token)},1500);
