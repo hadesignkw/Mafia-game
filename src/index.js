@@ -193,7 +193,7 @@ export class Room extends DurableObject {
     pub.me = { id: pid, name: s.players[pid]?.name, inGame: s.order.includes(pid) && s.phase !== "lobby" };
     if (role && pub.me.inGame) {
       Object.assign(pub.me, { role, fake: s.fakeCop === pid, notes: s.notes[pid] || [] });
-      if (role === "cop") Object.assign(pub.me, { queriesLeft: Math.max(0, (s.queryMax || 0) - (s.queriesUsed || 0)), queryMax: s.queryMax || 0 });
+      if (role === "cop") Object.assign(pub.me, { queriesLeft: Math.max(0, (s.queryMax || 0) - (s.queriesUsed || 0)), queryMax: s.queryMax || 0, queryMafia: s.night.queried ? isM(s.roles[s.night.queried]) : null });
       const n = s.night;
       if (isM(role)) pub.me.team = s.order.filter((i) => isM(s.roles[i])).map((i) => ({
         id: i, role: s.roles[i], fake: s.fakeCop === i,

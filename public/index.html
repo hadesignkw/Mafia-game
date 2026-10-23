@@ -89,6 +89,17 @@ table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-bottom:1px s
 .chev.up{transform:rotate(180deg)}
 .roles-body{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px;animation:rise .25s ease}
 .pick small{font-weight:400;font-size:.75rem}
+/* نتيجة استعلام الشرطي على الاسم نفسه */
+.pick.res{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;color:#fff;font-weight:800;opacity:1;cursor:default}
+.pick.res.m{background:var(--blood);border-color:var(--blood)}
+.pick.res.t{background:var(--town);border-color:var(--town);color:#06130e}
+.pick.res .lbl{font-size:.8rem;padding:1px 8px;border-radius:99px;background:rgb(0 0 0 / .22)}
+.pick.res .flash{position:absolute;inset:0;display:grid;place-items:center;font-size:1.5rem;font-weight:800;background:inherit;opacity:0;pointer-events:none}
+.pick.res.reveal{animation:resPulse 2.6s ease both}
+.pick.res.reveal .flash{animation:resFlash 2.6s ease both}
+@keyframes resPulse{0%{transform:scale(1) rotateY(90deg)}15%{transform:scale(1.12) rotateY(0)}25%{transform:scale(1.08)}35%{transform:scale(1.12)}55%{transform:scale(1.04)}100%{transform:scale(1)}}
+@keyframes resFlash{0%,70%{opacity:1;letter-spacing:.05em}100%{opacity:0;letter-spacing:.3em}}
+.pick.dim{opacity:.35;cursor:default}
 /* ---------- وضع التجربة ---------- */
 select{font:inherit;font-size:1rem;width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 .demobar{position:sticky;top:env(safe-area-inset-top,0px);z-index:8;background:var(--bg);border:1px solid color-mix(in srgb,var(--brass) 55%,transparent);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px;box-shadow:0 8px 24px rgb(0 0 0 / .35)}
@@ -289,7 +300,7 @@ function onMsg(m){
     if(st.me&&st.gen!==lastGen){if(lastGen!==null||st.phase==="night0")cardOpen=false;lastGen=st.gen}
     handleEvent(prev);
     if(st.me&&st.me.notes){const n=st.me.notes.length;
-      if(notesSeen!==null&&n>notesSeen){fxQ.push({id:"a"+Date.now(),type:"answer",text:st.me.notes[n-1]});cardOpen=false;playNext()}
+      if(notesSeen!==null&&n>notesSeen&&!/^الليلة/.test(st.me.notes[n-1])){fxQ.push({id:"a"+Date.now(),type:"answer",text:st.me.notes[n-1]});cardOpen=false;playNext()}
       notesSeen=n}
     render();
   }
@@ -646,12 +657,21 @@ function actionView(){
   if(p==="vote"){const v=me.sel.vote;return(v?`<div class="panel"><h2>صوّتت ✓</h2><p>صوتك راح على <b>${esc(nm(v))}</b>، وما ينفع يتغير. انتظر القاضي يعلن النتيجة.</p></div>`:`<div class="panel"><h2>صوّت</h2><p class="muted small">اختار الشخص اللي تشك إنه مافيا. انتبه: أول ما تدوس الاسم ينحسب صوتك وما تقدر تغيّره.</p>${picker("vote",others,true)}</div>`)+aliveList();}
   return aliveList();
 }
+const revealed=new Map();
 function queryBox(others){
   const q=st.me.sel.query,left=st.me.queriesLeft,max=st.me.queryMax;
   const count=`<span class="chip b">باقي لك ${ar(left)} من ${ar(max)}</span>`;
-  if(q)return`<div class="panel"><h2>استعلم عن شخص</h2>${count}<p>استعلمت عن <b>${esc(nm(q))}</b>: الجواب طلع لك على الشاشة.</p></div>`;
+  if(q){
+    const bad=st.me.queryMafia,word=bad?"مافيا":"شعب",key=[st.gen,st.round,q].join("|");
+    if(!revealed.has(key)){revealed.set(key,performance.now());buzz(bad?[60,40,60]:40)}
+    const age=performance.now()-revealed.get(key),fresh=age<2600,d=`style="animation-delay:-${Math.round(age)}ms"`;
+    const ids=others.includes(q)?others:[q,...others];
+    return`<div class="panel"><h2>نتيجة الاستعلام</h2>${count}<div class="grid">${ids.map(id=>id===q
+      ?`<button class="pick res ${bad?"m":"t"} ${fresh?"reveal":""}" ${fresh?d:""} disabled><span class="nmv">${esc(nm(id))}</span><span class="lbl">${word}</span>${fresh?`<span class="flash" ${d}>${word}</span>`:""}</button>`
+      :`<button class="pick dim" disabled>${esc(nm(id))}</button>`).join("")}</div><p class="muted small">احفظ الجواب، يختفي لما يقلب القاضي للخطوة الجاية.</p></div>`;
+  }
   if(!left)return`<div class="panel"><h2>خلصت استعلاماتك</h2><p class="muted">استعملت كل استعلاماتك (${ar(max)}، بعدد المافيا). غمّض عيونك.</p></div>`;
-  return`<div class="panel"><h2>استعلم عن مجرم</h2>${count}<p class="muted small">استعلام واحد بالليلة، وعدد استعلاماتك كلها بعدد المافيا. الجواب يطلع لك على الشاشة 10 ثواني.</p>${picker("query",others)}</div>`;
+  return`<div class="panel"><h2>استعلم عن مجرم</h2>${count}<p class="muted small">استعلام واحد بالليلة، وعدد استعلاماتك كلها بعدد المافيا. اضغط على الشخص والجواب يطلع على اسمه.</p>${picker("query",others)}</div>`;
 }
 function overView(){
   const w=st.winner;
