@@ -439,7 +439,7 @@ function roundsStrip(){
     h+=`<span class="rd ${cls} ${(i===1||i===of)&&st.phase==="play"?"lock":""}" title="${r?statusName(r.status):"جاية"}">${r&&r.status==="dissolved"?"✕":i}</span>`}
   return`<div class="rounds" aria-label="الجولات">${h}</div>`;
 }
-const statusName=s=>({open:"شغالة",sorted:"انفرزت",cards:"خلصت الكروت",dissolved:"انحل المجلس"})[s]||s;
+const statusName=s=>({counting:"نجمع المجاميع",open:"شغالة",sorted:"انفرزت",cards:"خلصت الكروت",dissolved:"انحل المجلس"})[s]||s;
 
 /* ---------- شاشة الحكم ---------- */
 function judgeView(){
@@ -450,14 +450,25 @@ function judgeView(){
   // اللعب
   h+=`<div style="text-align:center;margin-top:8px"><h1 style="font-size:2.6rem">الجولة <span class="num">${s.round.no}</span></h1><p class="muted small">من ${fmt(s.round.of)} جولات${s.round.no===1?"، وما فيها فرز ولا حل":s.round.no===s.round.of?"، وما فيها حل مجلس":""}</p></div>`;
   h+=roundsStrip()+chamberSVG(true);
+  if(s.counting)h+=countingHTML();
+  else if(s.resignNeed&&s.resignNeed.length)h+=`<div class="panel"><h2>ننطر مجموع المستقيل</h2><div class="list" style="margin-top:10px">${s.resignNeed.map(id=>`<button class="li" data-a="seat" data-id="${id}"><span class="nm">${esc(nm(id))}</span><span class="chip gold">${(s.pending||[]).some(p=>p.kind==="final"&&p.pid===id)?"وصل، اعتمده":"ينطر"}</span></button>`).join("")}</div></div>`;
   if(s.pending&&s.pending.length)h+=`<div class="panel"><h2>تنطر موافقتك</h2><div class="list" style="gap:12px">${s.pending.map(pendHTML).join("")}</div></div>`;
   h+=scoreboard();
   return h;
 }
+function countingHTML(){
+  const c=st.counting,left=c.need.filter(id=>!c.done[id]),last=st.round.no===st.round.of;
+  const kindN={sort:"فرز الأصوات",cards:"خلصت الكروت",dissolve:"انحل المجلس"}[st.round.endKind]||"";
+  return`<div class="panel"><div class="row"><h2 class="grow">مجاميع الجولة</h2><span class="chip ${st.round.endKind==="dissolve"?"red":"gold"}">${kindN}</span></div>
+  <p class="muted small">${st.round.endKind==="dissolve"?"ننطر المستقيلين بس، والباقين انمسحوا.":"كل واحد يحط أصواته اللي بإيده. دوس على اسم عشان تسجل بداله."}</p>
+  <div class="list" style="margin-top:10px">${c.need.map(id=>{const w=(st.pending||[]).some(p=>p.kind==="final"&&p.pid===id);const d=c.done[id];
+    return`<button class="li" data-a="seat" data-id="${id}"><span class="nm">${esc(nm(id))}</span>${d?`<span class="chip green">انسجل</span>`:w?`<span class="chip gold">وصل، اعتمده</span>`:`<span class="chip">ينطر</span>`}</button>`}).join("")}</div>
+  <button class="btn gold block" style="margin-top:12px" data-a="nextRound" ${left.length?"disabled":""}>${left.length?`باقي ${left.length}`:last?"طلّع النتيجة":`ابدا الجولة ${st.round.no+1}`}</button></div>`;
+}
 function pendHTML(p){
   if(p.kind==="swap")return`<div class="ballot"><div class="row"><span class="grow"><b>بدل: ${esc(nm(p.a))} ويا ${esc(nm(p.b))}</b><br><span class="small">كتبه ${esc(nm(p.by))} ${hm(p.at)}</span></span><span class="amt num">${Number(p.total).toLocaleString("en-US")}</span></div>
   <div class="row" style="margin-top:8px"><button class="btn gold sm grow" data-a="approve" data-id="${p.id}">اعتمد البدل</button><button class="btn sm" data-a="reject" data-id="${p.id}">ارفض</button></div></div>`;
-  return`<div class="ballot"><div class="row"><span class="grow"><b>${esc(nm(p.pid))}</b><br><span class="small">${p.calc?esc(p.calc)+" · ":""}${hm(p.at)}</span></span></div>
+  return`<div class="ballot"><div class="row"><span class="grow"><b>${esc(nm(p.pid))}</b> <span class="small">${Number(p.amt)===0?"ما عنده ولا صوت":"مجموع أصواته"}</span><br><span class="small">${p.calc?esc(p.calc)+" · ":""}${hm(p.at)}</span></span></div>
   <form data-f="approve" data-id="${p.id}" class="row" style="margin-top:8px"><input name="amt" class="num grow" inputmode="numeric" value="${p.amt}" aria-label="الرقم" style="font-size:1.3rem;font-weight:800;text-align:center"><button class="btn gold sm">اعتمد</button><button type="button" class="btn sm" data-a="reject" data-id="${p.id}">ارفض</button></form></div>`;
 }
 function scoreboard(){
@@ -506,11 +517,17 @@ function playerView(){
     return h;
   }
   h+=`<div style="text-align:center;margin-top:8px"><h1 style="font-size:2.6rem">الجولة <span class="num">${s.round.no}</span></h1><p class="muted small">من ${fmt(s.round.of)} جولات</p></div>`+roundsStrip();
-  if(me.resigned){h+=`<div class="panel" style="text-align:center"><h2>استقلت بهالجولة</h2><p class="muted">أصواتك محفوظة، وترجع تسجل الجولة الجاية.</p></div>`}
-  else{
-    h+=`<div class="panel"><h2>سجّل أصواتك</h2><p class="muted small">اكتب اللي جمعته الحين، يروح للحكم يعتمده. أرقامك ومجموعك ما تبين لك ولا لأحد غير الحكم.</p><div style="margin-top:10px">${calcHTML()}</div>
-    <button class="btn gold block" style="margin-top:10px" data-a="submit" ${calcEval(calcExpr)>0?"":"disabled"}>ارسل ${calcEval(calcExpr)>0?fmt(calcEval(calcExpr)):""} للحكم</button></div>`;
+  if(me.ask){
+    const v=calcEval(calcExpr);
+    h+=`<div class="panel"><h2>حط مجموع أصواتك</h2><p class="muted small">${me.resigned?"استقلت، اكتب أصواتك اللي بإيدك.":"الجولة خلصت، اكتب أصواتك اللي بإيدك (بدون البدل)."} يروح للحكم يعتمده، ومحد غيره يشوفه.</p><div style="margin-top:10px">${calcHTML()}</div>
+    <button class="btn gold block" style="margin-top:10px" data-a="submit" ${v!=null&&v>0?"":"disabled"}>ارسل ${v>0?fmt(v):""} للحكم</button>
+    <button class="btn block" style="margin-top:8px" data-a="submitZero">ما عندي ولا صوت</button></div>`;
   }
+  else if(me.waiting)h+=`<div class="panel" style="text-align:center">${ICON.box.replace("<svg",'<svg width="40" height="40" style="color:var(--brass)"')}<h2>وصل للحكم</h2><p class="muted">ينطر يعتمد مجموعك.</p></div>`;
+  else if(me.done&&me.counting)h+=`<div class="panel" style="text-align:center"><h2>انسجل مجموعك</h2><p class="muted">ننطر ${me.left?`${fmt(me.left)} يحطون مجاميعهم`:"الحكم يبدا الجولة الجاية"}.</p></div>`;
+  else if(me.resigned)h+=`<div class="panel" style="text-align:center"><h2>استقلت بهالجولة</h2><p class="muted">مجموعك انسجل، وترجع تلعب الجولة الجاية.</p></div>`;
+  else if(me.counting)h+=`<div class="panel" style="text-align:center"><h2>الجولة خلصت</h2><p class="muted">ننطر المستقيلين يحطون مجاميعهم.</p></div>`;
+  else h+=`<section class="hero" style="margin-top:6px">${hallSVG()}<p class="muted sub">الجولة شغالة. لما تخلص يطلع لك تحط مجموع أصواتك.</p></section>`;
   return h;
 }
 
@@ -537,9 +554,9 @@ function evLines(r,filterId,players){
   const out=[];
   for(const e of r.ev){
     if(e.k==="add"&&(!filterId||e.pid===filterId)){const x=cancelled.has(e.id);
-      out.push(`<li class="${x?"x":wiped(e.pid)?"wipe":""}"><span class="t">${hm(e.at)}</span><span class="grow">${filterId?"":`<b>${esc(name(e.pid))}</b> `}${e.amt<0?"تصحيح":"جمع"} <b class="num">${e.amt>0?"+":""}${e.amt.toLocaleString("en-US")}</b>${e.calc?` <span class="muted small num">(${esc(e.calc)})</span>`:""}${e.by==="self"?` <span class="muted small">من تلفونه${e.asked!=null&&e.asked!==e.amt?`، كتب ${Number(e.asked).toLocaleString("en-US")}`:""}</span>`:""}${x?` <span class="chip red">انلغى</span>`:""}</span>${!x&&st.judge&&st.phase==="play"&&r.status==="open"&&!filterId?`<button class="btn sm ghost" data-a="cancel" data-id="${e.id}">الغِ</button>`:""}</li>`)}
+      out.push(`<li class="${x?"x":wiped(e.pid)?"wipe":""}"><span class="t">${hm(e.at)}</span><span class="grow">${filterId?"":`<b>${esc(name(e.pid))}</b> `}${e.final?(e.amt===0?"ما عنده ولا صوت":"مجموع أصواته"):e.amt<0?"تصحيح":"جمع"} <b class="num">${e.amt>0?"+":""}${e.amt.toLocaleString("en-US")}</b>${e.calc?` <span class="muted small num">(${esc(e.calc)})</span>`:""}${e.by==="self"?` <span class="muted small">من تلفونه${e.asked!=null&&e.asked!==e.amt?`، كتب ${Number(e.asked).toLocaleString("en-US")}`:""}</span>`:""}${x?` <span class="chip red">انلغى</span>`:""}</span>${!x&&st.judge&&st.phase==="play"&&(r.status==="open"||r.status==="counting")&&!filterId?`<button class="btn sm ghost" data-a="cancel" data-id="${e.id}">الغِ</button>`:""}</li>`)}
     else if(e.k==="swap"&&(!filterId||e.a===filterId||e.b===filterId)){const x=cancelled.has(e.id);const other=filterId?(e.a===filterId?e.b:e.a):null;
-      out.push(`<li class="sw ${x?"x":""}"><span class="t">${hm(e.at)}</span><span class="grow">${filterId?`بدل ويا <b>${esc(name(other))}</b>`:`بدل: <b>${esc(name(e.a))}</b> ويا <b>${esc(name(e.b))}</b>`} صار المجموع <b class="num">${e.total.toLocaleString("en-US")}</b>${filterId&&e.before?` <span class="muted small">(كان عنده ${Number(e.before[filterId]||0).toLocaleString("en-US")})</span>`:""}${x?` <span class="chip red">انلغى</span>`:""}</span>${!x&&st.judge&&st.phase==="play"&&r.status==="open"&&!filterId?`<button class="btn sm ghost" data-a="cancel" data-id="${e.id}">الغِ</button>`:""}</li>`)}
+      out.push(`<li class="sw ${x?"x":""}"><span class="t">${hm(e.at)}</span><span class="grow">${filterId?`بدل ويا <b>${esc(name(other))}</b>`:`بدل: <b>${esc(name(e.a))}</b> ويا <b>${esc(name(e.b))}</b>`} انضاف <b class="num">${e.total.toLocaleString("en-US")}</b>${filterId?"":" لكل واحد"}${x?` <span class="chip red">انلغى</span>`:""}</span>${!x&&st.judge&&st.phase==="play"&&r.status==="open"&&!filterId?`<button class="btn sm ghost" data-a="cancel" data-id="${e.id}">الغِ</button>`:""}</li>`)}
     else if(e.k==="resign"&&(!filterId||e.pid===filterId))out.push(`<li class="rs"><span class="t">${hm(e.at)}</span><span class="grow"><b>${esc(name(e.pid))}</b> استقال، أصواته محفوظة</span></li>`);
     else if(e.k==="rej"&&st.judge&&(!filterId||e.pid===filterId||e.a===filterId||e.b===filterId))out.push(`<li class="x"><span class="t">${hm(e.at)}</span><span class="grow">${e.kind==="swap"?`بدل ${esc(name(e.a))} ويا ${esc(name(e.b))} بـ${Number(e.total).toLocaleString("en-US")}`:`${esc(name(e.pid))} طلب +${Number(e.amt).toLocaleString("en-US")}`} <span class="chip red">انرفض</span></span></li>`);
   }
@@ -573,7 +590,13 @@ function renderSheet(){
     inner=`<div class="hd"><h2>${esc(p.name)}</h2>${res?`<span class="chip">مستقيل</span>`:""}${close}</div>
     <div class="row"><div class="li grow" style="flex-direction:column;align-items:flex-start;gap:0"><span class="muted small">هالجولة</span><b class="num" style="font-size:1.5rem">${curScore(p.id).toLocaleString("en-US")}</b></div>
     <div class="li grow" style="flex-direction:column;align-items:flex-start;gap:0"><span class="muted small">المجموع</span><b class="num" style="font-size:1.5rem">${(st.record.totals[p.id]||0).toLocaleString("en-US")}</b></div></div>`;
-    if(play&&!res){
+    const needF=play&&((st.counting&&st.counting.need.includes(p.id)&&!st.counting.done[p.id])||(st.resignNeed||[]).includes(p.id));
+    if(needF){
+      const v=calcEval(calcExpr);
+      inner+=`<h3 style="margin-top:14px">حط مجموعه بداله</h3><div style="margin-top:8px">${calcHTML()}</div>
+      <div class="row" style="margin-top:10px"><button class="btn gold grow" data-a="finalFor" data-id="${p.id}" ${v!=null&&v>=0&&calcExpr?"":"disabled"}>سجّل ${v!=null&&calcExpr?fmt(v):""}</button><button class="btn" data-a="finalZero" data-id="${p.id}">ولا صوت</button></div>`;
+    }
+    else if(play&&!res&&st.round.status==="open"){
       inner+=`<h3 style="margin-top:14px">سجّل أصوات جمعها</h3><div style="margin-top:8px">${calcHTML()}</div>
       <div class="row" style="margin-top:10px"><button class="btn gold grow" data-a="addVotes" data-id="${p.id}" ${calcEval(calcExpr)?"":"disabled"}>${(calcEval(calcExpr)||0)<0?"صحّح":"سجّل"} ${calcEval(calcExpr)?fmt(calcEval(calcExpr)):""}</button></div>
       <p class="muted small" style="margin-top:6px">تقدر تكتب رقم بالسالب (مثلاً −100) عشان تصحح غلط، وبيبين بالسجل إنه تصحيح.</p>
@@ -604,7 +627,7 @@ function renderSheet(){
     if(step<3){
       inner+=`<p class="muted">${step===1?"منو بدّل؟ اختار الأول.":`بدّل <b>${esc(nm(sheet.a))}</b> ويا منو؟`}</p><div class="list" style="margin-top:10px">${elig.filter(p=>p.id!==sheet.a).map(p=>`<button class="li" data-a="swapPick" data-id="${p.id}"><span class="nm">${esc(p.name)}</span><span class="sc"><b class="num">${curScore(p.id).toLocaleString("en-US")}</b><small>هالجولة</small></span></button>`).join("")}</div>`;
     }else{
-      inner+=`<p><b>${esc(nm(sheet.a))}</b> ويا <b>${esc(nm(sheet.b))}</b></p><p class="muted small">مجموع أصواتهم المسجلة الحين ${fmt(curScore(sheet.a)+curScore(sheet.b))}. اكتب مجموع البدل، وبيصير لكل واحد منهم.</p>
+      inner+=`<p><b>${esc(nm(sheet.a))}</b> ويا <b>${esc(nm(sheet.b))}</b></p><p class="muted small">اكتب مجموع البدل، وينضاف لكل واحد منهم. أصواتهم اللي بدلوا فيها تنحط بالأرض.</p>
       <div style="margin-top:10px">${calcHTML()}</div>
       <button class="btn gold block" style="margin-top:10px" data-a="swapSave" ${calcEval(calcExpr)!=null&&calcEval(calcExpr)>=0?"":"disabled"}>سجّل البدل ${calcEval(calcExpr)!=null?fmt(calcEval(calcExpr)):""}</button>
       ${st.mode==="players"?`<button class="btn block" style="margin-top:8px" data-a="swapAsk">خلهم يكتبونه من تلفوناتهم</button>`:""}`;
@@ -629,7 +652,7 @@ function renderSheet(){
     <div class="sep"></div><button class="btn block" data-a="secretLocal">أوريه من تلفوني</button>`;
   }
   else if(sheet.type==="swapAskMe"){
-    inner=`<div class="hd"><h2>بدل ويا ${esc(st.me.swapAsk.with)}</h2></div><p class="muted">الحكم يبيكم تكتبون مجموع البدل (أصواتك وأصواته مع بعض).</p><div style="margin-top:10px">${calcHTML()}</div>
+    inner=`<div class="hd"><h2>بدل ويا ${esc(st.me.swapAsk.with)}</h2></div><p class="muted">الحكم يبيكم تكتبون مجموع البدل (أصواتك وأصواته مع بعض). ينضاف لكل واحد منكم.</p><div style="margin-top:10px">${calcHTML()}</div>
     <button class="btn gold block" style="margin-top:10px" data-a="swapTotal" ${calcEval(calcExpr)!=null&&calcEval(calcExpr)>=0?"":"disabled"}>ارسل المجموع ${calcEval(calcExpr)!=null?fmt(calcEval(calcExpr)):""}</button>`;
   }
   else if(sheet.type==="rename"){
@@ -649,24 +672,27 @@ function renderDock(){
   const d=$("#dock");
   if(view!=="game"||!st||!st.judge||st.phase!=="play"){d.innerHTML="";return}
   const ic=k=>ICON[k];
+  const cnt=st.round.status==="counting";
   d.innerHTML=`<div class="dock"><div class="in">
-  <button class="btn" data-a="swapOpen">${ic("swap")}صار بدل؟</button>
+  <button class="btn" data-a="swapOpen" ${cnt?"disabled":""}>${ic("swap")}صار بدل؟</button>
   <button class="btn" data-a="secretOpen">${ic("lock")}جلسة سرية</button>
   <button class="btn" data-a="log">${ic("book")}السجل</button>
-  <button class="btn gold" data-a="endOpen">${ic("gavel")}نهاية الجولة</button></div></div>`;
+  <button class="btn gold" data-a="endOpen" ${cnt?"disabled":""}>${ic("gavel")}نهاية الجولة</button></div></div>`;
 }
 
 /* ---------- الحركات ---------- */
 const fxQ=[];let fxBusy=false,fxT;
 function playFx(e){fxQ.push(e);if(!fxBusy)nextFx()}
 function nextFx(){
-  const e=fxQ.shift();const el=$("#fx");
+  let e=fxQ.shift();const el=$("#fx");
+  // نهاية الجولة اللي فيها جمع مجاميع: نفس حركة الفرز أو الكروت أو الحل
+  if(e&&e.type==="count")e={...e,type:e.kind,sub:e.kind==="dissolve"?"ننطر مجموع المستقيلين.":"حطوا مجموع أصواتكم."};
   if(!e){fxBusy=false;el.innerHTML="";return}
   fxBusy=true;let cls="",html="",dur=3200;
   if(e.type==="round"){cls="fx-round";dur=3000;html=`${gavelSVG()}<div class="big">الجولة ${e.no}</div><div class="sub">من ${e.of} جولات${e.no===1?"، وما فيها فرز ولا حل":e.no===e.of?"، وما فيها حل مجلس":""}</div>`}
-  else if(e.type==="sort"){dur=3600;html=`<div class="box3">${[0,1,2,3,4].map(i=>`<i style="--x:${(i-2)*40}px;--r:${(i-2)*18}deg;animation-delay:${i*.18}s"></i>`).join("")}<svg viewBox="0 0 180 130"><rect x="10" y="20" width="160" height="110" rx="8" fill="#1d4a3a" stroke="#c9a35b" stroke-width="3"/><rect x="58" y="12" width="64" height="12" rx="3" fill="#06100d" stroke="#c9a35b" stroke-width="2"/><rect x="40" y="60" width="100" height="30" rx="4" fill="#efe6cf"/><text x="90" y="81" text-anchor="middle" font-family="Almarai" font-weight="800" font-size="16" fill="#2a2116">أصوات</text></svg></div><div class="big">فرز الأصوات</div><div class="sub">${e.then==="over"?"خلصت آخر جولة.":`الجولة ${e.no} انسجلت، وتبدا الجولة ${e.next}.`}</div>`}
-  else if(e.type==="cards"){dur=3400;html=`<div class="fall">${Array.from({length:14},(_,i)=>`<i style="left:${(i*7.3+3)%96}%;--r:${(i%2?1:-1)*(120+i*20)}deg;animation-delay:${(i*.09).toFixed(2)}s"></i>`).join("")}</div><div class="big">خلصت الكروت</div><div class="sub">${e.then==="over"?"خلصت آخر جولة.":`الجولة ${e.no} انسجلت، وتبدا الجولة ${e.next}.`}</div>`}
-  else if(e.type==="dissolve"){cls="fx-dissolve";dur=4200;html=`<div class="stamp">حُلّ<br>المجلس</div><div class="seatsdim">${Array.from({length:9},(_,i)=>`<span style="animation-delay:${(1.1+i*.08).toFixed(2)}s"></span>`).join("")}</div><div class="sub">أصوات الجولة ${e.no} انمسحت إلا المستقيلين.</div>`}
+  else if(e.type==="sort"){dur=3600;html=`<div class="box3">${[0,1,2,3,4].map(i=>`<i style="--x:${(i-2)*40}px;--r:${(i-2)*18}deg;animation-delay:${i*.18}s"></i>`).join("")}<svg viewBox="0 0 180 130"><rect x="10" y="20" width="160" height="110" rx="8" fill="#1d4a3a" stroke="#c9a35b" stroke-width="3"/><rect x="58" y="12" width="64" height="12" rx="3" fill="#06100d" stroke="#c9a35b" stroke-width="2"/><rect x="40" y="60" width="100" height="30" rx="4" fill="#efe6cf"/><text x="90" y="81" text-anchor="middle" font-family="Almarai" font-weight="800" font-size="16" fill="#2a2116">أصوات</text></svg></div><div class="big">فرز الأصوات</div><div class="sub">${e.sub||(e.then==="over"?"خلصت آخر جولة.":`الجولة ${e.no} انسجلت، وتبدا الجولة ${e.next}.`)}</div>`}
+  else if(e.type==="cards"){dur=3400;html=`<div class="fall">${Array.from({length:14},(_,i)=>`<i style="left:${(i*7.3+3)%96}%;--r:${(i%2?1:-1)*(120+i*20)}deg;animation-delay:${(i*.09).toFixed(2)}s"></i>`).join("")}</div><div class="big">خلصت الكروت</div><div class="sub">${e.sub||(e.then==="over"?"خلصت آخر جولة.":`الجولة ${e.no} انسجلت، وتبدا الجولة ${e.next}.`)}</div>`}
+  else if(e.type==="dissolve"){cls="fx-dissolve";dur=4200;html=`<div class="stamp">حُلّ<br>المجلس</div><div class="seatsdim">${Array.from({length:9},(_,i)=>`<span style="animation-delay:${(1.1+i*.08).toFixed(2)}s"></span>`).join("")}</div><div class="sub">أصوات الجولة ${e.no} انمسحت إلا المستقيلين.${e.sub?" "+e.sub:""}</div>`}
   else if(e.type==="resign"){dur=3400;html=`<div class="tear"><span class="r"></span><span class="l"></span></div><div class="big" style="font-size:2.6rem">${esc(e.name)} استقال</div><div class="sub">أصواته محفوظة بهالجولة.</div>`}
   else if(e.type==="swap"){cls="fx-swap";dur=3400;html=`<div class="swap"><div class="c a">${esc(e.a)}</div><div class="c b">${esc(e.b)}</div></div><div class="big">بدل!</div><div class="sub">${esc(e.a)} ويا ${esc(e.b)}</div>`}
   else if(e.type==="secret"){cls="fx-secret";dur=3200;html=`<span class="cur r"></span><span class="cur l"></span><div class="inner">${ICON.lock}<div class="big">جلسة سرية</div><div class="sub" style="color:#ffd9c8">${esc(e.name)} يشوف السجل الحين</div></div>`}
@@ -721,7 +747,7 @@ document.addEventListener("click",ev=>{
     case "start":send({t:"start"});break;
     case "seat":if(st.phase==="over"){sheet={type:"hist",id};renderSheet();break}if(!st.judge)break;calcExpr="";sheet={type:"player",id};renderSheet();break;
     case "addVotes":{const v=calcEval(calcExpr);if(!v)break;send({t:"add",id,amt:v,calc:/[+\-×]/.test(calcExpr.slice(1))?calcExpr:""});calcExpr="";toast(`${v<0?"انصحح":"انسجل"} ${Math.abs(v).toLocaleString("en-US")} لـ${nm(id)}`);break}
-    case "resign":ask(`${nm(id)} استقال؟`,"أصواته بهالجولة تنحفظ حتى لو انحل المجلس، وما يقدر يسجل أكثر لين الجولة الجاية.","إي استقال",()=>{send({t:"resign",id});sheet=null},false);break;
+    case "resign":ask(`${nm(id)} استقال؟`,(st.mode==="players"?"يطلع له يحط مجموع أصواته، وتنحفظ حتى لو انحل المجلس. وينتهي دوره بهالجولة.":"أصواته بهالجولة تنحفظ حتى لو انحل المجلس، وما يقدر يسجل أكثر لين الجولة الجاية."),"إي استقال",()=>{send({t:"resign",id});sheet=null},false);break;
     case "secret":send({t:"secret",id});sheet=null;renderSheet();break;
     case "secretOpen":sheet=st.mode==="players"?{type:"secretPick"}:{type:"secret"};renderSheet();break;
     case "secretLocal":sheet={type:"secret"};renderSheet();break;
@@ -731,14 +757,18 @@ document.addEventListener("click",ev=>{
     case "unsubmit":send({t:"unsubmit",id});break;
     case "cancel":ask("تلغي هالإدخال؟","ينحسب كأنه ما صار، ويبين بالسجل إنه انلغى.","الغِ",()=>{send({t:"cancel",id});sheet={type:"log"}},true);break;
     case "swapOpen":calcExpr="";sheet={type:"swap",a:null,b:null};renderSheet();break;
-    case "swapPick":if(sheet.a==null)sheet.a=id;else{sheet.b=id;calcExpr=String(curScore(sheet.a)+curScore(sheet.b))}renderSheet();break;
+    case "swapPick":if(sheet.a==null)sheet.a=id;else{sheet.b=id;calcExpr=""}renderSheet();break;
     case "swapSave":{const v=calcEval(calcExpr);if(v==null)break;send({t:"swap",a:sheet.a,b:sheet.b,total:v});sheet=null;calcExpr="";renderSheet();break}
     case "swapAsk":send({t:"swapAsk",a:sheet.a,b:sheet.b});toast("طلبت منهم يكتبون المجموع");sheet=null;renderSheet();break;
     case "swapTotal":{const v=calcEval(calcExpr);if(v==null)break;send({t:"swapTotal",total:v});sheet=null;calcExpr="";break}
     case "submit":{const v=calcEval(calcExpr);if(!(v>0))break;send({t:"submit",amt:v,calc:/[+\-×]/.test(calcExpr.slice(1))?calcExpr:""});break}
+    case "submitZero":ask("ما عندك ولا صوت؟","يروح للحكم إن مجموعك صفر.","إي، صفر",()=>send({t:"submit",amt:0}));break;
+    case "finalFor":{const v=calcEval(calcExpr);if(v==null||v<0)break;send({t:"final",id,amt:v,calc:/[+\-×]/.test(calcExpr.slice(1))?calcExpr:""});calcExpr="";sheet=null;renderSheet();toast(`انسجل مجموع ${nm(id)}`);break}
+    case "finalZero":send({t:"final",id,amt:0});sheet=null;renderSheet();toast(`${nm(id)}: ولا صوت`);break;
+    case "nextRound":send({t:"nextRound"});break;
     case "endOpen":sheet={type:"end"};renderSheet();break;
     case "end":{const k=t.dataset.k;const n={sort:"فرز الأصوات",cards:"خلصت الكروت",dissolve:"حل المجلس"}[k];
-      ask(n+"؟",k==="dissolve"?"تنمسح أصوات الجولة لكل الأعضاء إلا المستقيلين، وتبدا الجولة اللي بعدها.":"أصوات الجولة تتسجل، وتبدا الجولة اللي بعدها.",n,()=>{send({t:"end",kind:k});sheet=null},k==="dissolve");break}
+      ask(n+"؟",k==="dissolve"?"تنمسح أصوات الجولة لكل الأعضاء إلا المستقيلين، وتبدا الجولة اللي بعدها.":(st.mode==="players"?"كل لاعب يطلع له يحط مجموع أصواته، وبعد ما تعتمدها كلها تبدا الجولة اللي بعدها.":"أصوات الجولة تتسجل، وتبدا الجولة اللي بعدها."),n,()=>{send({t:"end",kind:k});sheet=null},k==="dissolve");break}
     case "finish":ask("تخلص اللعبة الحين؟","الجولة المفتوحة تتسجل، وتطلع النتيجة.","خلصها",()=>{send({t:"finish"});sheet=null});break;
     case "log":sheet={type:"log"};renderSheet();break;
     case "hist":sheet={type:"hist",id};renderSheet();break;

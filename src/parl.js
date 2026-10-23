@@ -103,11 +103,21 @@ export class Parl extends DurableObject {
   nm(id) { return this.s.players[id]?.name || "لاعب"; }
   round() { return this.s.rounds[this.s.cur] || null; }
   roundOpen() { const r = this.round(); return this.s.phase === "play" && r && r.status === "open"; }
+  // الجولة مفتوحة أو قاعدين نجمع مجاميع اللاعبين بعد ما خلصت
+  roundLive() { const r = this.round(); return this.s.phase === "play" && r && (r.status === "open" || r.status === "counting"); }
+  isDone(pid) { const r = this.round(); return !!(r && r.done && r.done[pid]); }
+  // منو لازم يحط مجموعه الحين
+  needs(pid) {
+    const r = this.round(); if (!r || this.s.mode !== "players" || this.isDone(pid)) return false;
+    if (r.status === "open") return r.resigned.includes(pid);
+    if (r.status === "counting") return (r.need || []).includes(pid);
+    return false;
+  }
   isResigned(pid) { const r = this.round(); return !!(r && r.resigned.includes(pid)); }
   ev(type, extra = {}) { this.s.event = { id: sid(), at: Date.now(), type, ...extra }; }
   push(e) { const r = this.round(); e.id = sid(); e.at = Date.now(); r.ev.push(e); return e; }
 
-  // نعيد حساب أصوات الجولة من أحداثها: الزيادة تنجمع، والبدل يخلي الاثنين على المجموع
+  // نعيد حساب أصوات الجولة من أحداثها: الزيادة تنجمع، ومجموع البدل ينضاف لكل واحد من الاثنين
   live(r) {
     const sc = {};
     for (const id of this.s.order) sc[id] = 0;
@@ -115,7 +125,7 @@ export class Parl extends DurableObject {
     for (const e of r.ev) {
       if (cancelled.has(e.id)) continue;
       if (e.k === "add") sc[e.pid] = (sc[e.pid] || 0) + e.amt;
-      else if (e.k === "swap") { sc[e.a] = e.total; sc[e.b] = e.total; }
+      else if (e.k === "swap") { sc[e.a] = (sc[e.a] || 0) + e.total; sc[e.b] = (sc[e.b] || 0) + e.total; }
     }
     return sc;
   }
@@ -179,6 +189,15 @@ export class Parl extends DurableObject {
         this.openRound();
         return;
       }
+      case "final": {
+        // الحكم يحط مجموع لاعب بداله (تلفونه فيه مشكلة)
+        if (!this.roundLive() || !P(m.id) || !this.needs(m.id)) return;
+        const amt = num(m.amt);
+        if (!Number.isFinite(amt) || amt < 0 || amt > MAX_AMT) return this.err(ws, "اكتب رقم صحيح.");
+        s.pending = s.pending.filter((p) => !(p.kind === "final" && p.pid === m.id));
+        this.recordFinal(m.id, amt, "judge", null, m.calc);
+        return;
+      }
       case "add": {
         if (!this.roundOpen() || !P(m.id)) return;
         if (this.isResigned(m.id)) return this.err(ws, `${this.nm(m.id)} مستقيل بهالجولة.`);
@@ -193,16 +212,16 @@ export class Parl extends DurableObject {
         if (i < 0) return;
         const p = s.pending[i];
         s.pending.splice(i, 1);
-        if (!this.roundOpen() || p.round !== s.cur) return;
+        if (!this.roundLive() || p.round !== s.cur) return;
         if (m.t === "reject") {
           this.push(p.kind === "swap" ? { k: "rej", kind: "swap", a: p.a, b: p.b, total: p.total, by: p.by } : { k: "rej", kind: "add", pid: p.pid, amt: p.amt });
           return;
         }
-        if (p.kind === "swap") return this.doSwap(p.a, p.b, p.total, ws, p.by);
-        if (this.isResigned(p.pid)) return this.err(ws, `${this.nm(p.pid)} مستقيل بهالجولة.`);
-        const amt = m.amt != null ? num(m.amt) : p.amt; // الحكم يقدر يعدل الرقم قبل لا يعتمده
-        if (!amt || amt < 0 || amt > MAX_AMT) return this.err(ws, "اكتب رقم صحيح.");
-        this.push({ k: "add", pid: p.pid, amt, by: "self", asked: p.amt, calc: p.calc || null });
+        if (p.kind === "swap") { if (!this.roundOpen()) return; return this.doSwap(p.a, p.b, p.total, ws, p.by); }
+        const amt = m.amt != null && m.amt !== "" ? num(m.amt) : p.amt; // الحكم يقدر يعدل الرقم قبل لا يعتمده
+        if (!Number.isFinite(amt) || amt < 0 || amt > MAX_AMT) return this.err(ws, "اكتب رقم صحيح.");
+        if (!this.needs(p.pid)) return;
+        this.recordFinal(p.pid, amt, "self", p.amt, p.calc);
         return;
       }
       case "swap": {
@@ -218,10 +237,12 @@ export class Parl extends DurableObject {
       case "swapAskCancel": s.swapAsk = null; return;
       case "cancel": {
         const r = this.round();
-        if (!this.roundOpen()) return;
+        if (!this.roundLive()) return;
         const e = r.ev.find((x) => x.id === m.id && (x.k === "add" || x.k === "swap"));
         if (!e || r.ev.some((x) => x.k === "cancel" && x.target === e.id)) return;
+        if (e.k === "swap" && r.status !== "open") return;
         this.push({ k: "cancel", target: e.id });
+        if (e.k === "add" && e.final && r.done) delete r.done[e.pid]; // يرجع يحط مجموعه من جديد
         return;
       }
       case "resign": {
@@ -229,7 +250,7 @@ export class Parl extends DurableObject {
         const r = this.round();
         r.resigned.push(m.id);
         this.push({ k: "resign", pid: m.id });
-        s.pending = s.pending.filter((p) => !(p.kind === "add" && p.pid === m.id));
+        s.pending = s.pending.filter((p) => !(p.kind === "final" && p.pid === m.id));
         if (s.swapAsk && (s.swapAsk.a === m.id || s.swapAsk.b === m.id)) s.swapAsk = null;
         this.ev("resign", { name: this.nm(m.id) });
         return;
@@ -241,7 +262,22 @@ export class Parl extends DurableObject {
         const last = s.cur === s.order.length - 1;
         if (kind === "sort" && s.cur === 0) return this.err(ws, "الجولة الأولى ما فيها فرز.");
         if (kind === "dissolve" && (s.cur === 0 || last)) return this.err(ws, "الجولة الأولى والأخيرة ما فيها حل مجلس.");
-        return this.closeRound(kind);
+        const r = this.round();
+        // اللاعبين يحطون مجاميعهم: بالفرز وخلصة الكروت الكل، وبالحل بس المستقيلين اللي ما حطوا للحين
+        const need = s.mode !== "players" ? [] : kind === "dissolve"
+          ? r.resigned.filter((id) => !this.isDone(id))
+          : s.order.filter((id) => !this.isDone(id));
+        if (!need.length) return this.closeRound(kind);
+        r.status = "counting"; r.endKind = kind; r.need = need; r.done = r.done || {};
+        s.swapAsk = null; s.pending = s.pending.filter((p) => p.kind === "final");
+        this.ev("count", { kind, no: r.no, last });
+        return;
+      }
+      case "nextRound": {
+        const r = this.round();
+        if (s.phase !== "play" || !r || r.status !== "counting") return;
+        if ((r.need || []).some((id) => !this.isDone(id))) return this.err(ws, "باقي ناس ما حطوا مجاميعهم.");
+        return this.closeRound(r.endKind);
       }
       case "secret": {
         if (s.phase === "setup" || !P(m.id)) return;
@@ -260,7 +296,7 @@ export class Parl extends DurableObject {
       case "finish": {
         // ينهي اللعبة قبل وقتها: الجولة المفتوحة تتسجل مثل الفرز
         if (s.phase !== "play") return;
-        if (this.roundOpen()) this.closeRound("sort", true);
+        if (this.roundLive()) this.closeRound(this.round().endKind || "sort", true);
         this.over();
         return;
       }
@@ -273,11 +309,16 @@ export class Parl extends DurableObject {
     if (!s.order.includes(a) || !s.order.includes(b) || a === b) return;
     if (this.isResigned(a) || this.isResigned(b)) return this.err(ws, "واحد منهم مستقيل بهالجولة.");
     if (!Number.isFinite(total) || total < 0 || total > MAX_AMT) return this.err(ws, "اكتب مجموع البدل.");
-    const sc = this.live(this.round());
-    this.push({ k: "swap", a, b, total, before: { [a]: sc[a] || 0, [b]: sc[b] || 0 }, by: by || "judge" });
+    this.push({ k: "swap", a, b, total, by: by || "judge" });
     if (s.swapAsk && ((s.swapAsk.a === a && s.swapAsk.b === b) || (s.swapAsk.a === b && s.swapAsk.b === a))) s.swapAsk = null;
     s.pending = s.pending.filter((p) => !(p.kind === "swap" && ((p.a === a && p.b === b) || (p.a === b && p.b === a))));
     this.ev("swap", { a: this.nm(a), b: this.nm(b) });
+  }
+
+  recordFinal(pid, amt, by, asked, calc) {
+    const r = this.round();
+    this.push({ k: "add", pid, amt, by, final: true, asked: asked ?? null, calc: String(calc || "").slice(0, 60) || null });
+    r.done = r.done || {}; r.done[pid] = true;
   }
 
   openRound() {
@@ -290,6 +331,7 @@ export class Parl extends DurableObject {
 
   closeRound(kind, silent = false) {
     const s = this.s, r = this.round();
+    const counted = r.status === "counting"; // حركة النهاية طلعت أول ما خلصت الجولة، الحين بس نبدا اللي بعدها
     const sc = this.live(r);
     if (kind === "dissolve") for (const id in sc) if (!r.resigned.includes(id)) sc[id] = 0; // الحل يمسح الكل إلا المستقيلين
     r.final = sc;
@@ -297,6 +339,7 @@ export class Parl extends DurableObject {
     r.endedAt = Date.now();
     s.pending = []; s.swapAsk = null;
     if (silent) return;
+    if (counted) { if (s.cur >= s.order.length - 1) return this.over(); return this.openRound(); }
     if (s.cur >= s.order.length - 1) { this.ev(kind, { no: r.no, then: "over" }); return this.over(true); }
     this.openRound();
     this.ev(kind, { no: r.no, next: s.cur + 1, of: s.order.length });
@@ -324,12 +367,11 @@ export class Parl extends DurableObject {
     if (s.mode !== "players") return;
     switch (m.t) {
       case "submit": {
-        if (!this.roundOpen()) return this.err(ws, "ما في جولة مفتوحة.");
-        if (this.isResigned(pid)) return this.err(ws, "أنت مستقيل بهالجولة.");
+        if (!this.roundLive() || !this.needs(pid)) return this.err(ws, "مو وقت تحط مجموعك.");
         const amt = num(m.amt);
-        if (!amt || amt < 0 || amt > MAX_AMT) return this.err(ws, "اكتب رقم صحيح.");
-        if (s.pending.filter((p) => p.pid === pid).length >= 5) return this.err(ws, "عندك أرقام تنطر الحكم، انطره يعتمدها.");
-        s.pending.push({ id: sid(), kind: "add", pid, amt, calc: String(m.calc || "").slice(0, 60) || null, at: Date.now(), round: s.cur });
+        if (!Number.isFinite(amt) || amt < 0 || amt > MAX_AMT) return this.err(ws, "اكتب رقم صحيح.");
+        s.pending = s.pending.filter((p) => !(p.kind === "final" && p.pid === pid));
+        s.pending.push({ id: sid(), kind: "final", pid, amt, calc: String(m.calc || "").slice(0, 60) || null, at: Date.now(), round: s.cur });
         this.send(ws, { t: "sent" });
         return;
       }
@@ -382,7 +424,7 @@ export class Parl extends DurableObject {
     const r = this.round();
     const pub = {
       code: s.code, mode: s.mode, phase: s.phase, now: Date.now(), event: s.event, gameNo: s.gameNo || 1,
-      round: r ? { no: r.no, of: s.order.length, status: r.status, resigned: r.resigned } : null,
+      round: r ? { no: r.no, of: s.order.length, status: r.status, resigned: r.resigned, endKind: r.endKind || null } : null,
       rounds: s.rounds.map((x) => ({ no: x.no, status: x.status })),
       players: s.order.map((id) => ({ id, name: this.nm(id), online: on.has(id), joined: !!s.players[id].token })),
       secretName: s.secret ? this.nm(s.secret) : null,
@@ -395,6 +437,8 @@ export class Parl extends DurableObject {
       pub.pending = s.pending;
       pub.swapAsk = s.swapAsk;
       pub.secret = s.secret;
+      if (r && r.status === "counting") pub.counting = { need: r.need, done: r.done || {} };
+      if (r && r.status === "open" && s.mode === "players") pub.resignNeed = r.resigned.filter((id) => !this.isDone(id));
       return pub;
     }
     const pid = a.pid;
@@ -403,6 +447,15 @@ export class Parl extends DurableObject {
     // اللاعب ما يشوف أي أرقام (ولا أرقامه) إلا بالجلسة السرية. يوصله بس سؤال البدل
     if (r && s.phase === "play" && s.swapAsk && (s.swapAsk.a === pid || s.swapAsk.b === pid))
       pub.me.swapAsk = { with: this.nm(s.swapAsk.a === pid ? s.swapAsk.b : s.swapAsk.a) };
+    // يطلع له «حط مجموع أصواتك» بس لما يستقيل أو تخلص الجولة
+    if (r && s.phase === "play") {
+      const waiting = s.pending.some((p) => p.kind === "final" && p.pid === pid);
+      pub.me.ask = this.needs(pid) && !waiting;
+      pub.me.waiting = waiting;
+      pub.me.done = this.isDone(pid);
+      pub.me.counting = r.status === "counting";
+      if (r.status === "counting") pub.me.left = (r.need || []).filter((id) => !this.isDone(id)).length;
+    }
     return pub;
   }
 }
