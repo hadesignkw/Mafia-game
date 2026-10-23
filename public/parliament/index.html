@@ -448,7 +448,7 @@ function judgeView(){
   if(s.phase==="setup")return h+judgeSetup();
   if(s.phase==="over")return h+overView();
   // اللعب
-  h+=`<div style="text-align:center;margin-top:8px"><h1 style="font-size:2.6rem">الجولة <span class="num">${s.round.no}</span></h1><p class="muted small">من ${fmt(s.round.of)} جولات${roundLock(s.round.no)?"، وما فيها حل مجلس":""}</p></div>`;
+  h+=`<div style="text-align:center;margin-top:8px"><h1 style="font-size:2.6rem">الجولة <span class="num">${s.round.no}</span></h1><p class="muted small">من ${fmt(s.round.of)} جولات${s.round.no===1?"، وما فيها فرز ولا حل":s.round.no===s.round.of?"، وما فيها حل مجلس":""}</p></div>`;
   h+=roundsStrip()+chamberSVG(true);
   if(s.pending&&s.pending.length)h+=`<div class="panel"><h2>تنطر موافقتك</h2><div class="list" style="gap:12px">${s.pending.map(pendHTML).join("")}</div></div>`;
   h+=scoreboard();
@@ -477,7 +477,7 @@ function judgeSetup(){
     <button class="btn sm ghost" data-a="rename" data-id="${p.id}">غيّر</button>
     <button class="btn sm ghost" data-a="remove" data-id="${p.id}" aria-label="شيل">✕</button></div>`).join("")||`<p class="muted small">${man?"اكتب أسامي اللاعبين تحت.":"ننطر اللاعبين يدخلون…"}</p>`}</div>
   <form data-f="addName" class="row" style="margin-top:12px"><input name="name" maxlength="24" placeholder="${man?"اسم لاعب":"أضف اسم بنفسك (اختياري)"}" class="grow"><button class="btn">أضف</button></form>
-  <p class="muted small" style="margin-top:10px">عدد الجولات بعدد اللاعبين. الجولة الأولى والأخيرة ما فيها حل مجلس.</p>
+  <p class="muted small" style="margin-top:10px">عدد الجولات بعدد اللاعبين. الجولة الأولى ما فيها فرز ولا حل، والأخيرة ما فيها حل مجلس.</p>
   <button class="btn gold block" style="margin-top:12px" data-a="start" ${s.players.length<2?"disabled":""}>ابدا الجلسة</button></div>`;
   h+=archiveHTML();
   h+=`<button class="btn ghost block" style="margin-top:14px" data-a="closeRoom">سكّر الغرفة وامسح كل شي</button>`;
@@ -611,10 +611,10 @@ function renderSheet(){
     }
   }
   else if(sheet.type==="end"){
-    const lock=roundLock(st.round.no),last=st.round.no===st.round.of;
+    const lock=roundLock(st.round.no),last=st.round.no===st.round.of,first=st.round.no===1;
     inner=`<div class="hd"><h2>نهاية الجولة ${st.round.no}</h2>${close}</div><p class="muted small">${last?"هذي آخر جولة، بعدها تطلع النتيجة.":"الأصوات تتسجل وتبدا الجولة اللي بعدها."}</p>
     <div class="list" style="margin-top:12px;gap:10px">
-    <button class="li" data-a="end" data-k="sort">${ICON.box.replace("<svg",'<svg width="26" height="26"')}<span class="nm">فرز الأصوات<br><span class="muted small">أحد استخدم كرت الفرز. كل الأصوات تتسجل.</span></span></button>
+    <button class="li" data-a="end" data-k="sort" ${first?"disabled style='opacity:.4'":""}>${ICON.box.replace("<svg",'<svg width="26" height="26"')}<span class="nm">فرز الأصوات<br><span class="muted small">${first?"ما يصير بالجولة الأولى.":"أحد استخدم كرت الفرز. كل الأصوات تتسجل."}</span></span></button>
     <button class="li" data-a="end" data-k="cards">${ICON.cards.replace("<svg",'<svg width="26" height="26"')}<span class="nm">خلصت الكروت<br><span class="muted small">الكروت اللي بالأرض خلصت. كل الأصوات تتسجل.</span></span></button>
     <button class="li" data-a="end" data-k="dissolve" ${lock?"disabled style='opacity:.4'":""}>${ICON.cross.replace("<svg",'<svg width="26" height="26" style="color:var(--stamp)"')}<span class="nm">حل المجلس<br><span class="muted small">${lock?"ما يصير بالجولة الأولى والأخيرة.":"تنمسح أصوات الكل بهالجولة إلا المستقيلين."}</span></span></button></div>
     <details style="margin-top:14px"><summary class="muted small">تبي تخلص اللعبة قبل وقتها؟</summary><button class="btn block" style="margin-top:8px" data-a="finish">خلص اللعبة الحين وطلّع النتيجة</button></details>`;
@@ -663,7 +663,7 @@ function nextFx(){
   const e=fxQ.shift();const el=$("#fx");
   if(!e){fxBusy=false;el.innerHTML="";return}
   fxBusy=true;let cls="",html="",dur=3200;
-  if(e.type==="round"){cls="fx-round";dur=3000;html=`${gavelSVG()}<div class="big">الجولة ${e.no}</div><div class="sub">من ${e.of} جولات${e.no===1||e.no===e.of?"، وما فيها حل مجلس":""}</div>`}
+  if(e.type==="round"){cls="fx-round";dur=3000;html=`${gavelSVG()}<div class="big">الجولة ${e.no}</div><div class="sub">من ${e.of} جولات${e.no===1?"، وما فيها فرز ولا حل":e.no===e.of?"، وما فيها حل مجلس":""}</div>`}
   else if(e.type==="sort"){dur=3600;html=`<div class="box3">${[0,1,2,3,4].map(i=>`<i style="--x:${(i-2)*40}px;--r:${(i-2)*18}deg;animation-delay:${i*.18}s"></i>`).join("")}<svg viewBox="0 0 180 130"><rect x="10" y="20" width="160" height="110" rx="8" fill="#1d4a3a" stroke="#c9a35b" stroke-width="3"/><rect x="58" y="12" width="64" height="12" rx="3" fill="#06100d" stroke="#c9a35b" stroke-width="2"/><rect x="40" y="60" width="100" height="30" rx="4" fill="#efe6cf"/><text x="90" y="81" text-anchor="middle" font-family="Almarai" font-weight="800" font-size="16" fill="#2a2116">أصوات</text></svg></div><div class="big">فرز الأصوات</div><div class="sub">${e.then==="over"?"خلصت آخر جولة.":`الجولة ${e.no} انسجلت، وتبدا الجولة ${e.next}.`}</div>`}
   else if(e.type==="cards"){dur=3400;html=`<div class="fall">${Array.from({length:14},(_,i)=>`<i style="left:${(i*7.3+3)%96}%;--r:${(i%2?1:-1)*(120+i*20)}deg;animation-delay:${(i*.09).toFixed(2)}s"></i>`).join("")}</div><div class="big">خلصت الكروت</div><div class="sub">${e.then==="over"?"خلصت آخر جولة.":`الجولة ${e.no} انسجلت، وتبدا الجولة ${e.next}.`}</div>`}
   else if(e.type==="dissolve"){cls="fx-dissolve";dur=4200;html=`<div class="stamp">حُلّ<br>المجلس</div><div class="seatsdim">${Array.from({length:9},(_,i)=>`<span style="animation-delay:${(1.1+i*.08).toFixed(2)}s"></span>`).join("")}</div><div class="sub">أصوات الجولة ${e.no} انمسحت إلا المستقيلين.</div>`}

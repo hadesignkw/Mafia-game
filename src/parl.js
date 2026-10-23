@@ -239,6 +239,7 @@ export class Parl extends DurableObject {
         const kind = ["sort", "cards", "dissolve"].includes(m.kind) ? m.kind : null;
         if (!kind) return;
         const last = s.cur === s.order.length - 1;
+        if (kind === "sort" && s.cur === 0) return this.err(ws, "الجولة الأولى ما فيها فرز.");
         if (kind === "dissolve" && (s.cur === 0 || last)) return this.err(ws, "الجولة الأولى والأخيرة ما فيها حل مجلس.");
         return this.closeRound(kind);
       }
