@@ -269,7 +269,7 @@ export class Room extends DurableObject {
       gen: s.gen + 1, order: ids, roles, alive: Object.fromEntries(ids.map((i) => [i, true])),
       phase: "night0", step: "police", round: 0, timer: null, sniperPending: null, winner: null, canVote: false,
       fakeCop: null, notes: {}, votes: {}, night: blankNight(), log: [], queryMax: m, queriesUsed: 0,
-      announce: "كل واحد يقلب كرته ويشوف دوره، وبعدين الكل يغمض عيونه.",
+      announce: "كل واحد يقلب كرته ويشوف دوره.",
     });
     this.ev("deal");
     this.log(`بدت اللعبة: ${ids.length} لاعبين، ${m} مافيا`);
@@ -282,7 +282,7 @@ export class Room extends DurableObject {
     const i = steps.indexOf(s.step);
     if (i < steps.length - 1) { s.step = steps[i + 1]; return; }
     if (s.phase === "night0") {
-      Object.assign(s, { phase: "day", step: null, round: 1, canVote: false, announce: "الكل يفتح عيونه. الشرطة يرفعون إيدهم." });
+      Object.assign(s, { phase: "day", step: null, round: 1, canVote: false, announce: "الصبح. الشرطة يرفعون إيدهم." });
       this.ev("dawn");
       return;
     }
@@ -293,7 +293,7 @@ export class Room extends DurableObject {
     const s = this.s;
     if (s.sniperPending) return;
     if (!(s.phase === "result" || (s.phase === "day" && !s.canVote))) return;
-    Object.assign(s, { phase: "night", step: "mafia", timer: null, votes: {}, night: blankNight(), announce: "الكل يغمض عيونه." });
+    Object.assign(s, { phase: "night", step: "mafia", timer: null, votes: {}, night: blankNight(), announce: "الليل بدا. كل واحد يتابع جواله." });
     this.ev("dusk");
   }
 
