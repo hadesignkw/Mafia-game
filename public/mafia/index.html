@@ -134,6 +134,10 @@ table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-bottom:1px s
 .pick.res.reveal .flash{animation:resFlash 2.6s ease both}
 @keyframes resPulse{0%{transform:scale(1) rotateY(90deg)}15%{transform:scale(1.12) rotateY(0)}25%{transform:scale(1.08)}35%{transform:scale(1.12)}55%{transform:scale(1.04)}100%{transform:scale(1)}}
 @keyframes resFlash{0%,70%{opacity:1;letter-spacing:.05em}100%{opacity:0;letter-spacing:.3em}}
+.pick.talk.done{background:color-mix(in srgb,var(--town) 22%,var(--panel2));border-color:var(--town);color:#d9f5e8}
+.pick.talk.done small{color:var(--town)}
+.pick.talk .ck{position:absolute;top:6px;left:8px;width:20px;height:20px;border-radius:50%;background:var(--town);color:#06130e;font-style:normal;font-size:.75rem;font-weight:800;display:grid;place-items:center;animation:pop .4s cubic-bezier(.2,1.6,.4,1)}
+.li.said .nm{color:var(--town)}
 .pick.dim{opacity:.35;cursor:default}
 /* ---------- حركات عامة سلسة ---------- */
 html{scroll-behavior:smooth}
@@ -174,18 +178,28 @@ select{font:inherit;font-size:1rem;width:100%;background:var(--bg);color:var(--f
 .tab.on small{color:var(--brass-ink)}
 .tab.out{opacity:.45;text-decoration:line-through}
 .tab .need{position:absolute;top:-4px;left:-4px;width:12px;height:12px;border-radius:50%;background:var(--blood);box-shadow:0 0 0 3px var(--bg);animation:breathe 1.2s ease-in-out infinite}
-.demobar~.timer{top:calc(env(safe-area-inset-top,0px) + 118px)}
 
 /* ---------- المؤقت ---------- */
-.timer{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--brass);color:var(--brass-ink);border-radius:16px;padding:10px 14px;display:flex;align-items:center;gap:14px;box-shadow:0 10px 28px rgb(0 0 0 / .4)}
-.timer.end{background:var(--blood);color:#fff;animation:shake .5s ease 2}
+/* مؤقت كبير يشوفه الكل */
+.timer{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:18px 16px 20px;border-radius:20px;color:var(--brass-hi);
+  background:radial-gradient(90% 80% at 50% 0%,color-mix(in srgb,var(--brass) 26%,transparent),transparent 70%),var(--panel);border:1px solid color-mix(in srgb,var(--brass) 55%,transparent);
+  box-shadow:0 18px 40px rgb(0 0 0 / .45);animation:timerIn .5s cubic-bezier(.2,1.3,.4,1) both}
+@keyframes timerIn{from{opacity:0;transform:scale(.9)}}
+.timer .lab{font-size:.9rem;color:var(--muted)}
+.timer .who{font-family:var(--ruqaa);font-weight:700;font-size:clamp(2rem,10vw,2.6rem);line-height:1.15;color:var(--fg);overflow-wrap:anywhere}
+.timer .over{display:none;font-family:var(--ruqaa);font-weight:700;font-size:2.2rem;color:#fff;line-height:1.1}
+.timer.end{color:#fff;border-color:var(--blood);background:radial-gradient(90% 80% at 50% 0%,color-mix(in srgb,var(--blood) 55%,transparent),transparent 75%),var(--panel);animation:shake .5s ease 2}
+.timer.end .over{display:block;animation:slam .5s cubic-bezier(.2,1.6,.4,1) both}
+.timer.end .t{opacity:.35}
+.timer .ring{width:min(170px,46vw);height:min(170px,46vw)}
+.timer .ring .t{font-size:clamp(3.4rem,15vw,4.4rem);font-weight:800;color:var(--fg)}
+.timer .ring circle{stroke-width:4.5}
 .ring{width:62px;height:62px;flex:none;position:relative}
 .ring svg{width:100%;height:100%;transform:rotate(-90deg)}
 .ring circle{fill:none;stroke-width:6}
 .ring .bgc{stroke:color-mix(in srgb,currentColor 22%,transparent)}
 .ring .fgc{stroke:currentColor;stroke-linecap:round;transition:stroke-dashoffset .25s linear}
 .ring .t{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-size:1.5rem;font-variant-numeric:tabular-nums}
-.timer .who{font-weight:700;font-size:1.1rem;overflow-wrap:anywhere;min-width:0;flex:1}
 @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 
 /* ---------- الكرت ---------- */
@@ -724,7 +738,7 @@ function header(){
   const me=st.me;
   return demoBar()+`<div class="top"><div><h2>${st.judge?"القاضي":esc(me&&me.name||"")}</h2><span class="chip b">${PHASE_N[st.phase]||""}${st.round&&st.phase!=="lobby"&&st.phase!=="over"?" · الجولة "+ar(st.round):""}</span></div>
   <div class="row" style="align-items:center">${st.phase==="lobby"?`<span class="code">${ar(st.code)}</span>`:""}<button class="btn sm ghost" data-a="leave">اطلع</button></div></div>
-  <div class="timer" id="timer" hidden><div class="ring"><svg viewBox="0 0 62 62"><circle class="bgc" cx="31" cy="31" r="26"/><circle class="fgc" cx="31" cy="31" r="26" stroke-dasharray="163.36" stroke-dashoffset="0"/></svg><div class="t">40</div></div><div class="who">${st.timer?"يتكلم: "+esc(st.timer.name):""}</div></div>
+  <div class="timer" id="timer" hidden><span class="lab">يتكلم الحين</span><div class="who">${st.timer?esc(st.timer.name)+(st.me&&st.timer.pid===st.me.id?" (أنت)":""):""}</div><div class="ring"><svg viewBox="0 0 62 62"><circle class="bgc" cx="31" cy="31" r="26"/><circle class="fgc" cx="31" cy="31" r="26" stroke-dasharray="163.36" stroke-dashoffset="0"/></svg><div class="t">40</div></div><div class="over">خلص الوقت!</div></div>
   ${st.announce&&st.phase!=="lobby"?`<p class="announce ${(()=>{const c=st.announce!==lastAnn;lastAnn=st.announce;return c?"changed":""})()}">${esc(ar(st.announce))}</p>`:""}`;
 }
 /* لوحة التصويت: دور منو، ترتيب الأصوات، ومنو صوّت على منو */
@@ -798,6 +812,13 @@ function judgeRow(p){
   if(st.sniperPending&&p.alive&&p.id!==st.sniperPending)extra=`<button class="btn sm ghost" data-a="cmd" data-c="snipeFor" data-id="${p.id}">القناص سحبه</button>`;
   return`<div class="li ${p.alive?"":"out"} ${speaking?"speak":""}">${dot(p)}<span class="nm">${esc(p.name)}</span>${roleChip(p.id)}${extra}</div>`;
 }
+/* أزرار الكلام: اللي يتكلم ذهبي، واللي خلص أخضر مع صح */
+function talkGrid(ids,cops){
+  const J=st.judge;
+  return`<div class="grid">${ids.map(id=>{const sp=st.timer&&st.timer.pid===id,done=st.talked[id]&&!sp;
+    const tag=cops?`<small>${J.roles[id]==="cop"?"حقيقي":"مزيف"}</small>`:"";
+    return`<button class="pick talk ${sp?"on":""} ${done?"done":""}" data-a="cmd" data-c="${sp?"stopT":"talk"}" data-id="${id}">${done?`<i class="ck">✓</i>`:""}${esc(nm(id))}${sp?"<br><small>وقّف</small>":done?"<br><small>سولف وخلص</small>":tag?"<br>"+tag:""}</button>`}).join("")}</div>`;
+}
 function sniperFallback(){
   const sp=st.sniperPending;
   return`<p class="err">القناص ${esc(nm(sp))} يختار من جواله منو يسحب وياه.</p><details><summary class="small muted">جواله فيه مشكلة؟ اختار بداله</summary><div class="grid" style="margin-top:8px">${aliveIds().filter(i=>i!==sp).map(i=>`<button class="pick red" data-a="cmd" data-c="snipeFor" data-id="${i}">${esc(nm(i))}</button>`).join("")}</div></details>`;
@@ -815,9 +836,14 @@ function judgeControls(){
     h+=`<div class="steps">${S.map((s,k)=>`<span class="${k===i?"cur":k<i?"done":""}">${STEP_N[s]}</span>`).join("")}</div><p class="script">${say}</p>${nightStatus()}`;
     h+=`<button class="btn primary" data-a="cmd" data-c="next">${last?(p==="night0"?"الصبح":"الصبح: طلّع النتيجة"):"اللي بعده: "+STEP_N[S[i+1]]}</button>`;
   }else if(p==="day"){
-    h+=`<p class="script">${st.round===1?"<b>الشرطة يرفعون إيدهم.</b> اختار منو يبدا، وكل واحد له 40 ثانية.":"اختار منو يبدا الكلام، وكل واحد له 40 ثانية. الشرطة يتكلمون عن استعلامهم أول."}</p>`;
+    h+=`<p class="script">${st.round===1?"<b>الشرطة يرفعون إيدهم.</b> ":""}الشرطة يتكلمون أول، اختار منو يبدا منهم. بعدين الشعب واحد واحد، وكل واحد له 40 ثانية.</p>`;
     if(st.sniperPending)h+=sniperFallback();
-    else h+=`<h3>منو يتكلم؟</h3><div class="grid">${aliveIds().map(id=>{const sp=st.timer&&st.timer.pid===id;return`<button class="pick ${sp?"on":""}" data-a="cmd" data-c="${sp?"stopT":"talk"}" data-id="${id}">${esc(nm(id))}${sp?"<br><small>وقّف</small>":""}</button>`}).join("")}</div>`;
+    else{
+      const R=J.roles,al=aliveIds(),cops=al.filter(i=>R[i]==="cop"||J.fakeCop===i),town=al.filter(i=>!cops.includes(i));
+      const left=cops.filter(i=>!st.talked[i]).length;
+      h+=`<h3>الشرطة أول</h3>${cops.length?talkGrid(cops,true):`<p class="muted small">ما في شرطة باقين.</p>`}
+        <h3>الشعب ${left?`<span class="small muted">بعد ما يخلصون الشرطة</span>`:""}</h3>${talkGrid(town,false)}`;
+    }
     h+=st.canVote?`<button class="btn primary" data-a="cmd" data-c="vote" ${st.sniperPending?"disabled":""}>ابدا التصويت</button>`:`<p class="muted small">أول نهار بدون تصويت.</p><button class="btn primary" data-a="cmd" data-c="night">الليل</button>`;
   }else if(p==="vote"){
     const V=st.vote||{order:[],votes:{}},al=aliveIds(),done=al.filter(v=>V.votes[v]).length,cur=V.cur;
@@ -893,7 +919,8 @@ function teamPicks(){
   return`<div class="list">${t.map(x=>`<div class="li"><span class="nm">${esc(nm(x.id))}</span>${x.pick?`<span class="chip m">${x.pick===x.id?"اختار نفسه":x.pick===st.me.id?"اختارك أنت":"اختار "+esc(nm(x.pick))}</span>`:`<span class="small muted">ما اختار للحين</span>`}</div>`).join("")}</div>`;
 }
 function aliveList(){
-  return`<div class="panel"><h3>اللاعبين</h3><div class="list">${st.players.map(p=>`<div class="li ${p.alive?"":"out"} ${st.timer&&st.timer.pid===p.id?"speak":""}">${dot(p)}<span class="nm">${esc(p.name)}${p.id===st.me.id?" (أنت)":""}</span></div>`).join("")}</div></div>`;
+  return`<div class="panel"><h3>اللاعبين</h3><div class="list">${st.players.map(p=>{const sp=st.timer&&st.timer.pid===p.id,done=st.talked&&st.talked[p.id]&&!sp;
+    return`<div class="li ${p.alive?"":"out"} ${sp?"speak":""} ${done?"said":""}">${dot(p)}<span class="nm">${esc(p.name)}${p.id===st.me.id?" (أنت)":""}</span>${sp?`<span class="chip b">يتكلم</span>`:done?`<span class="chip t">✓ سولف</span>`:""}</div>`}).join("")}</div></div>`;
 }
 function actionView(){
   const p=st.phase,me=st.me,role=me.role,al=aliveIds(),others=al.filter(i=>i!==me.id);

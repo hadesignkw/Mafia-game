@@ -175,7 +175,7 @@ export class Room extends DurableObject {
     const pub = {
       code: s.code, phase: s.phase, step: s.step, round: s.round, gen: s.gen, canVote: s.canVote,
       announce: s.announce, sniperPending: s.sniperPending, winner: s.winner, now: Date.now(),
-      timer: s.timer, event: s.event, minPlayers: MIN_PLAYERS,
+      timer: s.timer, event: s.event, minPlayers: MIN_PLAYERS, talked: s.phase === "day" ? s.talked || {} : {},
       players: ids.filter((id) => s.players[id]).map((id) => ({
         id, name: s.players[id].name, alive: s.phase === "lobby" ? true : !!s.alive[id], online: on.has(id),
       })),
@@ -266,7 +266,7 @@ export class Room extends DurableObject {
       case "closeVote": if (s.phase === "vote" && !this.curVoter()) this.closeVote(); break; // التصويت إلزامي
       case "voteFor": if (s.phase === "vote") this.castVote(this.curVoter(), id); break; // القاضي يصوّت بدال اللي جواله فيه مشكلة
       case "talk":
-        if (s.phase === "day" && s.alive[id]) s.timer = { pid: id, name: this.nm(id), endsAt: Date.now() + TALK * 1000, dur: TALK, id: sid() };
+        if (s.phase === "day" && s.alive[id]) { s.timer = { pid: id, name: this.nm(id), endsAt: Date.now() + TALK * 1000, dur: TALK, id: sid() }; (s.talked = s.talked || {})[id] = true; }
         break;
       case "stopT": s.timer = null; break;
       case "closeFx": // القاضي يسكر صورة النتيجة عند الكل
@@ -310,7 +310,7 @@ export class Room extends DurableObject {
     const i = steps.indexOf(s.step);
     if (i < steps.length - 1) { s.step = steps[i + 1]; return; }
     if (s.phase === "night0") {
-      Object.assign(s, { phase: "day", step: null, round: 1, canVote: false, announce: "الصبح. الشرطة يرفعون إيدهم." });
+      Object.assign(s, { phase: "day", step: null, round: 1, canVote: false, talked: {}, announce: "الصبح. الشرطة يرفعون إيدهم." });
       this.ev("dawn");
       return;
     }
@@ -339,7 +339,7 @@ export class Room extends DurableObject {
       if (sniper) { msg += ` ${this.nm(k)} قناص، بيسحب واحد وياه.`; s.sniperPending = k; }
       this.ev("kill", { who: this.nm(k), sniper });
     }
-    Object.assign(s, { phase: "day", step: null, round: s.round + 1, canVote: true, announce: msg, timer: null });
+    Object.assign(s, { phase: "day", step: null, round: s.round + 1, canVote: true, talked: {}, announce: msg, timer: null });
     if (!s.sniperPending) this.checkWin();
   }
 
