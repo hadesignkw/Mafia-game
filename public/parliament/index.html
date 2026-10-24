@@ -126,7 +126,8 @@ button.li{cursor:pointer}
 .calc .res{font-size:2rem;font-weight:800;color:var(--brass-hi);line-height:1.1}
 .calc .keys{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px;direction:ltr}
 .calc .keys button{min-height:50px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);font-size:1.25rem;font-weight:800}
-.calc .keys button:active{transform:scale(.95)}
+.calc .keys button{touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.calc .keys button:active{transform:scale(.94);background:#1f3a30}
 .calc .keys .op{color:var(--brass-hi)}
 .calc .keys .cl{color:#f08b80}
 
@@ -142,6 +143,19 @@ button.li{cursor:pointer}
 /* شريط الأوامر تحت */
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:10px max(12px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px));background:linear-gradient(transparent,rgb(8 18 15 / .96) 30%);}
 .dock .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+/* الكروت الأربعة بالنص */
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.act{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:140px;padding:14px 10px;border-radius:20px;border:1px solid #2f4a3f;
+  background:radial-gradient(120% 100% at 50% 0%,#1d4a3a,#11241d);color:var(--fg);text-align:center;box-shadow:0 10px 24px rgb(0 0 0 / .35),inset 0 1px 0 rgb(236 210 154 / .08);transition:transform .12s}
+.act:active{transform:scale(.97)}
+.act .ic svg{width:38px;height:38px;color:var(--brass-hi)}
+.act b{font-size:1.15rem}
+.act small{color:var(--muted);font-size:.8rem;line-height:1.3}
+.act.red .ic svg{color:#ff8a7a}
+.act.arm{background:radial-gradient(120% 100% at 50% 0%,#7a2a22,#3a1210);border-color:#b8322c;animation:pulse .9s ease-in-out infinite}
+.act.arm small,.act.arm b{color:#fff}
+@keyframes pulse{50%{transform:scale(1.03)}}
+.act[disabled]{opacity:.4}
 .dock .in.five{grid-template-columns:repeat(5,1fr);gap:5px}
 .dock .in.five .btn{font-size:.72rem;padding:6px 2px}
 .dock .btn{min-height:56px;padding:6px 4px;flex-direction:column;gap:0;font-size:.8rem;border-radius:14px;line-height:1.25}
@@ -352,14 +366,13 @@ const roundLock=no=>no===1||no===(st.round&&st.round.of);
 
 /* ---------- الحاسبة ---------- */
 function calcEval(x){
-  const s=en(x).replace(/×/g,"*").replace(/−/g,"-").replace(/\s/g,"");
+  // يقبل جمع وطرح وضرب، والضرب ينحسب قبل. العلامة الأخيرة بدون رقم ما تنحسب
+  let s=en(x).replace(/×/g,"*").replace(/−/g,"-").replace(/\s/g,"").replace(/[+\-*]+$/,"");
   if(!s)return null;
-  if(!/^[\d+\-*]+$/.test(s))return null;
-  const parts=s.match(/\d+|[+\-*]/g);if(!parts)return null;
-  // ضرب أول، بعدين جمع وطرح
-  const t=[];for(const p of parts){if(t.length&&t[t.length-1]==="*"){t.pop();const a=t.pop();if(typeof a!=="number"||!/^\d+$/.test(p))return null;t.push(a*Number(p))}else t.push(/^\d+$/.test(p)?Number(p):p)}
-  let r=0,op="+";for(const v of t){if(typeof v==="number"){r=op==="+"?r+v:r-v}else op=v}
-  return Number.isFinite(r)?r:null;
+  if(!/^-?\d+([+\-*]\d+)*$/.test(s))return null;
+  let total=0,m;const re=/([+-]?)(\d+(?:\*\d+)*)/g;
+  while((m=re.exec(s))){const prod=m[2].split("*").reduce((a,b)=>a*Number(b),1);total+=m[1]==="-"?-prod:prod}
+  return Number.isFinite(total)?total:null;
 }
 function calcHTML(){
   const v=calcEval(calcExpr);
@@ -368,11 +381,34 @@ function calcHTML(){
   <div class="keys">${k("7")}${k("8")}${k("9")}${k("⌫","cl","back")}${k("4")}${k("5")}${k("6")}${k("+","op")}${k("1")}${k("2")}${k("3")}${k("−","op","-")}${k("0")}${k("00")}${k("×","op","*")}${k("C","cl","clear")}</div></div>`;
 }
 function calcKey(key){
+  const op=c=>/[+−×]/.test(c);
   if(key==="back")calcExpr=calcExpr.slice(0,-1);
   else if(key==="clear")calcExpr="";
-  else if("+-*".includes(key)){if(!calcExpr&&key!=="-")return;calcExpr=calcExpr.replace(/[+\-*]$/,"")+(key==="*"?"×":key==="-"?"−":"+")}
-  else if(calcExpr.replace(/[^\d]/g,"").length<14)calcExpr+=key;
-  buzz(8);renderSheetOrApp();
+  else if("+-*".includes(key)){
+    const sym=key==="*"?"×":key==="-"?"−":"+";
+    if(!calcExpr){if(key==="-")calcExpr="−";return updCalc()}
+    if(calcExpr==="−")return;
+    calcExpr=(op(calcExpr.slice(-1))?calcExpr.slice(0,-1):calcExpr)+sym;
+  }
+  else{
+    const last=(calcExpr.split(/[+−×]/).pop()||"");
+    if(last.replace(/^−/,"").length>=9)return; // الرقم الواحد ما يطول أكثر من 9 خانات
+    if(key==="00"&&(!last||last==="0"))key="0";
+    if(last==="0")calcExpr=calcExpr.slice(0,-1); // ما نخلي صفر بالبداية
+    calcExpr+=key;
+  }
+  buzz(6);updCalc();
+}
+// نحدّث الشاشة الصغيرة والأزرار اللي تعتمد على الرقم بس، بدون ما نعيد رسم الصفحة
+function updCalc(){
+  const v=calcEval(calcExpr);
+  document.querySelectorAll(".calc").forEach(c=>{c.querySelector(".expr").innerHTML=esc(calcExpr)||"&nbsp;";c.querySelector(".res").textContent=v==null?"0":v.toLocaleString("en-US")});
+  document.querySelectorAll("[data-cv]").forEach(b=>{
+    const m=b.dataset.cv,ok=v!=null&&calcExpr!==""&&(m==="pos"?v>0:m==="nonneg"?v>=0:v!==0);
+    b.disabled=!ok;
+    const lab=(v<0&&b.dataset.cneg)||b.dataset.cl;
+    b.innerHTML=esc(lab)+(ok?" "+fmt(v):"")+(b.dataset.cs?esc(b.dataset.cs):"");
+  });
 }
 function renderSheetOrApp(){if(sheet)renderSheet();else render()}
 
@@ -564,7 +600,7 @@ function playerView(){
   else if(me.ask){
     const v=calcEval(calcExpr);
     h+=`<div class="panel"><h2>حط مجموع أصواتك</h2><p class="muted small">${me.resigned?"استقلت، اكتب أصواتك اللي بإيدك.":"الجولة خلصت، اكتب أصواتك اللي بإيدك (بدون البدل)."} يروح للحكم يعتمده، ومحد غيره يشوفه.</p><div style="margin-top:10px">${calcHTML()}</div>
-    <button class="btn gold block" style="margin-top:10px" data-a="submit" ${v!=null&&v>0?"":"disabled"}>ارسل ${v>0?fmt(v):""} للحكم</button>
+    <button class="btn gold block" style="margin-top:10px" data-a="submit" data-cv="pos" data-cl="ارسل" data-cs=" للحكم" ${v!=null&&v>0?"":"disabled"}>ارسل ${v>0?fmt(v):""} للحكم</button>
     <button class="btn block" style="margin-top:8px" data-a="submitZero">ما عندي ولا صوت</button></div>`;
   }
   else if(me.waiting)h+=`<div class="panel" style="text-align:center">${ICON.box.replace("<svg",'<svg width="40" height="40" style="color:var(--brass)"')}<h2>وصل للحكم</h2><p class="muted">ينطر يعتمد مجموعك.</p></div>`;
@@ -614,7 +650,8 @@ function freeView(){
   // اللي ينطر اعتمادي
   if(me.toApprove&&me.toApprove.length)h+=`<div class="panel"><h2>تنطر اعتمادك</h2><p class="muted small">${me.trusted?"أنت من أهل الثقة.":"اختاروك تعتمد."} تأكد من الرقم ويا صاحبه، واعتمده.</p><div class="list" style="gap:12px;margin-top:10px">${me.toApprove.map(approveHTML).join("")}</div></div>`;
   // البدل
-  if(me.swap){
+  if(me.swap&&me.swap.mine)h+=`<div class="banner" style="border-color:#6a5530;background:#1a2620;color:var(--fg)">${ICON.swap}<span class="grow"><b>بدل ويا ${esc(me.swap.with)}:</b> ننطره يكتب أصواته.</span><button class="btn sm" data-a="fSwapCancel" data-id="${me.swap.id}">الغِ</button></div>`;
+  if(false){
     if(!me.swap.mine){const v=calcEval(calcExpr);h+=`<div class="panel"><h2>بدل ويا ${esc(me.swap.with)}</h2><p class="muted small">جم أصواتك اللي بدلت فيها؟ تنضاف لأصوات ${esc(me.swap.with)}، والمجموع يروح لأهل الثقة.</p><div style="margin-top:10px">${calcHTML()}</div>
       <div class="row" style="margin-top:10px"><button class="btn gold grow" data-a="fSwapAmt" data-id="${me.swap.id}" ${v!=null&&v>=0&&calcExpr?"":"disabled"}>ارسل ${v!=null&&calcExpr?fmt(v):""}</button><button class="btn" data-a="fSwapCancel" data-id="${me.swap.id}">الغِ البدل</button></div></div>`}
     else h+=`<div class="panel" style="text-align:center"><h2>بدل ويا ${esc(me.swap.with)}</h2><p class="muted">ننطر ${esc(me.swap.with)} يكتب أصواته.</p><button class="btn sm ghost" style="margin-top:8px" data-a="fSwapCancel" data-id="${me.swap.id}">الغِ البدل</button></div>`;
@@ -624,16 +661,26 @@ function freeView(){
   // مجموع الأصوات
   if(me.ask){const v=calcEval(calcExpr);
     h+=`<div class="panel"><h2>حط مجموع أصواتك</h2><p class="muted small">${me.resigned?"استقلت، اكتب أصواتك اللي بإيدك.":"الجولة خلصت، اكتب أصواتك اللي بإيدك (بدون البدل)."} يروح لأهل الثقة يعتمدونه، وما يشوفه أحد.</p><div style="margin-top:10px">${calcHTML()}</div>
-    <button class="btn gold block" style="margin-top:10px" data-a="submit" ${v!=null&&v>0?"":"disabled"}>ارسل ${v>0?fmt(v):""}</button>
+    <button class="btn gold block" style="margin-top:10px" data-a="submit" data-cv="pos" data-cl="ارسل" ${v!=null&&v>0?"":"disabled"}>ارسل ${v>0?fmt(v):""}</button>
     <button class="btn block" style="margin-top:8px" data-a="submitZero">ما عندي ولا صوت</button></div>`}
   else if(me.waiting)h+=`<div class="panel" style="text-align:center">${ICON.box.replace("<svg",'<svg width="40" height="40" style="color:var(--brass)"')}<h2>وصل لأهل الثقة</h2><p class="muted">ينطرون يعتمدون مجموعك.</p></div>`;
   else if(me.fixing)h+=`<div class="panel" style="text-align:center"><h2>طلبت تعديل</h2><p class="muted">ننطر أهل الثقة يلغون رقمك، وبعدها تحطه من جديد.</p></div>`;
   else if(me.done&&(me.counting||me.resigned))h+=`<div class="panel" style="text-align:center"><h2>انسجل مجموعك</h2><p class="muted">${me.counting?`ننطر ${me.left?fmt(me.left)+" يحطون مجاميعهم":"الجولة الجاية"}.`:"استقلت بهالجولة، وترجع تلعب الجولة الجاية."}</p><button class="btn sm ghost" style="margin-top:8px" data-a="fFix">غلطت؟ اطلب تعديل</button></div>`;
   else if(me.counting)h+=`<div class="panel" style="text-align:center"><h2>الجولة خلصت</h2><p class="muted">ننطر المستقيلين يحطون مجاميعهم.</p></div>`;
-  else if(!me.out&&!me.swap&&!me.swapWait&&!(me.toApprove&&me.toApprove.length))h+=`<section class="hero" style="margin-top:6px">${hallSVG()}<p class="muted sub">الجولة شغالة. لما تخلص يطلع لك تحط مجموع أصواتك.</p></section>`;
+  // الكروت الأربعة
+  if(s.round.status==="open"&&!me.out){
+    const res=me.resigned,busyS=me.swap||me.swapWait;
+    const card=(a,ic,title,sub,dis,cls="")=>`<button class="act ${cls}" data-a="${a}" ${dis?"disabled":""}><span class="ic">${ic}</span><b>${title}</b><small>${sub}</small></button>`;
+    h+=`<div class="acts">
+      ${card("fSwapOpen",ICON.swap,"عندي بدل",busyS?"فيه بدل مفتوح":"اختار مع منو",res||busyS)}
+      ${card("fResign",ICON.flag,resignArm?"اضغط مرة ثانية":"استقالة",me.resignAsked?"ننطر أهل الثقة":res?"استقلت":resignArm?"للتأكيد":"تحتاج موافقة أهل الثقة",res||me.resignAsked,resignArm?"arm":"")}
+      ${card("fSecret",ICON.lock,"جلسة سرية",s.secretName?"فيه جلسة مفتوحة":me.secretAsked?"ننطر أهل الثقة":"تشوف السجل كامل",!!(s.secretName||me.secretAsked))}
+      ${card("fNcOpen",ICON.cross,"طرح الثقة",s.nc?"فيه تصويت":"الأغلبية تطرده من الجولة",!!s.nc,"red")}
+    </div>`;
+  }
   if(s.vote&&!s.vote.canAnswer)h+=`<div class="panel"><h2>${voteName(s.vote.kind)}؟</h2><p class="muted small">${s.vote.mineBy?"طلبت":esc(s.vote.by)+" طلب"}. ننطر ${s.vote.waitingFor.map(esc).join(" و")} يوافق${s.vote.waitingFor.length>1?"ون":""}.</p></div>`;
   if(me.resignAsked)h+=`<div class="panel" style="text-align:center"><h2>طلبت تستقيل</h2><p class="muted">ننطر أهل الثقة يوافقون.</p></div>`;
-  if(me.trusted)h+=`<button class="btn block" style="margin-top:14px;border-color:#6b2a24;color:#ffb3aa" data-a="penOpen">🚨 خصم / عقوبة</button>`;
+  if(me.trusted)h+=`<div class="panel"><h2>إدارة أهل الثقة</h2>${s.secretName?`<button class="btn red block" style="margin-top:10px" data-a="fSecretShut">${ICON.lock.replace("<svg",'<svg width="20" height="20"')} سكّر الشاشة على ${esc(s.secretName)}</button>`:""}<div class="row" style="margin-top:10px"><button class="btn gold grow" data-a="fEndOpen" ${s.vote?"disabled":""}>${ICON.gavel.replace("<svg",'<svg width="20" height="20"')} نهاية الجولة</button><button class="btn grow" style="border-color:#6b2a24;color:#ffb3aa" data-a="penOpen">🚨 خصم</button></div></div>`;
   h+=`<p class="muted small" style="text-align:center;margin-top:16px">أهل الثقة: ${tn.map(esc).join(" و")}</p>`;
   return h;
 }
@@ -733,7 +780,7 @@ function recordTable(rec,players,filterId){
 function renderSheet(){
   const el=$("#sheet");
   // التصويت انتهى قبل لا تنسكر النافذة
-  if(sheet&&st&&((sheet.type==="fNcVote"&&!st.nc)||(sheet.type==="fVote"&&!st.vote)||(sheet.type==="swapAskMe"&&!(st.me&&st.me.swapAsk))))sheet=null;
+  if(sheet&&st&&((sheet.type==="fNcVote"&&!st.nc)||(sheet.type==="fVote"&&!st.vote)||(sheet.type==="swapAskMe"&&!(st.me&&st.me.swapAsk))||(sheet.type==="fSwapAmt"&&!(st.me&&st.me.swap)&&Date.now()-(sheet.at||0)>2000)))sheet=null;
   if(!sheet||!st){el.innerHTML="";return}
   let inner="";
   const close=`<button class="btn sm ghost" data-a="closeSheet" aria-label="سكّر">✕</button>`;
@@ -747,11 +794,11 @@ function renderSheet(){
     if(needF){
       const v=calcEval(calcExpr);
       inner+=`<h3 style="margin-top:14px">حط مجموعه بداله</h3><div style="margin-top:8px">${calcHTML()}</div>
-      <div class="row" style="margin-top:10px"><button class="btn gold grow" data-a="finalFor" data-id="${p.id}" ${v!=null&&v>=0&&calcExpr?"":"disabled"}>سجّل ${v!=null&&calcExpr?fmt(v):""}</button><button class="btn" data-a="finalZero" data-id="${p.id}">ولا صوت</button></div>`;
+      <div class="row" style="margin-top:10px"><button class="btn gold grow" data-a="finalFor" data-id="${p.id}" data-cv="nonneg" data-cl="سجّل" ${v!=null&&v>=0&&calcExpr?"":"disabled"}>سجّل ${v!=null&&calcExpr?fmt(v):""}</button><button class="btn" data-a="finalZero" data-id="${p.id}">ولا صوت</button></div>`;
     }
     else if(play&&!res&&st.round.status==="open"){
       inner+=`<h3 style="margin-top:14px">سجّل أصوات جمعها</h3><div style="margin-top:8px">${calcHTML()}</div>
-      <div class="row" style="margin-top:10px"><button class="btn gold grow" data-a="addVotes" data-id="${p.id}" ${calcEval(calcExpr)?"":"disabled"}>${(calcEval(calcExpr)||0)<0?"صحّح":"سجّل"} ${calcEval(calcExpr)?fmt(calcEval(calcExpr)):""}</button></div>
+      <div class="row" style="margin-top:10px"><button class="btn gold grow" data-a="addVotes" data-id="${p.id}" data-cv="nonzero" data-cl="سجّل" data-cneg="صحّح" ${calcEval(calcExpr)?"":"disabled"}>${(calcEval(calcExpr)||0)<0?"صحّح":"سجّل"} ${calcEval(calcExpr)?fmt(calcEval(calcExpr)):""}</button></div>
       <p class="muted small" style="margin-top:6px">تقدر تكتب رقم بالسالب (مثلاً −100) عشان تصحح غلط، وبيبين بالسجل إنه تصحيح.</p>
       <div class="sep"></div>
       <div class="row" style="margin-bottom:8px"><button class="btn grow" data-a="penFor" data-id="${p.id}" style="border-color:#6b2a24;color:#ffb3aa">🚨 خصم</button></div>
@@ -784,7 +831,7 @@ function renderSheet(){
     }else{
       inner+=`<p><b>${esc(nm(sheet.a))}</b> ويا <b>${esc(nm(sheet.b))}</b></p><p class="muted small">اكتب مجموع البدل، وينضاف لكل واحد منهم. أصواتهم اللي بدلوا فيها تنحط بالأرض.</p>
       <div style="margin-top:10px">${calcHTML()}</div>
-      <button class="btn gold block" style="margin-top:10px" data-a="swapSave" ${calcEval(calcExpr)!=null&&calcEval(calcExpr)>=0?"":"disabled"}>سجّل البدل ${calcEval(calcExpr)!=null?fmt(calcEval(calcExpr)):""}</button>
+      <button class="btn gold block" style="margin-top:10px" data-a="swapSave" data-cv="nonneg" data-cl="سجّل البدل" ${calcEval(calcExpr)!=null&&calcEval(calcExpr)>=0?"":"disabled"}>سجّل البدل ${calcEval(calcExpr)!=null?fmt(calcEval(calcExpr)):""}</button>
       ${st.mode==="players"?`<button class="btn block" style="margin-top:8px" data-a="swapAsk">خلهم يكتبونه من تلفوناتهم</button>`:""}`;
     }
   }
@@ -808,7 +855,7 @@ function renderSheet(){
   }
   else if(sheet.type==="swapAskMe"){
     inner=`<div class="hd"><h2>بدل ويا ${esc(st.me.swapAsk.with)}</h2></div><p class="muted">الحكم يبيكم تكتبون مجموع البدل (أصواتك وأصواته مع بعض). ينضاف لكل واحد منكم.</p><div style="margin-top:10px">${calcHTML()}</div>
-    <button class="btn gold block" style="margin-top:10px" data-a="swapTotal" ${calcEval(calcExpr)!=null&&calcEval(calcExpr)>=0?"":"disabled"}>ارسل المجموع ${calcEval(calcExpr)!=null?fmt(calcEval(calcExpr)):""}</button>`;
+    <button class="btn gold block" style="margin-top:10px" data-a="swapTotal" data-cv="nonneg" data-cl="ارسل المجموع" ${calcEval(calcExpr)!=null&&calcEval(calcExpr)>=0?"":"disabled"}>ارسل المجموع ${calcEval(calcExpr)!=null?fmt(calcEval(calcExpr)):""}</button>`;
   }
   else if(sheet.type==="fSwap"){
     const me=st.me,others=st.players.filter(p=>p.id!==me.id&&!st.round.resigned.includes(p.id));
@@ -819,7 +866,7 @@ function renderSheet(){
       inner=`<div class="hd"><h2>خصم على منو؟</h2>${close}</div><p class="muted small">إذا أحد غش. الخصم ينقص من إجماليه، ويطلع للكل.</p><div class="list" style="margin-top:10px">${st.players.filter(p=>p.id!==(st.me&&st.me.id)).map(p=>`<button class="li" data-a="penPick" data-id="${p.id}"><span class="nm">${esc(p.name)}</span></button>`).join("")}</div>`;
     }else{const v=calcEval(calcExpr);
       inner=`<div class="hd"><h2>خصم على ${esc(nm(sheet.id))}</h2>${close}</div><p class="muted small">جم تبي تخصم منه؟ ${st.judge?"ينخصم على طول.":"يروح للثاني من أهل الثقة يعتمده."}</p><div style="margin-top:10px">${calcHTML()}</div>
-      <button class="btn red block" style="margin-top:10px" data-a="penSave" ${v>0?"":"disabled"}>اخصم ${v>0?fmt(v):""}</button>`;}
+      <button class="btn red block" style="margin-top:10px" data-a="penSave" data-cv="pos" data-cl="اخصم" ${v>0?"":"disabled"}>اخصم ${v>0?fmt(v):""}</button>`;}
   }
   else if(sheet.type==="fNc"){
     const out=st.round.expelled||[],res=st.round.resigned||[];
@@ -830,6 +877,12 @@ function renderSheet(){
     inner=`<div class="hd"><h2>طرح الثقة</h2></div><p><b>${esc(v.by)}</b> طرح الثقة بـ<b>${esc(v.target)}</b>. توافق يطلع من هالجولة؟</p>
     <p class="muted small" style="margin-top:6px">مع ${v.yes}، ضد ${v.no}، من ${v.of}. الأغلبية تطرده، والتعادل يبطل التصويت.</p>
     <div class="row" style="margin-top:14px"><button class="btn red grow" data-a="fNcAns" data-id="${v.id}" data-y="1">مع الطرح</button><button class="btn grow" data-a="fNcAns" data-id="${v.id}" data-y="0">ضد</button></div>`;
+  }
+  else if(sheet.type==="fSwapAmt"){
+    const sw=st.me.swap,who=sw?sw.with:nm(sheet.with);
+    inner=`<div class="hd"><h2>بدل ويا ${esc(who)}</h2>${sw&&sw.started?`<button class="btn sm ghost" data-a="fSwapCancel" data-id="${sw.id}">الغِ</button>`:close}</div>
+    <p class="muted small">جم أصواتك اللي بدلت فيها؟ تنضاف لأصوات ${esc(who)}، والمجموع يروح لأهل الثقة.</p><div style="margin-top:10px">${calcHTML()}</div>
+    <button class="btn gold block" style="margin-top:10px" data-a="fSwapAmt" data-cv="nonneg" data-cl="ارسل" ${calcEval(calcExpr)!=null&&calcExpr?"":"disabled"}>ارسل ${calcEval(calcExpr)!=null&&calcExpr?fmt(calcEval(calcExpr)):""}</button>`;
   }
   else if(sheet.type==="fEnd"){
     const c=st.canEnd||{};const b=(k,ic,txt,why)=>`<button class="li" data-a="fPropose" data-k="${k}" ${c[k]?"":"disabled style='opacity:.4'"}>${ic}<span class="nm">${voteName(k)}<br><span class="muted small">${c[k]?txt:why}</span></span></button>`;
@@ -862,7 +915,8 @@ function renderSheet(){
 /* ---------- الشريط تحت ---------- */
 function renderDock(){
   const d=$("#dock");
-  if(view==="game"&&st&&st.mode==="free"&&st.phase==="play"&&st.me&&!(st.record&&st.secretName===st.me.name)){
+  if(view==="game"&&st&&st.mode==="free"){d.innerHTML="";return}
+  if(false){
     const o=st.round.status==="open",res=st.me.resigned||st.me.out,busyS=st.me.swap||st.me.swapWait;
     d.innerHTML=`<div class="dock"><div class="in five">
     <button class="btn" data-a="fSwapOpen" ${!o||res||busyS?"disabled":""}>${ICON.swap}بدلت</button>
@@ -959,10 +1013,13 @@ document.addEventListener("click",ev=>{
     case "fNcPick":ask(`تطرح الثقة بـ${nm(id)}؟`,"الكل يصوت إلا هو. إذا الأغلبية وافقت يطلع من هالجولة، وتنحسب له أصوات البدل بس. وإذا تعادلت يبطل.","اطرح الثقة",()=>send({t:"ncStart",id}),true);break;
     case "fNcAns":send({t:"ncAns",id,yes:t.dataset.y==="1"});sheet=null;renderSheet();break;
     case "fSwapOpen":sheet={type:"fSwap"};renderSheet();break;
-    case "fSwapPick":ask(`بدلت ويا ${nm(id)}؟`,"يطلع لكم انتوا الاثنين تكتبون أصواتكم، والمجموع يروح لأهل الثقة.","إي بدلنا",()=>send({t:"swapStart",with:id}));break;
-    case "fSwapAmt":{const v=calcEval(calcExpr);if(v==null||v<0)break;send({t:"swapAmt",id,amt:v});calcExpr="";break}
+    case "fSwapPick":send({t:"swapStart",with:id});calcExpr="";sheet={type:"fSwapAmt",with:id,at:Date.now()};renderSheet();break;
+    case "fSwapAmt":{const v=calcEval(calcExpr);if(v==null||v<0||!st.me.swap)break;send({t:"swapAmt",id:st.me.swap.id,amt:v});calcExpr="";sheet=null;renderSheet();toast("انرسل رقمك");break}
     case "fSwapCancel":send({t:"swapCancel",id});break;
-    case "fResign":ask("استقلت؟","يروح لأهل الثقة يوافقون. بعدها يطلع لك تحط مجموع أصواتك، وتنتهي جولتك.","إي استقلت",()=>send({t:"resign"}));break;
+    case "fResign":
+      if(!resignArm){resignArm=true;buzz(20);clearTimeout(resignT);resignT=setTimeout(()=>{resignArm=false;render()},3000);render()}
+      else{resignArm=false;clearTimeout(resignT);send({t:"resign"});toast("راحت الاستقالة لأهل الثقة");render()}
+      break;
     case "fSecret":ask("تبي جلسة سرية؟","يروح طلب لأهل الثقة. إذا وافقوا تشوف السجل كامل، والكل يدري. وإذا سكرتها ما ترجع تفتحها.","اطلب",()=>send({t:"secretAsk"}));break;
     case "fSecretShut":ask("تسكّر الجلسة السرية؟","تنسكر عنده على طول، وما يرجع يفتحها.","سكّرها",()=>send({t:"secretShut"}),true);break;
     case "fSecretClose":ask("تسكّر الجلسة السرية؟","ما تقدر ترجع تفتحها.","سكّرها",()=>send({t:"secretClose"}),true);break;
@@ -1029,7 +1086,7 @@ document.addEventListener("submit",ev=>{
 });
 
 /* اللاعب يطلع له سؤال البدل لما الحكم يطلبه */
-let flashSeen=new Set(),noticeSeen=new Set(),flashT;
+let flashSeen=new Set(),noticeSeen=new Set(),flashT,resignArm=false,resignT;
 function showFlash(f){
   const el=$("#fx");clearTimeout(flashT);
   el.innerHTML=`<div class="fx fx-swap" role="status" style="background:#06100d"><div class="swap"><div class="c a">${esc(st.me.name)}</div><div class="c b">${esc(f.with)}</div></div><div class="sub">مجموع البدل</div><div class="big num" style="font-size:clamp(3.6rem,20vw,5.4rem);color:var(--brass-hi)">${Number(f.total).toLocaleString("en-US")}</div><div class="sub">انضاف لك ولـ${esc(f.with)}. احفظه، يختفي بعد شوي.</div></div>`;
@@ -1044,6 +1101,9 @@ render=function(){_render();
     else if(sheet&&sheet.type==="fNcVote")renderSheet();
   }
   if(st&&st.mode==="free"&&st.me){
+    // اللي انطلب منه البدل تطلع له الحاسبة بروحها
+    if(st.me.swap&&!st.me.swap.mine&&st.phase==="play"&&(!sheet||sheet.type!=="fSwapAmt")&&!(sheet&&/fNcVote|fVote/.test(sheet.type))){calcExpr="";sheet={type:"fSwapAmt",at:Date.now()};renderSheet()}
+    else if(sheet&&sheet.type==="fSwapAmt"&&st.me.swap&&st.me.swap.mine){sheet=null;renderSheet()}
     const f=st.me.flash;if(f&&!flashSeen.has(f.id)){flashSeen.add(f.id);fxQ.length=0;fxBusy=true;showFlash(f)}
     const n=st.me.notice;if(n&&!noticeSeen.has(n.id)){noticeSeen.add(n.id);if(noticeSeen.size>1||Date.now()-0)toast(n.text)}
     if(st.nc&&!st.nc.mine&&!st.nc.isTarget&&st.phase==="play"&&(!sheet||sheet.type!=="fNcVote")){sheet={type:"fNcVote"};renderSheet()}
