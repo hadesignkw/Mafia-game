@@ -619,7 +619,7 @@ function freeView(){
       <div class="row" style="margin-top:10px"><button class="btn gold grow" data-a="fSwapAmt" data-id="${me.swap.id}" ${v!=null&&v>=0&&calcExpr?"":"disabled"}>ارسل ${v!=null&&calcExpr?fmt(v):""}</button><button class="btn" data-a="fSwapCancel" data-id="${me.swap.id}">الغِ البدل</button></div></div>`}
     else h+=`<div class="panel" style="text-align:center"><h2>بدل ويا ${esc(me.swap.with)}</h2><p class="muted">ننطر ${esc(me.swap.with)} يكتب أصواته.</p><button class="btn sm ghost" style="margin-top:8px" data-a="fSwapCancel" data-id="${me.swap.id}">الغِ البدل</button></div>`;
   }
-  if(me.pick)h+=`<div class="panel"><h2>منو يعتمد ${me.pick.type==="swap"?`بدلك ويا ${esc(me.pick.with)}`:"طلبك"}؟</h2><p class="muted small">انتوا الاثنين من أهل الثقة، فاختاروا شخص ثالث يعتمده.</p><div class="list" style="margin-top:10px">${st.players.filter(p=>p.id!==me.id&&p.name!==me.pick.with).map(p=>`<button class="li" data-a="fPick" data-q="${me.pick.id}" data-id="${p.id}"><span class="dot ${p.online?"on":""}"></span><span class="nm">${esc(p.name)}</span></button>`).join("")}</div></div>`;
+  if(me.pick)h+=`<div class="panel"><h2>منو يعتمد ${me.pick.type==="swap"?`بدلك ويا ${esc(me.pick.with)}`:me.pick.type==="pen"?`الخصم على ${esc(me.pick.with)}`:"طلبك"}؟</h2><p class="muted small">${me.pick.type==="pen"?"الخصم على الثاني من أهل الثقة، فاختار شخص ثالث يعتمده.":"انتوا الاثنين من أهل الثقة، فاختاروا شخص ثالث يعتمده."}</p><div class="list" style="margin-top:10px">${st.players.filter(p=>p.id!==me.id&&p.name!==me.pick.with).map(p=>`<button class="li" data-a="fPick" data-q="${me.pick.id}" data-id="${p.id}"><span class="dot ${p.online?"on":""}"></span><span class="nm">${esc(p.name)}</span></button>`).join("")}</div></div>`;
   else if(me.swapWait)h+=`<div class="ballot" style="margin-top:14px"><b>بدل ويا ${esc(me.swapWait.with)}</b><p class="small">ينطر الاعتماد.</p></div>`;
   // مجموع الأصوات
   if(me.ask){const v=calcEval(calcExpr);
@@ -633,6 +633,7 @@ function freeView(){
   else if(!me.out&&!me.swap&&!me.swapWait&&!(me.toApprove&&me.toApprove.length))h+=`<section class="hero" style="margin-top:6px">${hallSVG()}<p class="muted sub">الجولة شغالة. لما تخلص يطلع لك تحط مجموع أصواتك.</p></section>`;
   if(s.vote&&!s.vote.canAnswer)h+=`<div class="panel"><h2>${voteName(s.vote.kind)}؟</h2><p class="muted small">${s.vote.mineBy?"طلبت":esc(s.vote.by)+" طلب"}. ننطر ${s.vote.waitingFor.map(esc).join(" و")} يوافق${s.vote.waitingFor.length>1?"ون":""}.</p></div>`;
   if(me.resignAsked)h+=`<div class="panel" style="text-align:center"><h2>طلبت تستقيل</h2><p class="muted">ننطر أهل الثقة يوافقون.</p></div>`;
+  if(me.trusted)h+=`<button class="btn block" style="margin-top:14px;border-color:#6b2a24;color:#ffb3aa" data-a="penOpen">🚨 خصم / عقوبة</button>`;
   h+=`<p class="muted small" style="text-align:center;margin-top:16px">أهل الثقة: ${tn.map(esc).join(" و")}</p>`;
   return h;
 }
@@ -642,6 +643,7 @@ function approveHTML(q){
   if(q.type==="swap")return`<div class="ballot"><b>بدل: ${esc(q.a)} ويا ${esc(q.b)}</b><p class="small num" style="direction:rtl">${esc(q.a)} ${Number(q.amtA).toLocaleString("en-US")} + ${esc(q.b)} ${Number(q.amtB).toLocaleString("en-US")}</p><div class="amt num">${Number(q.total).toLocaleString("en-US")}</div>${btns}</div>`;
   if(q.type==="final")return`<div class="ballot"><b>${esc(q.name)}</b> <span class="small">${q.amt===0?"ما عنده ولا صوت":"مجموع أصواته"}</span><div class="amt num">${Number(q.amt).toLocaleString("en-US")}</div>${btns}</div>`;
   if(q.type==="secret")return`<div class="ballot"><b>${esc(q.name)}</b><p class="small">يبي جلسة سرية (استخدم الكرت).</p>${btns}</div>`;
+  if(q.type==="pen")return`<div class="ballot" style="border-inline-start:5px solid var(--stamp)"><b>🚨 خصم على ${esc(q.name)}</b><p class="small">طلبه ${esc(q.byName||"")}.</p><div class="amt num" style="color:var(--stamp)">−${Number(q.amt).toLocaleString("en-US")}</div>${btns}</div>`;
   if(q.type==="resign")return`<div class="ballot"><b>${esc(q.name)}</b><p class="small">استخدم كرت الاستقالة.</p>${btns}</div>`;
   if(q.type==="fix")return`<div class="ballot"><b>${esc(q.name)}</b><p class="small">غلط بمجموعه ويبي يحطه من جديد.</p>${btns}</div>`;
   return"";
@@ -673,6 +675,7 @@ function evLines(r,filterId,players){
       out.push(`<li class="${x?"x":wiped(e.pid)?"wipe":""}"><span class="t">${hm(e.at)}</span><span class="grow">${filterId?"":`<b>${esc(name(e.pid))}</b> `}${e.final?(e.amt===0?"ما عنده ولا صوت":"مجموع أصواته"):e.amt<0?"تصحيح":"جمع"} <b class="num">${e.amt>0?"+":""}${e.amt.toLocaleString("en-US")}</b>${e.calc?` <span class="muted small num">(${esc(e.calc)})</span>`:""}${e.by==="self"?` <span class="muted small">من تلفونه${e.asked!=null&&e.asked!==e.amt?`، كتب ${Number(e.asked).toLocaleString("en-US")}`:""}</span>`:""}${x?` <span class="chip red">انلغى</span>`:""}</span>${!x&&st.judge&&st.phase==="play"&&(r.status==="open"||r.status==="counting")&&!filterId?`<button class="btn sm ghost" data-a="cancel" data-id="${e.id}">الغِ</button>`:""}</li>`)}
     else if(e.k==="swap"&&(!filterId||e.a===filterId||e.b===filterId)){const x=cancelled.has(e.id);const other=filterId?(e.a===filterId?e.b:e.a):null;
       out.push(`<li class="sw ${x?"x":""}"><span class="t">${hm(e.at)}</span><span class="grow">${filterId?`بدل ويا <b>${esc(name(other))}</b>`:`بدل: <b>${esc(name(e.a))}</b> ويا <b>${esc(name(e.b))}</b>`} انضاف <b class="num">${e.total.toLocaleString("en-US")}</b>${filterId?"":" لكل واحد"}${x?` <span class="chip red">انلغى</span>`:""}</span>${!x&&st.judge&&st.phase==="play"&&r.status==="open"&&!filterId?`<button class="btn sm ghost" data-a="cancel" data-id="${e.id}">الغِ</button>`:""}</li>`)}
+    else if(e.k==="pen"&&(!filterId||e.pid===filterId))out.push(`<li class="rs" style="border-color:var(--stamp)"><span class="t">${hm(e.at)}</span><span class="grow">🚨 خصم على <b>${esc(name(e.pid))}</b> <b class="num" style="color:#ffb3aa">−${e.amt.toLocaleString("en-US")}</b></span></li>`);
     else if(e.k==="expel"&&(!filterId||e.pid===filterId))out.push(`<li class="rs" style="border-color:var(--stamp)"><span class="t">${hm(e.at)}</span><span class="grow"><b>${esc(name(e.pid))}</b> انطرحت فيه الثقة (${e.yes} مع، ${e.no} ضد)، طلع من الجولة</span></li>`);
     else if(e.k==="resign"&&(!filterId||e.pid===filterId))out.push(`<li class="rs"><span class="t">${hm(e.at)}</span><span class="grow"><b>${esc(name(e.pid))}</b> استقال، أصواته محفوظة</span></li>`);
     else if(e.k==="rej"&&st.judge&&(!filterId||e.pid===filterId||e.a===filterId||e.b===filterId))out.push(`<li class="x"><span class="t">${hm(e.at)}</span><span class="grow">${e.kind==="swap"?`بدل ${esc(name(e.a))} ويا ${esc(name(e.b))} بـ${Number(e.total).toLocaleString("en-US")}`:`${esc(name(e.pid))} طلب +${Number(e.amt).toLocaleString("en-US")}`} <span class="chip red">انرفض</span></span></li>`);
@@ -696,6 +699,8 @@ function roundSummary(r,players){
   h+=swaps.length?`<div class="sum-list">${swaps.map(w=>`<div class="sum-row"><span>${esc(name(w.a))} و${esc(name(w.b))}</span><b class="num">${n(w.total)}</b></div>`).join("")}</div>`:`<p class="muted small">ما صار بدل.</p>`;
   h+=`<div class="sum-h">مجموع أرقامهم نهاية الجولة</div><div class="sum-list">${players.map(p=>{const tag=res.includes(p.id)?` <span class="chip">مستقيل</span>`:out.includes(p.id)?` <span class="chip red">انطرحت فيه الثقة</span>`:"";
     return`<div class="sum-row"><span>${esc(p.name)}${tag}</span><b class="num">${out.includes(p.id)&&!own[p.id]?"–":n(own[p.id])}</b></div>`}).join("")}</div>`;
+  const pens=r.ev.filter(e=>e.k==="pen");
+  if(pens.length)h+=`<div class="sum-h" style="color:#ffb3aa">الخصومات</div><div class="sum-list">${pens.map(e=>`<div class="sum-row"><span>🚨 ${esc(name(e.pid))}</span><b class="num" style="color:#ffb3aa">−${n(e.amt)}</b></div>`).join("")}</div>`;
   h+=`<div class="sum-h">مجموع الجولة</div><div class="sum-list">${players.map(p=>({p,v:r.score[p.id]||0})).sort((a,b)=>b.v-a.v).map(x=>`<div class="sum-row"><span>${esc(x.p.name)}</span><b class="num" style="color:var(--brass-hi)">${n(x.v)}</b></div>`).join("")}</div>`;
   return h;
 }
@@ -749,6 +754,7 @@ function renderSheet(){
       <div class="row" style="margin-top:10px"><button class="btn gold grow" data-a="addVotes" data-id="${p.id}" ${calcEval(calcExpr)?"":"disabled"}>${(calcEval(calcExpr)||0)<0?"صحّح":"سجّل"} ${calcEval(calcExpr)?fmt(calcEval(calcExpr)):""}</button></div>
       <p class="muted small" style="margin-top:6px">تقدر تكتب رقم بالسالب (مثلاً −100) عشان تصحح غلط، وبيبين بالسجل إنه تصحيح.</p>
       <div class="sep"></div>
+      <div class="row" style="margin-bottom:8px"><button class="btn grow" data-a="penFor" data-id="${p.id}" style="border-color:#6b2a24;color:#ffb3aa">🚨 خصم</button></div>
       <div class="row" style="margin-bottom:8px"><button class="btn grow" data-a="jNc" data-id="${p.id}" ${st.nc?"disabled":""}>${ICON.cross.replace("<svg",'<svg width="18" height="18" style="color:var(--stamp)"')} طرح الثقة</button></div>
       <div class="row"><button class="btn grow" data-a="resign" data-id="${p.id}">${ICON.flag.replace("<svg",'<svg width="18" height="18"')} استقال</button>
       ${st.mode==="players"?`<button class="btn grow" data-a="secret" data-id="${p.id}">${ICON.lock.replace("<svg",'<svg width="18" height="18"')} جلسة سرية</button>`:""}</div>`;
@@ -807,6 +813,13 @@ function renderSheet(){
   else if(sheet.type==="fSwap"){
     const me=st.me,others=st.players.filter(p=>p.id!==me.id&&!st.round.resigned.includes(p.id));
     inner=`<div class="hd"><h2>بدلت ويا منو؟</h2>${close}</div><div class="list">${others.map(p=>`<button class="li" data-a="fSwapPick" data-id="${p.id}"><span class="nm">${esc(p.name)}</span></button>`).join("")}</div>`;
+  }
+  else if(sheet.type==="pen"){
+    if(!sheet.id){
+      inner=`<div class="hd"><h2>خصم على منو؟</h2>${close}</div><p class="muted small">إذا أحد غش. الخصم ينقص من إجماليه، ويطلع للكل.</p><div class="list" style="margin-top:10px">${st.players.filter(p=>p.id!==(st.me&&st.me.id)).map(p=>`<button class="li" data-a="penPick" data-id="${p.id}"><span class="nm">${esc(p.name)}</span></button>`).join("")}</div>`;
+    }else{const v=calcEval(calcExpr);
+      inner=`<div class="hd"><h2>خصم على ${esc(nm(sheet.id))}</h2>${close}</div><p class="muted small">جم تبي تخصم منه؟ ${st.judge?"ينخصم على طول.":"يروح للثاني من أهل الثقة يعتمده."}</p><div style="margin-top:10px">${calcHTML()}</div>
+      <button class="btn red block" style="margin-top:10px" data-a="penSave" ${v>0?"":"disabled"}>اخصم ${v>0?fmt(v):""}</button>`;}
   }
   else if(sheet.type==="fNc"){
     const out=st.round.expelled||[],res=st.round.resigned||[];
@@ -885,6 +898,7 @@ function nextFx(){
   else if(e.type==="secret"){cls="fx-secret";dur=3200;html=`<span class="cur r"></span><span class="cur l"></span><div class="inner">${ICON.lock}<div class="big">جلسة سرية</div><div class="sub" style="color:#ffd9c8">${esc(e.name)} يشوف السجل الحين</div></div>`}
   else if(e.type==="over"){dur=4200;html=`<div class="fall conf">${Array.from({length:26},(_,i)=>`<i style="left:${(i*3.9+1)%98}%;--r:${(i%2?1:-1)*(200+i*15)}deg;animation-delay:${(i*.06).toFixed(2)}s"></i>`).join("")}</div>${gavelSVG()}<div class="big">انتهت الجلسة</div><div class="sub">النتيجة طلعت.</div>`}
   else if(e.type==="secretAway"){dur=2600;html=`${ICON.lock.replace("<svg",'<svg width="60" height="60" style="color:#ffb3aa"')}<div class="big" style="font-size:2.4rem">${esc(e.name)} طلع من الجلسة السرية</div><div class="sub">قلب على تطبيق ثاني أو طلع من الصفحة، فانسكرت.</div>`}
+  else if(e.type==="penalty"){cls="fx-dissolve";dur=3800;html=`<div style="font-size:5rem;line-height:1">🚨😬</div><div class="big num" style="color:var(--stamp);font-size:clamp(3.4rem,18vw,5rem)">−${Number(e.amt).toLocaleString("en-US")}</div><div class="big" style="font-size:2.2rem">انخصم من ${esc(e.name)}</div><div class="sub">عقوبة من ${st&&st.mode==="free"?"أهل الثقة":"الحكم"}.</div>`}
   else if(e.type==="expel"){cls="fx-dissolve";dur=3800;html=`<div class="stamp" style="font-size:clamp(2.2rem,11vw,3rem)">انطرحت<br>الثقة</div><div class="big" style="font-size:2.4rem">${esc(e.name)} طلع من الجولة</div><div class="sub">${e.yes} مع، ${e.no} ضد.</div>`}
   else if(e.type==="ncVoid"&&e.cancelled){toast("انلغى طرح الثقة");nextFx();return}
   else if(e.type==="ncFail"||e.type==="ncVoid"){toast(e.type==="ncVoid"?`تعادلت الأصوات، بطل طرح الثقة بـ${e.name}`:`ما انطرحت الثقة بـ${e.name}`);nextFx();return}
@@ -937,6 +951,10 @@ document.addEventListener("click",ev=>{
     case "roundsAuto":send({t:"setRounds",n:null});break;
     case "jNc":ask(`طرح الثقة بـ${nm(id)}؟`,st.mode==="manual"?"صوتوا بالواقع؟ إذا الأغلبية وافقت دوس «انطرد»: يطلع من هالجولة وتنحسب له أصوات البدل بس.":"يطلع للكل يصوتون من تلفوناتهم إلا هو. الأغلبية تطرده من هالجولة، والتعادل يبطل.",st.mode==="manual"?"انطرد":"ابدا التصويت",()=>{send({t:"ncStart",id});sheet=null;renderSheet()},true);break;
     case "jNcCancel":send({t:"ncCancel"});break;
+    case "penOpen":calcExpr="";sheet={type:"pen",id:null};renderSheet();break;
+    case "penFor":calcExpr="";sheet={type:"pen",id};renderSheet();break;
+    case "penPick":calcExpr="";sheet={type:"pen",id};renderSheet();break;
+    case "penSave":{const v=calcEval(calcExpr);if(!(v>0))break;const pid=sheet.id;ask(`تخصم ${v.toLocaleString("en-US")} من ${nm(pid)}؟`,"ينقص من إجماليه، ويطلع للكل.","اخصم",()=>{send({t:"penalty",id:pid,amt:v});calcExpr=""},true);break}
     case "fNcOpen":sheet={type:"fNc"};renderSheet();break;
     case "fNcPick":ask(`تطرح الثقة بـ${nm(id)}؟`,"الكل يصوت إلا هو. إذا الأغلبية وافقت يطلع من هالجولة، وتنحسب له أصوات البدل بس. وإذا تعادلت يبطل.","اطرح الثقة",()=>send({t:"ncStart",id}),true);break;
     case "fNcAns":send({t:"ncAns",id,yes:t.dataset.y==="1"});sheet=null;renderSheet();break;
