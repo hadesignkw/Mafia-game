@@ -159,6 +159,20 @@ button.li{cursor:pointer}
 .rec li.rs{border-inline-start:3px solid #8a8a7a}
 .rec .tot{display:flex;justify-content:space-between;padding:8px 10px;font-weight:800}
 
+/* كروت الجولات بالسجل */
+.rcard{border:1px solid var(--line);border-radius:14px;background:#0c1814;margin-top:8px;overflow:hidden}
+.rcard.dissolved{border-color:#5a2520}
+.rcard>summary{list-style:none;display:flex;align-items:center;gap:8px;padding:12px 14px;cursor:pointer;min-height:52px}
+.rcard>summary::-webkit-details-marker{display:none}
+.rcard>summary b{font-size:1.05rem}
+.rcard .arr{color:var(--muted);font-size:1.3rem;transition:transform .2s}
+.rcard[open] .arr{transform:rotate(-90deg)}
+.rcard .rbody{padding:0 14px 14px;border-top:1px solid var(--line)}
+.sum-h{font-size:.85rem;font-weight:700;color:var(--brass);margin:12px 0 6px}
+.sum-list{display:flex;flex-direction:column;gap:2px}
+.sum-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 10px;border-radius:9px;background:var(--panel2)}
+.sum-row b{font-size:1.02rem}
+.rcard details.sub{margin-top:10px}
 /* شريط الجلسة السرية */
 .banner{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:14px;margin-top:12px;background:repeating-linear-gradient(-45deg,#1c1310 0 10px,#241813 10px 20px);border:1px solid #6a3a2a;color:#ffd9c8}
 .banner svg{flex:none;width:22px;height:22px}
@@ -302,7 +316,7 @@ function connect(){
   sock.onclose=()=>{if(ws!==sock||!sess)return;$("#conn").hidden=view!=="game";retry++;setTimeout(()=>{if(ws===sock&&sess)connect()},Math.min(8000,700*retry))};
 }
 setInterval(()=>{if(ws&&ws.readyState===1)ws.send('{"t":"ping"}')},25000);
-document.addEventListener("visibilitychange",()=>{if(document.hidden&&st&&st.mode==="free"&&st.record&&st.me&&st.secretName===st.me.name)send({t:"away"});if(!document.hidden&&sess&&(!ws||ws.readyState>1))connect()});
+document.addEventListener("visibilitychange",()=>{if(document.hidden&&st&&st.mode!=="manual"&&st.phase==="play"&&st.record&&st.me&&st.secretName===st.me.name)send({t:"away"});if(!document.hidden&&sess&&(!ws||ws.readyState>1))connect()});
 function send(o){if(ws&&ws.readyState===1)ws.send(JSON.stringify(o));else toast("النت فاصل، لحظة ويرجع.")}
 
 function onMsg(m){
@@ -463,6 +477,7 @@ function judgeView(){
   // اللعب
   h+=`<div style="text-align:center;margin-top:8px"><h1 style="font-size:2.6rem">الجولة <span class="num">${s.round.no}</span></h1><p class="muted small">من ${fmt(s.round.of)} جولات${s.round.no===1?"، وما فيها فرز ولا حل":s.round.no===s.round.of?"، وما فيها حل مجلس":""}</p></div>`;
   h+=roundsStrip()+chamberSVG(true);
+  if(s.nc)h+=`<div class="banner" style="border-color:#7a2a22">${ICON.cross}<span class="grow"><b>طرح الثقة بـ${esc(s.nc.target)}:</b> مع ${s.nc.yes}، ضد ${s.nc.no}، من ${s.nc.of}.</span><button class="btn sm" data-a="jNcCancel">الغِ</button></div>`;
   if(s.counting)h+=countingHTML();
   else if(s.resignNeed&&s.resignNeed.length)h+=`<div class="panel"><h2>ننطر مجموع المستقيل</h2><div class="list" style="margin-top:10px">${s.resignNeed.map(id=>`<button class="li" data-a="seat" data-id="${id}"><span class="nm">${esc(nm(id))}</span><span class="chip gold">${(s.pending||[]).some(p=>p.kind==="final"&&p.pid===id)?"وصل، اعتمده":"ينطر"}</span></button>`).join("")}</div></div>`;
   if(s.pending&&s.pending.length)h+=`<div class="panel"><h2>تنطر موافقتك</h2><div class="list" style="gap:12px">${s.pending.map(pendHTML).join("")}</div></div>`;
@@ -491,7 +506,7 @@ function pendHTML(p){
 function scoreboard(){
   const rk=ranking(st.record,st.players);
   return`<div class="panel"><div class="row"><h2 class="grow">الأصوات</h2><span class="muted small">هالجولة / المجموع</span></div>
-  <div class="list" style="margin-top:10px">${rk.map(p=>{const res=st.round&&st.round.resigned.includes(p.id);return`<button class="li" data-a="seat" data-id="${p.id}"><span class="rank ${p.total>0?"r"+p.rank:""}">${p.rank}</span><span class="nm">${esc(p.name)}${res?` <span class="chip">مستقيل</span>`:""}</span><span class="sc"><b class="num">${p.total.toLocaleString("en-US")}</b><small>هالجولة ${fmt(curScore(p.id))}</small></span></button>`}).join("")}</div></div>`;
+  <div class="list" style="margin-top:10px">${rk.map(p=>{const res=st.round&&st.round.resigned.includes(p.id);return`<button class="li" data-a="seat" data-id="${p.id}"><span class="rank ${p.total>0?"r"+p.rank:""}">${p.rank}</span><span class="nm">${esc(p.name)}${res?` <span class="chip">مستقيل</span>`:""}${st.round&&(st.round.expelled||[]).includes(p.id)?` <span class="chip red">انطرحت فيه الثقة</span>`:""}</span><span class="sc"><b class="num">${p.total.toLocaleString("en-US")}</b><small>هالجولة ${fmt(curScore(p.id))}</small></span></button>`}).join("")}</div></div>`;
 }
 function judgeSetup(){
   const s=st,man=s.mode==="manual";
@@ -539,11 +554,14 @@ function playerView(){
   if(s.phase==="over")return h+overView();
   if(s.record&&s.secretName===me.name){
     h+=`<div class="banner">${ICON.lock}<span><b>جلسة سرية:</b> الحكم سمح لك تشوف السجل. لما يسكرها الحكم يختفي.</span></div>`;
-    h+=`<div class="panel"><h2>السجل كامل</h2>${recordTable(s.record,s.players,false)}</div>`;
+    h+=`<div class="panel wm-wrap"><div class="wm" aria-hidden="true">${Array.from({length:18},()=>`<span>${esc(me.name)}</span>`).join("")}</div><h2>السجل كامل</h2>${recordTable(s.record,s.players,false)}</div>
+    <p class="muted small" style="text-align:center;margin-top:8px">إذا طلعت من الصفحة أو قلبت تطبيق تنسكر على طول.</p>`;
     return h;
   }
   h+=`<div style="text-align:center;margin-top:8px"><h1 style="font-size:2.6rem">الجولة <span class="num">${s.round.no}</span></h1><p class="muted small">من ${fmt(s.round.of)} جولات</p></div>`+roundsStrip();
-  if(me.ask){
+  if(s.nc&&(s.nc.mine||s.nc.isTarget))h+=`<div class="banner" style="border-color:#7a2a22">${ICON.cross}<span class="grow"><b>طرح الثقة بـ${s.nc.isTarget?"ك":esc(s.nc.target)}:</b> مع ${s.nc.yes}، ضد ${s.nc.no}، من ${s.nc.of}.</span></div>`;
+  if(me.out)h+=`<div class="panel" style="text-align:center"><h2>انطرحت فيك الثقة</h2><p class="muted">طلعت من هالجولة، وتنحسب لك أصوات البدل بس. ترجع تلعب الجولة الجاية.</p></div>`;
+  else if(me.ask){
     const v=calcEval(calcExpr);
     h+=`<div class="panel"><h2>حط مجموع أصواتك</h2><p class="muted small">${me.resigned?"استقلت، اكتب أصواتك اللي بإيدك.":"الجولة خلصت، اكتب أصواتك اللي بإيدك (بدون البدل)."} يروح للحكم يعتمده، ومحد غيره يشوفه.</p><div style="margin-top:10px">${calcHTML()}</div>
     <button class="btn gold block" style="margin-top:10px" data-a="submit" ${v!=null&&v>0?"":"disabled"}>ارسل ${v>0?fmt(v):""} للحكم</button>
@@ -661,19 +679,48 @@ function evLines(r,filterId,players){
   }
   return out;
 }
+// مختصر الجولة: البدلات، ومجموع كل لاعب نهاية الجولة، ومجموع الجولة
+// الكروت المفتوحة تظل مفتوحة لما تتحدث الشاشة
+const openCards=new Set();
+document.addEventListener("toggle",e=>{const d=e.target;if(d&&d.dataset&&d.dataset.k){d.open?openCards.add(d.dataset.k):openCards.delete(d.dataset.k)}},true);
+function roundSummary(r,players){
+  const name=id=>(players.find(p=>p.id===id)||{}).name||"لاعب";
+  const cx=new Set(r.ev.filter(e=>e.k==="cancel").map(e=>e.target));
+  const swaps=r.ev.filter(e=>e.k==="swap"&&!cx.has(e.id));
+  const own={};for(const e of r.ev)if(e.k==="add"&&!cx.has(e.id))own[e.pid]=(own[e.pid]||0)+e.amt;
+  const res=r.resigned||[],out=r.expelled||[];
+  const n=v=>Number(v||0).toLocaleString("en-US");
+  let h=``;
+  if(r.status==="dissolved")h+=`<p class="small" style="color:#ffb3aa;margin-bottom:8px">انحل المجلس: انمسحت أصوات الكل إلا المستقيلين.</p>`;
+  h+=`<div class="sum-h">البدلات</div>`;
+  h+=swaps.length?`<div class="sum-list">${swaps.map(w=>`<div class="sum-row"><span>${esc(name(w.a))} و${esc(name(w.b))}</span><b class="num">${n(w.total)}</b></div>`).join("")}</div>`:`<p class="muted small">ما صار بدل.</p>`;
+  h+=`<div class="sum-h">مجموع أرقامهم نهاية الجولة</div><div class="sum-list">${players.map(p=>{const tag=res.includes(p.id)?` <span class="chip">مستقيل</span>`:out.includes(p.id)?` <span class="chip red">انطرحت فيه الثقة</span>`:"";
+    return`<div class="sum-row"><span>${esc(p.name)}${tag}</span><b class="num">${out.includes(p.id)&&!own[p.id]?"–":n(own[p.id])}</b></div>`}).join("")}</div>`;
+  h+=`<div class="sum-h">مجموع الجولة</div><div class="sum-list">${players.map(p=>({p,v:r.score[p.id]||0})).sort((a,b)=>b.v-a.v).map(x=>`<div class="sum-row"><span>${esc(x.p.name)}</span><b class="num" style="color:var(--brass-hi)">${n(x.v)}</b></div>`).join("")}</div>`;
+  return h;
+}
 function recordTable(rec,players,filterId){
   let h=`<div class="rec">`;
+  if(filterId){
+    // سجل لاعب واحد: بالتفصيل
+    rec.rounds.forEach(r=>{
+      const lines=evLines(r,filterId,players);
+      const sc=r.score[filterId]||0;
+      h+=`<div class="rh"><b>الجولة ${r.no}</b><span class="chip ${r.status==="dissolved"?"red":r.status==="open"?"gold":"green"}">${statusName(r.status)}</span><span class="grow"></span><b class="num">${sc.toLocaleString("en-US")}</b></div>`;
+      if(r.status==="dissolved")h+=`<p class="small muted" style="margin-bottom:4px">انحل المجلس: انمسحت أصوات الكل إلا المستقيلين.</p>`;
+      h+=lines.length?`<ul>${lines.join("")}</ul>`:`<p class="muted small">ما صار شي.</p>`;
+    });
+    return h+`<div class="tot"><span>المجموع</span><span class="num">${(rec.totals[filterId]||0).toLocaleString("en-US")}</span></div></div>`;
+  }
+  // كل جولة كرت مسكر، ينفتح المختصر لما تدوس عليه
   rec.rounds.forEach(r=>{
-    const lines=evLines(r,filterId,players);
-    const sc=filterId?(r.score[filterId]||0):null;
-    h+=`<div class="rh"><b>الجولة ${r.no}</b><span class="chip ${r.status==="dissolved"?"red":r.status==="open"?"gold":"green"}">${statusName(r.status)}</span>${filterId?`<span class="grow"></span><b class="num">${sc.toLocaleString("en-US")}</b>`:""}</div>`;
-    if(r.status==="dissolved")h+=`<p class="small muted" style="margin-bottom:4px">انحل المجلس: انمسحت أصوات الكل إلا المستقيلين.</p>`;
-    h+=lines.length?`<ul>${lines.join("")}</ul>`:`<p class="muted small">ما صار شي.</p>`;
-    if(!filterId){const items=players.map(p=>({p,v:r.score[p.id]||0})).filter(x=>x.v).sort((a,b)=>b.v-a.v);if(items.length)h+=`<p class="small muted" style="margin-top:6px">${items.map(x=>`${esc(x.p.name)} ${fmt(x.v)}`).join("، ")}</p>`}
+    const lines=st&&st.judge?evLines(r,null,players):[];
+    const key=(rec.key||"live")+":"+r.no;
+    h+=`<details class="rcard ${r.status}" data-k="${key}" ${openCards.has(key)?"open":""}><summary><b>الجولة ${r.no}</b><span class="chip ${r.status==="dissolved"?"red":r.status==="open"||r.status==="counting"?"gold":"green"}">${statusName(r.status)}</span><span class="grow"></span><span class="arr" aria-hidden="true">‹</span></summary>
+    <div class="rbody">${roundSummary(r,players)}${lines.length?`<details class="sub" data-k="${key}:d" ${openCards.has(key+":d")?"open":""}><summary class="muted small">التفصيل</summary><ul style="margin-top:8px">${lines.join("")}</ul></details>`:""}</div></details>`;
   });
-  const t=rec.totals;
-  if(filterId)h+=`<div class="tot"><span>المجموع</span><span class="num">${(t[filterId]||0).toLocaleString("en-US")}</span></div>`;
-  else h+=`<div class="sep"></div><div class="list">${ranking(rec,players).map(p=>`<div class="li"><span class="rank ${p.total>0?"r"+p.rank:""}">${p.rank}</span><span class="nm">${esc(p.name)}</span><span class="sc"><b class="num">${p.total.toLocaleString("en-US")}</b></span></div>`).join("")}</div>`;
+  if(!rec.rounds.length)h+=`<p class="muted small">ما بدت للحين.</p>`;
+  h+=`<div class="sum-h" style="margin-top:16px">الإجمالي</div><div class="list">${ranking(rec,players).map(p=>`<div class="li"><span class="rank ${p.total>0?"r"+p.rank:""}">${p.rank}</span><span class="nm">${esc(p.name)}</span><span class="sc"><b class="num">${p.total.toLocaleString("en-US")}</b></span></div>`).join("")}</div>`;
   return h+`</div>`;
 }
 
@@ -687,7 +734,7 @@ function renderSheet(){
   const close=`<button class="btn sm ghost" data-a="closeSheet" aria-label="سكّر">✕</button>`;
   if(sheet.type==="player"){
     const p=P(sheet.id);if(!p){sheet=null;el.innerHTML="";return}
-    const res=st.round&&st.round.resigned.includes(p.id);const play=st.phase==="play";
+    const res=st.round&&(st.round.resigned.includes(p.id)||(st.round.expelled||[]).includes(p.id));const play=st.phase==="play";
     inner=`<div class="hd"><h2>${esc(p.name)}</h2>${res?`<span class="chip">مستقيل</span>`:""}${close}</div>
     <div class="row"><div class="li grow" style="flex-direction:column;align-items:flex-start;gap:0"><span class="muted small">هالجولة</span><b class="num" style="font-size:1.5rem">${curScore(p.id).toLocaleString("en-US")}</b></div>
     <div class="li grow" style="flex-direction:column;align-items:flex-start;gap:0"><span class="muted small">المجموع</span><b class="num" style="font-size:1.5rem">${(st.record.totals[p.id]||0).toLocaleString("en-US")}</b></div></div>`;
@@ -702,6 +749,7 @@ function renderSheet(){
       <div class="row" style="margin-top:10px"><button class="btn gold grow" data-a="addVotes" data-id="${p.id}" ${calcEval(calcExpr)?"":"disabled"}>${(calcEval(calcExpr)||0)<0?"صحّح":"سجّل"} ${calcEval(calcExpr)?fmt(calcEval(calcExpr)):""}</button></div>
       <p class="muted small" style="margin-top:6px">تقدر تكتب رقم بالسالب (مثلاً −100) عشان تصحح غلط، وبيبين بالسجل إنه تصحيح.</p>
       <div class="sep"></div>
+      <div class="row" style="margin-bottom:8px"><button class="btn grow" data-a="jNc" data-id="${p.id}" ${st.nc?"disabled":""}>${ICON.cross.replace("<svg",'<svg width="18" height="18" style="color:var(--stamp)"')} طرح الثقة</button></div>
       <div class="row"><button class="btn grow" data-a="resign" data-id="${p.id}">${ICON.flag.replace("<svg",'<svg width="18" height="18"')} استقال</button>
       ${st.mode==="players"?`<button class="btn grow" data-a="secret" data-id="${p.id}">${ICON.lock.replace("<svg",'<svg width="18" height="18"')} جلسة سرية</button>`:""}</div>`;
     }
@@ -719,7 +767,7 @@ function renderSheet(){
     const g=st.archive.find(x=>x.id===sheet.id);if(!g){sheet=null;el.innerHTML="";return}
     inner=`<div class="hd"><h2>القيم ${g.no}</h2>${close}</div><p class="muted small">دوس على أي اسم تشوف سجله.</p>
     <div class="list" style="margin-top:10px">${ranking({totals:g.totals},g.players).map(p=>`<button class="li" data-a="archHist" data-g="${g.id}" data-id="${p.id}"><span class="rank ${p.total>0?"r"+p.rank:""}">${p.rank}</span><span class="nm">${esc(p.name)}</span><span class="sc"><b class="num">${p.total.toLocaleString("en-US")}</b></span></button>`).join("")}</div>
-    <div class="sep"></div><h3>كل اللي صار</h3>${recordTable({rounds:g.rounds.map(r=>({...r,score:r.final||{}})),totals:g.totals},g.players,null)}`;
+    <div class="sep"></div><h3>كل اللي صار</h3>${recordTable({key:g.id,rounds:g.rounds.map(r=>({...r,score:r.final||{}})),totals:g.totals},g.players,null)}`;
   }
   else if(sheet.type==="swap"){
     const step=sheet.a==null?1:sheet.b==null?2:3;
@@ -838,6 +886,7 @@ function nextFx(){
   else if(e.type==="over"){dur=4200;html=`<div class="fall conf">${Array.from({length:26},(_,i)=>`<i style="left:${(i*3.9+1)%98}%;--r:${(i%2?1:-1)*(200+i*15)}deg;animation-delay:${(i*.06).toFixed(2)}s"></i>`).join("")}</div>${gavelSVG()}<div class="big">انتهت الجلسة</div><div class="sub">النتيجة طلعت.</div>`}
   else if(e.type==="secretAway"){dur=2600;html=`${ICON.lock.replace("<svg",'<svg width="60" height="60" style="color:#ffb3aa"')}<div class="big" style="font-size:2.4rem">${esc(e.name)} طلع من الجلسة السرية</div><div class="sub">قلب على تطبيق ثاني أو طلع من الصفحة، فانسكرت.</div>`}
   else if(e.type==="expel"){cls="fx-dissolve";dur=3800;html=`<div class="stamp" style="font-size:clamp(2.2rem,11vw,3rem)">انطرحت<br>الثقة</div><div class="big" style="font-size:2.4rem">${esc(e.name)} طلع من الجولة</div><div class="sub">${e.yes} مع، ${e.no} ضد.</div>`}
+  else if(e.type==="ncVoid"&&e.cancelled){toast("انلغى طرح الثقة");nextFx();return}
   else if(e.type==="ncFail"||e.type==="ncVoid"){toast(e.type==="ncVoid"?`تعادلت الأصوات، بطل طرح الثقة بـ${e.name}`:`ما انطرحت الثقة بـ${e.name}`);nextFx();return}
   else if(e.type==="secretEnd"){toast(e.by?`${e.by} سكّر الجلسة السرية`:`${e.name} سكّر الجلسة السرية`);nextFx();return}
   else if(e.type==="again"){dur=2400;html=`${gavelSVG()}<div class="big">قيم ثاني</div>`}
@@ -886,6 +935,8 @@ document.addEventListener("click",ev=>{
     case "setTrust":send({t:"setTrust",id});break;
     case "rounds":send({t:"setRounds",n:Number(t.dataset.n)});break;
     case "roundsAuto":send({t:"setRounds",n:null});break;
+    case "jNc":ask(`طرح الثقة بـ${nm(id)}؟`,st.mode==="manual"?"صوتوا بالواقع؟ إذا الأغلبية وافقت دوس «انطرد»: يطلع من هالجولة وتنحسب له أصوات البدل بس.":"يطلع للكل يصوتون من تلفوناتهم إلا هو. الأغلبية تطرده من هالجولة، والتعادل يبطل.",st.mode==="manual"?"انطرد":"ابدا التصويت",()=>{send({t:"ncStart",id});sheet=null;renderSheet()},true);break;
+    case "jNcCancel":send({t:"ncCancel"});break;
     case "fNcOpen":sheet={type:"fNc"};renderSheet();break;
     case "fNcPick":ask(`تطرح الثقة بـ${nm(id)}؟`,"الكل يصوت إلا هو. إذا الأغلبية وافقت يطلع من هالجولة، وتنحسب له أصوات البدل بس. وإذا تعادلت يبطل.","اطرح الثقة",()=>send({t:"ncStart",id}),true);break;
     case "fNcAns":send({t:"ncAns",id,yes:t.dataset.y==="1"});sheet=null;renderSheet();break;
@@ -969,6 +1020,11 @@ function showFlash(f){
 }
 const _render=render;
 render=function(){_render();
+  if(st&&st.mode==="players"&&st.me){
+    if(st.nc&&!st.nc.mine&&!st.nc.isTarget&&st.phase==="play"&&(!sheet||sheet.type!=="fNcVote")){sheet={type:"fNcVote"};renderSheet()}
+    else if(sheet&&sheet.type==="fNcVote"&&(!st.nc||st.nc.mine)){sheet=null;renderSheet()}
+    else if(sheet&&sheet.type==="fNcVote")renderSheet();
+  }
   if(st&&st.mode==="free"&&st.me){
     const f=st.me.flash;if(f&&!flashSeen.has(f.id)){flashSeen.add(f.id);fxQ.length=0;fxBusy=true;showFlash(f)}
     const n=st.me.notice;if(n&&!noticeSeen.has(n.id)){noticeSeen.add(n.id);if(noticeSeen.size>1||Date.now()-0)toast(n.text)}

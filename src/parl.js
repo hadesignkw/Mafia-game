@@ -222,6 +222,7 @@ export class Parl extends DurableObject {
       case "add": {
         if (!this.roundOpen() || !P(m.id)) return;
         if (this.isResigned(m.id)) return this.err(ws, `${this.nm(m.id)} مستقيل بهالجولة.`);
+        if (this.isOut(m.id)) return this.err(ws, `${this.nm(m.id)} انطرحت فيه الثقة بهالجولة.`);
         const amt = num(m.amt);
         if (!amt || Math.abs(amt) > MAX_AMT) return this.err(ws, "اكتب رقم صحيح.");
         this.push({ k: "add", pid: m.id, amt, by: "judge", calc: String(m.calc || "").slice(0, 60) || null });
@@ -256,6 +257,14 @@ export class Parl extends DurableObject {
         return;
       }
       case "swapAskCancel": s.swapAsk = null; return;
+      case "ncStart": {
+        // طرح الثقة: باللاعبين يسجلون يصوتون من تلفوناتهم، وباليدوي الحكم يسجل النتيجة
+        if (!this.roundOpen() || s.nc || !P(m.id) || this.isOut(m.id) || this.isResigned(m.id)) return;
+        if (s.mode === "manual") return this.expel({ target: m.id, yes: [], no: [] });
+        s.nc = { id: sid(), by: null, target: m.id, yes: [], no: [], at: Date.now() };
+        return this.checkNc();
+      }
+      case "ncCancel": if (s.nc) { s.nc = null; this.ev("ncVoid", { name: "", cancelled: true }); } return;
       case "cancel": {
         const r = this.round();
         if (!this.roundLive()) return;
@@ -598,7 +607,9 @@ export class Parl extends DurableObject {
     this.push({ k: "expel", pid: t, yes: v.yes.length, no: v.no.length });
     // أصوات البدل بس تنحسب له، وطلباته تنلغي
     s.swaps = s.swaps.filter((w) => w.a !== t && w.b !== t);
-    s.reqs = s.reqs.filter((q) => !((q.type === "final" || q.type === "resign" || q.type === "fix") && q.pid === t) && !(q.type === "swap" && (q.a === t || q.b === t)));
+    s.reqs = (s.reqs || []).filter((q) => !((q.type === "final" || q.type === "resign" || q.type === "fix") && q.pid === t) && !(q.type === "swap" && (q.a === t || q.b === t)));
+    s.pending = (s.pending || []).filter((p) => p.pid !== t && p.a !== t && p.b !== t);
+    if (s.swapAsk && (s.swapAsk.a === t || s.swapAsk.b === t)) s.swapAsk = null;
     if (s.secret === t) s.secret = null;
     this.ev("expel", { name: this.nm(t), yes: v.yes.length, no: v.no.length });
   }
@@ -666,6 +677,13 @@ export class Parl extends DurableObject {
         this.send(ws, { t: "sent" });
         return;
       }
+      case "ncAns": {
+        const v = s.nc;
+        if (!v || v.id !== m.id || pid === v.target || v.yes.includes(pid) || v.no.includes(pid)) return;
+        (m.yes ? v.yes : v.no).push(pid);
+        return this.checkNc();
+      }
+      case "away": if (s.secret === pid) { s.secret = null; this.ev("secretAway", { name: this.nm(pid) }); } return;
       case "unsubmit": {
         s.pending = s.pending.filter((p) => !(p.id === m.id && p.pid === pid));
         return;
@@ -749,7 +767,7 @@ export class Parl extends DurableObject {
   record() {
     const s = this.s;
     return {
-      rounds: s.rounds.map((r) => ({ no: r.no, status: r.status, resigned: r.resigned, ev: r.ev, score: this.roundScore(r), startedAt: r.startedAt, endedAt: r.endedAt || null })),
+      rounds: s.rounds.map((r) => ({ no: r.no, status: r.status, resigned: r.resigned, expelled: r.expelled || [], ev: r.ev, score: this.roundScore(r), startedAt: r.startedAt, endedAt: r.endedAt || null })),
       totals: this.totals(),
     };
   }
@@ -775,6 +793,7 @@ export class Parl extends DurableObject {
       pub.secret = s.secret;
       if (r && r.status === "counting") pub.counting = { need: r.need, done: r.done || {} };
       if (r && r.status === "open" && s.mode === "players") pub.resignNeed = r.resigned.filter((id) => !this.isDone(id));
+      if (s.nc) pub.nc = { id: s.nc.id, target: this.nm(s.nc.target), yes: s.nc.yes.length, no: s.nc.no.length, of: s.order.length - 1 };
       return pub;
     }
     const pid = a.pid;
@@ -786,6 +805,9 @@ export class Parl extends DurableObject {
       pub.me.swapAsk = { with: this.nm(s.swapAsk.a === pid ? s.swapAsk.b : s.swapAsk.a) };
     // يطلع له «حط مجموع أصواتك» بس لما يستقيل أو تخلص الجولة
     if (r && s.phase === "play") {
+      pub.me.out = this.isOut(pid);
+      if (s.nc) pub.nc = { id: s.nc.id, by: "الحكم", target: this.nm(s.nc.target), yes: s.nc.yes.length, no: s.nc.no.length, of: s.order.length - 1,
+        mine: s.nc.yes.includes(pid) || s.nc.no.includes(pid), isTarget: s.nc.target === pid };
       const waiting = s.pending.some((p) => p.kind === "final" && p.pid === pid);
       pub.me.ask = this.needs(pid) && !waiting;
       pub.me.waiting = waiting;
