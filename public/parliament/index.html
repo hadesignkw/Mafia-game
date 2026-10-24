@@ -130,6 +130,7 @@ button.li{cursor:pointer}
 .calc .keys button:active{transform:scale(.94);background:#1f3a30}
 .calc .keys .op{color:var(--brass-hi)}
 .calc .keys .cl{color:#f08b80}
+.calc .keys .eq{grid-column:1/-1;min-height:52px;border:1px solid #6a5530;color:var(--brass-hi);background:#1a2a23;font-size:1.6rem}
 
 /* الشيت اللي يطلع من تحت */
 .sheet{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center;background:rgb(0 0 0 / .6);animation:fade .2s both}
@@ -378,12 +379,17 @@ function calcHTML(){
   const v=calcEval(calcExpr);
   const k=(l,c="",a=l)=>`<button type="button" class="${c}" data-a="ck" data-k="${a}" aria-label="${a}">${l}</button>`;
   return`<div class="calc"><div class="disp"><div class="expr">${esc(calcExpr)||"&nbsp;"}</div><div class="res num">${v==null?"0":v.toLocaleString("en-US")}</div></div>
-  <div class="keys">${k("7")}${k("8")}${k("9")}${k("⌫","cl","back")}${k("4")}${k("5")}${k("6")}${k("+","op")}${k("1")}${k("2")}${k("3")}${k("−","op","-")}${k("0")}${k("00")}${k("×","op","*")}${k("C","cl","clear")}</div></div>`;
+  <div class="keys">${k("7")}${k("8")}${k("9")}${k("⌫","cl","back")}${k("4")}${k("5")}${k("6")}${k("+","op")}${k("1")}${k("2")}${k("3")}${k("−","op","-")}${k("0")}${k("00")}${k("×","op","*")}${k("C","cl","clear")}<button type="button" class="eq" data-a="ck" data-k="eq" aria-label="يساوي">=</button></div></div>`;
 }
 function calcKey(key){
   const op=c=>/[+−×]/.test(c);
   if(key==="back")calcExpr=calcExpr.slice(0,-1);
   else if(key==="clear")calcExpr="";
+  else if(key==="eq"){
+    // يساوي: الحسبة تصير الناتج، وبعدها يسجل
+    const v=calcEval(calcExpr);if(v==null)return;
+    calcExpr=v<0?"−"+Math.abs(v):String(v);
+  }
   else if("+-*".includes(key)){
     const sym=key==="*"?"×":key==="-"?"−":"+";
     if(!calcExpr){if(key==="-")calcExpr="−";return updCalc()}
