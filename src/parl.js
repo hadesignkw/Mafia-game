@@ -549,7 +549,8 @@ export class Parl extends DurableObject {
         if (s.vote) return this.err(ws, "فيه طلب مفتوح.");
         const bad = this.endCheck(m.kind);
         if (bad) return this.err(ws, bad);
-        const need = this.approvers(pid);
+        // إنهاء اللعبة يحتاج موافقة كل اللاعبين، والباقي أهل الثقة بس
+        const need = m.kind === "finish" ? s.order.filter((x) => x !== pid) : this.approvers(pid);
         s.vote = { id: sid(), kind: m.kind, by: pid, yes: [], need: need.length ? need : s.order.filter((x) => x !== pid), at: Date.now() };
         return this.checkVote();
       }
