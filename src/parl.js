@@ -113,6 +113,9 @@ export class Parl extends DurableObject {
 
   /* ---------- أدوات ---------- */
   nm(id) { return this.s.players[id]?.name || "لاعب"; }
+  // عدد الجولات: من الإعدادات، وإذا ما تحدد بعدد اللاعبين
+  total() { const s = this.s; return s.cfg && s.cfg.rounds ? s.cfg.rounds : s.order.length; }
+  isOut(pid) { const r = this.round(); return !!(r && r.expelled && r.expelled.includes(pid)); }
   round() { return this.s.rounds[this.s.cur] || null; }
   roundOpen() { const r = this.round(); return this.s.phase === "play" && r && r.status === "open"; }
   // الجولة مفتوحة أو قاعدين نجمع مجاميع اللاعبين بعد ما خلصت
@@ -120,7 +123,7 @@ export class Parl extends DurableObject {
   isDone(pid) { const r = this.round(); return !!(r && r.done && r.done[pid]); }
   // منو لازم يحط مجموعه الحين
   needs(pid) {
-    const r = this.round(); if (!r || this.s.mode === "manual" || this.isDone(pid)) return false;
+    const r = this.round(); if (!r || this.s.mode === "manual" || this.isDone(pid) || this.isOut(pid)) return false;
     if (r.status === "open") return r.resigned.includes(pid);
     if (r.status === "counting") return (r.need || []).includes(pid);
     return false;
@@ -191,6 +194,12 @@ export class Parl extends DurableObject {
         const i = s.order.indexOf(m.id), j = i + (m.dir > 0 ? 1 : -1);
         if (j < 0 || j >= s.order.length) return;
         [s.order[i], s.order[j]] = [s.order[j], s.order[i]];
+        return;
+      }
+      case "setRounds": {
+        if (s.phase !== "setup") return;
+        const n = m.n == null ? null : Math.max(1, Math.min(60, num(m.n) || 1));
+        s.cfg = { ...(s.cfg || {}), rounds: n };
         return;
       }
       case "start": {
@@ -316,7 +325,7 @@ export class Parl extends DurableObject {
     if (kind === "finish") return s.phase === "play" ? null : "ما في لعبة شغالة.";
     if (!this.roundOpen()) return "ما في جولة شغالة.";
     if (!["sort", "cards", "dissolve"].includes(kind)) return "؟";
-    const last = s.cur === s.order.length - 1;
+    const last = s.cur === this.total() - 1;
     if (kind === "sort" && s.cur === 0) return "الجولة الأولى ما فيها فرز.";
     if (kind === "dissolve" && (s.cur === 0 || last)) return "الجولة الأولى والأخيرة ما فيها حل مجلس.";
     return null;
@@ -325,11 +334,11 @@ export class Parl extends DurableObject {
     const s = this.s, r = this.round();
     const bad = this.endCheck(kind);
     if (bad) return ws ? this.err(ws, bad) : undefined;
-    const last = s.cur === s.order.length - 1;
+    const last = s.cur === this.total() - 1;
     // اللاعبين يحطون مجاميعهم: بالفرز وخلصة الكروت الكل، وبالحل بس المستقيلين اللي ما حطوا للحين
     const need = s.mode === "manual" ? [] : kind === "dissolve"
       ? r.resigned.filter((id) => !this.isDone(id))
-      : s.order.filter((id) => !this.isDone(id));
+      : s.order.filter((id) => !this.isDone(id) && !this.isOut(id));
     if (!need.length) return this.closeRound(kind);
     r.status = "counting"; r.endKind = kind; r.need = need; r.done = r.done || {};
     s.swapAsk = null; s.pending = s.pending.filter((p) => p.kind === "final");
@@ -352,9 +361,9 @@ export class Parl extends DurableObject {
     const s = this.s;
     s.rounds.push({ no: s.rounds.length + 1, status: "open", resigned: [], ev: [], startedAt: Date.now() });
     s.cur = s.rounds.length - 1;
-    s.pending = []; s.swapAsk = null; s.swaps = []; s.vote = null;
+    s.pending = []; s.swapAsk = null; s.swaps = []; s.vote = null; s.nc = null;
     s.reqs = (s.reqs || []).filter((q) => q.type === "secret");
-    this.ev("round", { no: s.cur + 1, of: s.order.length });
+    this.ev("round", { no: s.cur + 1, of: this.total() });
   }
 
   closeRound(kind, silent = false) {
@@ -367,15 +376,15 @@ export class Parl extends DurableObject {
     r.endedAt = Date.now();
     s.pending = []; s.swapAsk = null;
     if (silent) return;
-    if (counted) { if (s.cur >= s.order.length - 1) return this.over(); return this.openRound(); }
-    if (s.cur >= s.order.length - 1) { this.ev(kind, { no: r.no, then: "over" }); return this.over(true); }
+    if (counted) { if (s.cur >= this.total() - 1) return this.over(); return this.openRound(); }
+    if (s.cur >= this.total() - 1) { this.ev(kind, { no: r.no, then: "over" }); return this.over(true); }
     this.openRound();
-    this.ev(kind, { no: r.no, next: s.cur + 1, of: s.order.length });
+    this.ev(kind, { no: r.no, next: s.cur + 1, of: this.total() });
   }
 
   over(keepEvent) {
     const s = this.s;
-    s.phase = "over"; s.pending = []; s.swapAsk = null; s.endedAt = Date.now(); s.reqs = []; s.swaps = []; s.vote = null; s.secret = null;
+    s.phase = "over"; s.pending = []; s.swapAsk = null; s.endedAt = Date.now(); s.reqs = []; s.swaps = []; s.vote = null; s.secret = null; s.nc = null;
     if (!keepEvent) this.ev("over");
     else s.event.then = "over";
   }
@@ -418,6 +427,12 @@ export class Parl extends DurableObject {
         [s.order[i], s.order[j]] = [s.order[j], s.order[i]];
         return;
       }
+      case "setRounds": {
+        if (!owner || s.phase !== "setup") return;
+        const n = m.n == null ? null : Math.max(1, Math.min(60, num(m.n) || 1));
+        s.cfg = { ...(s.cfg || {}), rounds: n };
+        return;
+      }
       case "setTrust": {
         if (!owner || s.phase !== "setup" || !P(m.id) || m.id === s.owner) return;
         s.trust = [s.owner, m.id];
@@ -444,6 +459,7 @@ export class Parl extends DurableObject {
       case "swapStart": {
         if (!this.roundOpen() || !P(m.with) || m.with === pid) return;
         if (this.isResigned(pid) || this.isResigned(m.with)) return this.err(ws, "المستقيل ما يبدل.");
+        if (this.isOut(pid) || this.isOut(m.with)) return this.err(ws, "المطرود من الجولة ما يبدل.");
         if (s.swaps.some((w) => [w.a, w.b].includes(pid) || [w.a, w.b].includes(m.with)) || s.reqs.some((q) => q.type === "swap" && [q.a, q.b].some((x) => x === pid || x === m.with)))
           return this.err(ws, "فيه بدل مفتوح لواحد منكم، خلصوه أول.");
         s.swaps.push({ id: sid(), a: pid, b: m.with, amt: {}, at: Date.now() });
@@ -469,7 +485,7 @@ export class Parl extends DurableObject {
       /* الاستقالة ومجموع الأصوات */
       case "resign": {
         // الاستقالة تحتاج موافقة أهل الثقة
-        if (!this.roundOpen() || this.isResigned(pid)) return;
+        if (!this.roundOpen() || this.isResigned(pid) || this.isOut(pid)) return;
         if (s.reqs.some((q) => q.type === "resign" && q.pid === pid)) return;
         this.addReq({ type: "resign", pid, need: this.approvers(pid) });
         return;
@@ -505,7 +521,7 @@ export class Parl extends DurableObject {
         this.ev("secretEnd", { name: this.nm(who), by: this.nm(pid) });
         return;
       }
-      case "away": if (s.secret === pid) this.ev("secretAway", { name: this.nm(pid) }); return;
+      case "away": if (s.secret === pid) { s.secret = null; this.ev("secretAway", { name: this.nm(pid) }); } return;
       /* فرز / خلصت الكروت / حل: أهل الثقة يوافقون */
       case "propose": {
         if (s.vote) return this.err(ws, "فيه طلب مفتوح.");
@@ -521,6 +537,20 @@ export class Parl extends DurableObject {
         if (!m.yes) { s.vote = null; for (const id of s.order) this.notify(id, `${this.nm(pid)} ما وافق على ${({ sort: "الفرز", cards: "خلصة الكروت", dissolve: "حل المجلس", finish: "إنهاء اللعبة" })[v.kind]}، اللعبة كملت.`); return; }
         v.yes.push(pid);
         return this.checkVote();
+      }
+      /* طرح الثقة: الكل يصوت إلا المطروح فيه، والأغلبية تطرده من هالجولة، والتعادل يبطّله */
+      case "ncStart": {
+        if (!this.roundOpen() || s.nc) return this.err(ws, s.nc ? "فيه طرح ثقة مفتوح." : "ما في جولة شغالة.");
+        if (!P(m.id) || m.id === pid || this.isOut(m.id)) return;
+        if (this.isResigned(m.id)) return this.err(ws, "مستقيل بهالجولة.");
+        s.nc = { id: sid(), by: pid, target: m.id, yes: [pid], no: [], at: Date.now() };
+        return this.checkNc();
+      }
+      case "ncAns": {
+        const v = s.nc;
+        if (!v || v.id !== m.id || pid === v.target || v.yes.includes(pid) || v.no.includes(pid)) return;
+        (m.yes ? v.yes : v.no).push(pid);
+        return this.checkNc();
       }
       case "pickApprover": {
         const q = s.reqs.find((x) => x.id === m.id && x.pick);
@@ -548,6 +578,29 @@ export class Parl extends DurableObject {
         return;
       }
     }
+  }
+
+  checkNc() {
+    const s = this.s, v = s.nc;
+    if (!v) return;
+    const elig = s.order.filter((id) => id !== v.target).length;
+    const half = elig / 2;
+    const all = v.yes.length + v.no.length >= elig;
+    if (v.yes.length > half) return this.expel(v);
+    if (v.no.length > half) { s.nc = null; this.ev("ncFail", { name: this.nm(v.target) }); return; }
+    if (all) { s.nc = null; this.ev("ncVoid", { name: this.nm(v.target) }); }
+  }
+  expel(v) {
+    const s = this.s, r = this.round(), t = v.target;
+    s.nc = null;
+    if (!r || r.status !== "open") return;
+    (r.expelled = r.expelled || []).push(t);
+    this.push({ k: "expel", pid: t, yes: v.yes.length, no: v.no.length });
+    // أصوات البدل بس تنحسب له، وطلباته تنلغي
+    s.swaps = s.swaps.filter((w) => w.a !== t && w.b !== t);
+    s.reqs = s.reqs.filter((q) => !((q.type === "final" || q.type === "resign" || q.type === "fix") && q.pid === t) && !(q.type === "swap" && (q.a === t || q.b === t)));
+    if (s.secret === t) s.secret = null;
+    this.ev("expel", { name: this.nm(t), yes: v.yes.length, no: v.no.length });
   }
 
   checkVote() {
@@ -660,6 +713,12 @@ export class Parl extends DurableObject {
     if (s.vote) pub.vote = { id: s.vote.id, kind: s.vote.kind, by: this.nm(s.vote.by), mineBy: s.vote.by === pid, yes: s.vote.yes.length, of: s.vote.need.length,
       canAnswer: s.vote.need.includes(pid) && !s.vote.yes.includes(pid), waitingFor: s.vote.need.filter((id) => !s.vote.yes.includes(id)).map((id) => this.nm(id)) };
     me.resignAsked = s.reqs.some((q) => q.type === "resign" && q.pid === pid);
+    me.out = this.isOut(pid);
+    if (s.nc) {
+      const v = s.nc, elig = s.order.filter((id) => id !== v.target).length;
+      pub.nc = { id: v.id, by: this.nm(v.by), target: this.nm(v.target), targetId: v.target, yes: v.yes.length, no: v.no.length, of: elig,
+        mine: v.yes.includes(pid) || v.no.includes(pid), isTarget: v.target === pid };
+    }
     // اللي ينطر اعتمادي: أشوف الرقم بس عشان أتأكد، وما أشوف أي مجموع
     me.toApprove = s.reqs.filter((q) => q.need.includes(pid) && !q.ok.includes(pid)).map((q) => ({
       id: q.id, type: q.type, name: q.pid ? this.nm(q.pid) : null, a: q.a ? this.nm(q.a) : null, b: q.b ? this.nm(q.b) : null,
@@ -700,7 +759,8 @@ export class Parl extends DurableObject {
     const r = this.round();
     const pub = {
       code: s.code, mode: s.mode, phase: s.phase, now: Date.now(), event: s.event, gameNo: s.gameNo || 1,
-      round: r ? { no: r.no, of: s.order.length, status: r.status, resigned: r.resigned, endKind: r.endKind || null } : null,
+      round: r ? { no: r.no, of: this.total(), status: r.status, resigned: r.resigned, expelled: r.expelled || [], endKind: r.endKind || null } : null,
+      cfg: { rounds: (s.cfg && s.cfg.rounds) || null, total: this.total() },
       rounds: s.rounds.map((x) => ({ no: x.no, status: x.status })),
       players: s.order.map((id) => ({ id, name: this.nm(id), online: on.has(id), joined: !!s.players[id].token })),
       secretName: s.secret ? this.nm(s.secret) : null,

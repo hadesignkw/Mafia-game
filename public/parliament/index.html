@@ -142,6 +142,8 @@ button.li{cursor:pointer}
 /* شريط الأوامر تحت */
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:10px max(12px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px));background:linear-gradient(transparent,rgb(8 18 15 / .96) 30%);}
 .dock .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.dock .in.five{grid-template-columns:repeat(5,1fr);gap:5px}
+.dock .in.five .btn{font-size:.72rem;padding:6px 2px}
 .dock .btn{min-height:56px;padding:6px 4px;flex-direction:column;gap:0;font-size:.8rem;border-radius:14px;line-height:1.25}
 .dock .btn svg{width:22px;height:22px}
 
@@ -160,6 +162,10 @@ button.li{cursor:pointer}
 /* شريط الجلسة السرية */
 .banner{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:14px;margin-top:12px;background:repeating-linear-gradient(-45deg,#1c1310 0 10px,#241813 10px 20px);border:1px solid #6a3a2a;color:#ffd9c8}
 .banner svg{flex:none;width:22px;height:22px}
+/* اسم اللي فاتح الجلسة السرية فوق السجل، أي صورة يبين فيها */
+.wm-wrap{position:relative;overflow:hidden}
+.wm{position:absolute;inset:-40px;z-index:3;pointer-events:none;display:flex;flex-wrap:wrap;align-content:space-around;justify-content:space-around;gap:40px 30px;transform:rotate(-24deg)}
+.wm span{font-family:var(--ruqaa);font-weight:700;font-size:2.4rem;color:rgb(255 120 100 / .2);white-space:nowrap}
 
 .toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:80;background:var(--paper);color:var(--paper-ink);font-weight:700;padding:10px 18px;border-radius:12px;box-shadow:0 10px 30px rgb(0 0 0 / .5);max-width:90vw;text-align:center}
 .conn{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:70;background:#3a1c18;color:#ffd0c8;font-size:.85rem;padding:5px 14px;border-radius:99px}
@@ -493,17 +499,26 @@ function judgeSetup(){
   let h=`<div style="text-align:center;margin-top:6px"><h1 style="font-size:2.6rem">${s.gameNo>1?"قيم جديد":"جلسة جديدة"}</h1><p class="muted small">${man?"تسجيل يدوي: أنت تسجل كل شي.":"اللاعبين يدخلون برقم الغرفة ويسجلون أصواتهم."}</p></div>`;
   if(!man)h+=`<div class="panel"><p class="muted small" style="text-align:center">رقم الغرفة</p><div class="code num">${s.code}</div>
   <div class="row" style="margin-top:10px"><button class="btn grow" data-a="share" data-url="${esc(url)}">ارسل رابط الجلسة</button></div></div>`;
-  h+=`<div class="panel"><div class="row"><h2 class="grow">الأعضاء</h2><span class="chip">${fmt(s.players.length)} لاعب · ${fmt(s.players.length)} جولات</span></div>
+  h+=`<div class="panel"><div class="row"><h2 class="grow">الأعضاء</h2><span class="chip">${fmt(s.players.length)} لاعب</span></div>
   <div class="list" style="margin-top:10px">${s.players.map((p,i)=>`<div class="li">${man?"":`<span class="dot ${p.online?"on":""}"></span>`}<span class="nm">${esc(p.name)}</span>
     <button class="btn sm ghost" data-a="move" data-id="${p.id}" data-d="-1" ${i===0?"disabled":""} aria-label="فوق">▲</button>
     <button class="btn sm ghost" data-a="rename" data-id="${p.id}">غيّر</button>
     <button class="btn sm ghost" data-a="remove" data-id="${p.id}" aria-label="شيل">✕</button></div>`).join("")||`<p class="muted small">${man?"اكتب أسامي اللاعبين تحت.":"ننطر اللاعبين يدخلون…"}</p>`}</div>
   <form data-f="addName" class="row" style="margin-top:12px"><input name="name" maxlength="24" placeholder="${man?"اسم لاعب":"أضف اسم بنفسك (اختياري)"}" class="grow"><button class="btn">أضف</button></form>
-  <p class="muted small" style="margin-top:10px">عدد الجولات بعدد اللاعبين. الجولة الأولى ما فيها فرز ولا حل، والأخيرة ما فيها حل مجلس.</p>
+  ${settingsHTML()}
   <button class="btn gold block" style="margin-top:12px" data-a="start" ${s.players.length<2?"disabled":""}>ابدا الجلسة</button></div>`;
   h+=archiveHTML();
   h+=`<button class="btn ghost block" style="margin-top:14px" data-a="closeRoom">سكّر الغرفة وامسح كل شي</button>`;
   return h;
+}
+// إعدادات الجلسة قبل البداية
+function settingsHTML(){
+  const c=st.cfg||{},n=c.total||st.players.length,auto=!c.rounds;
+  return`<div class="sep"></div><h3>الإعدادات</h3>
+  <div class="row" style="margin-top:8px"><span class="grow">عدد الجولات</span>
+    <button class="btn sm" data-a="rounds" data-n="${Math.max(1,n-1)}" aria-label="أقل">−</button><b class="num" style="min-width:2ch;text-align:center;font-size:1.3rem">${n}</b><button class="btn sm" data-a="rounds" data-n="${n+1}" aria-label="أكثر">+</button></div>
+  <button class="btn sm ${auto?"gold":"ghost"}" style="margin-top:8px" data-a="roundsAuto">${auto?"✓ ":""}بعدد اللاعبين</button>
+  <p class="muted small" style="margin-top:8px">الجولة الأولى ما فيها فرز ولا حل، والأخيرة ما فيها حل مجلس.</p>`;
 }
 function archiveHTML(){
   if(!st.archive||!st.archive.length)return"";
@@ -553,13 +568,13 @@ function freeView(){
       h+=`<div style="text-align:center;margin-top:6px"><h1 style="font-size:2.6rem">${s.gameNo>1?"قيم جديد":"جلسة جديدة"}</h1><p class="muted small">بدون حكم: الكل يلعب، وأنت وواحد تختاره أهل الثقة.</p></div>
       <div class="panel"><p class="muted small" style="text-align:center">رقم الغرفة</p><div class="code num">${s.code}</div>
       <button class="btn block" style="margin-top:10px" data-a="share" data-url="${esc(url)}">ارسل رابط الجلسة</button></div>
-      <div class="panel"><div class="row"><h2 class="grow">الأعضاء</h2><span class="chip">${fmt(s.players.length)} لاعب · ${fmt(s.players.length)} جولات</span></div>
+      <div class="panel"><div class="row"><h2 class="grow">الأعضاء</h2><span class="chip">${fmt(s.players.length)} لاعب</span></div>
       <p class="muted small">دوس «ثقة» على الشخص اللي تبيه وياك من أهل الثقة.</p>
       <div class="list" style="margin-top:10px">${s.players.map((p,i)=>{const tr=s.trust.includes(p.id);return`<div class="li"><span class="dot ${p.online?"on":""}"></span><span class="nm">${esc(p.name)}${p.id===me.id?" (أنت)":""}</span>
         ${p.id===me.id?`<span class="chip green">ثقة</span>`:`<button class="btn sm ${tr?"gold":"ghost"}" data-a="setTrust" data-id="${p.id}">${tr?"ثقة ✓":"ثقة"}</button>`}
         <button class="btn sm ghost" data-a="move" data-id="${p.id}" data-d="-1" ${i===0?"disabled":""} aria-label="فوق">▲</button>
         ${p.id===me.id?"":`<button class="btn sm ghost" data-a="remove" data-id="${p.id}" aria-label="شيل">✕</button>`}</div>`}).join("")}</div>
-      <p class="muted small" style="margin-top:10px">عدد الجولات بعدد اللاعبين. الجولة الأولى ما فيها فرز ولا حل، والأخيرة ما فيها حل مجلس.</p>
+      ${settingsHTML()}
       <button class="btn gold block" style="margin-top:12px" data-a="start" ${s.players.length<3||s.trust.length<2?"disabled":""}>${s.trust.length<2?"اختار الثاني من أهل الثقة":s.players.length<3?"تحتاج 3 لاعبين":"ابدا الجلسة"}</button></div>`;
       h+=archiveHTML();
       return h+`<button class="btn ghost block" style="margin-top:14px" data-a="closeRoom">سكّر الغرفة وامسح كل شي</button>`;
@@ -571,10 +586,13 @@ function freeView(){
   if(s.phase==="over")return h+overView();
   if(s.record&&s.secretName===me.name){
     return h+`<div class="banner">${ICON.lock}<span class="grow"><b>جلسة سرية:</b> أهل الثقة سمحوا لك. إذا سكرتها ما ترجع تفتحها.</span></div>
-    <div class="panel"><h2>السجل كامل</h2>${recordTable(s.record,s.players,false)}</div>
-    <button class="btn red block" style="margin-top:14px" data-a="fSecretClose">سكّر الجلسة السرية</button>`;
+    <div class="panel wm-wrap"><div class="wm" aria-hidden="true">${Array.from({length:18},()=>`<span>${esc(me.name)}</span>`).join("")}</div><h2>السجل كامل</h2>${recordTable(s.record,s.players,false)}</div>
+    <p class="muted small" style="text-align:center;margin-top:8px">إذا طلعت من الصفحة أو قلبت تطبيق تنسكر على طول.</p>
+    <button class="btn red block" style="margin-top:10px" data-a="fSecretClose">سكّر الجلسة السرية</button>`;
   }
   h+=`<div style="text-align:center;margin-top:8px"><h1 style="font-size:2.6rem">الجولة <span class="num">${s.round.no}</span></h1><p class="muted small">من ${fmt(s.round.of)} جولات${s.round.no===1?"، وما فيها فرز ولا حل":s.round.no===s.round.of?"، وما فيها حل مجلس":""}</p></div>`+roundsStrip();
+  if(s.nc&&(s.nc.mine||s.nc.isTarget))h+=`<div class="banner" style="border-color:#7a2a22">${ICON.cross}<span class="grow"><b>طرح الثقة بـ${s.nc.isTarget?"ك":esc(s.nc.target)}:</b> مع ${s.nc.yes}، ضد ${s.nc.no}، من ${s.nc.of}.</span></div>`;
+  if(me.out)h+=`<div class="panel" style="text-align:center"><h2>انطرحت فيك الثقة</h2><p class="muted">طلعت من هالجولة، وتنحسب لك أصوات البدل بس. ترجع تلعب الجولة الجاية${me.trusted?"، وللحين تعتمد وتدير ويا أهل الثقة":""}.</p></div>`;
   // اللي ينطر اعتمادي
   if(me.toApprove&&me.toApprove.length)h+=`<div class="panel"><h2>تنطر اعتمادك</h2><p class="muted small">${me.trusted?"أنت من أهل الثقة.":"اختاروك تعتمد."} تأكد من الرقم ويا صاحبه، واعتمده.</p><div class="list" style="gap:12px;margin-top:10px">${me.toApprove.map(approveHTML).join("")}</div></div>`;
   // البدل
@@ -594,7 +612,7 @@ function freeView(){
   else if(me.fixing)h+=`<div class="panel" style="text-align:center"><h2>طلبت تعديل</h2><p class="muted">ننطر أهل الثقة يلغون رقمك، وبعدها تحطه من جديد.</p></div>`;
   else if(me.done&&(me.counting||me.resigned))h+=`<div class="panel" style="text-align:center"><h2>انسجل مجموعك</h2><p class="muted">${me.counting?`ننطر ${me.left?fmt(me.left)+" يحطون مجاميعهم":"الجولة الجاية"}.`:"استقلت بهالجولة، وترجع تلعب الجولة الجاية."}</p><button class="btn sm ghost" style="margin-top:8px" data-a="fFix">غلطت؟ اطلب تعديل</button></div>`;
   else if(me.counting)h+=`<div class="panel" style="text-align:center"><h2>الجولة خلصت</h2><p class="muted">ننطر المستقيلين يحطون مجاميعهم.</p></div>`;
-  else if(!me.swap&&!me.swapWait&&!(me.toApprove&&me.toApprove.length))h+=`<section class="hero" style="margin-top:6px">${hallSVG()}<p class="muted sub">الجولة شغالة. لما تخلص يطلع لك تحط مجموع أصواتك.</p></section>`;
+  else if(!me.out&&!me.swap&&!me.swapWait&&!(me.toApprove&&me.toApprove.length))h+=`<section class="hero" style="margin-top:6px">${hallSVG()}<p class="muted sub">الجولة شغالة. لما تخلص يطلع لك تحط مجموع أصواتك.</p></section>`;
   if(s.vote&&!s.vote.canAnswer)h+=`<div class="panel"><h2>${voteName(s.vote.kind)}؟</h2><p class="muted small">${s.vote.mineBy?"طلبت":esc(s.vote.by)+" طلب"}. ننطر ${s.vote.waitingFor.map(esc).join(" و")} يوافق${s.vote.waitingFor.length>1?"ون":""}.</p></div>`;
   if(me.resignAsked)h+=`<div class="panel" style="text-align:center"><h2>طلبت تستقيل</h2><p class="muted">ننطر أهل الثقة يوافقون.</p></div>`;
   h+=`<p class="muted small" style="text-align:center;margin-top:16px">أهل الثقة: ${tn.map(esc).join(" و")}</p>`;
@@ -637,6 +655,7 @@ function evLines(r,filterId,players){
       out.push(`<li class="${x?"x":wiped(e.pid)?"wipe":""}"><span class="t">${hm(e.at)}</span><span class="grow">${filterId?"":`<b>${esc(name(e.pid))}</b> `}${e.final?(e.amt===0?"ما عنده ولا صوت":"مجموع أصواته"):e.amt<0?"تصحيح":"جمع"} <b class="num">${e.amt>0?"+":""}${e.amt.toLocaleString("en-US")}</b>${e.calc?` <span class="muted small num">(${esc(e.calc)})</span>`:""}${e.by==="self"?` <span class="muted small">من تلفونه${e.asked!=null&&e.asked!==e.amt?`، كتب ${Number(e.asked).toLocaleString("en-US")}`:""}</span>`:""}${x?` <span class="chip red">انلغى</span>`:""}</span>${!x&&st.judge&&st.phase==="play"&&(r.status==="open"||r.status==="counting")&&!filterId?`<button class="btn sm ghost" data-a="cancel" data-id="${e.id}">الغِ</button>`:""}</li>`)}
     else if(e.k==="swap"&&(!filterId||e.a===filterId||e.b===filterId)){const x=cancelled.has(e.id);const other=filterId?(e.a===filterId?e.b:e.a):null;
       out.push(`<li class="sw ${x?"x":""}"><span class="t">${hm(e.at)}</span><span class="grow">${filterId?`بدل ويا <b>${esc(name(other))}</b>`:`بدل: <b>${esc(name(e.a))}</b> ويا <b>${esc(name(e.b))}</b>`} انضاف <b class="num">${e.total.toLocaleString("en-US")}</b>${filterId?"":" لكل واحد"}${x?` <span class="chip red">انلغى</span>`:""}</span>${!x&&st.judge&&st.phase==="play"&&r.status==="open"&&!filterId?`<button class="btn sm ghost" data-a="cancel" data-id="${e.id}">الغِ</button>`:""}</li>`)}
+    else if(e.k==="expel"&&(!filterId||e.pid===filterId))out.push(`<li class="rs" style="border-color:var(--stamp)"><span class="t">${hm(e.at)}</span><span class="grow"><b>${esc(name(e.pid))}</b> انطرحت فيه الثقة (${e.yes} مع، ${e.no} ضد)، طلع من الجولة</span></li>`);
     else if(e.k==="resign"&&(!filterId||e.pid===filterId))out.push(`<li class="rs"><span class="t">${hm(e.at)}</span><span class="grow"><b>${esc(name(e.pid))}</b> استقال، أصواته محفوظة</span></li>`);
     else if(e.k==="rej"&&st.judge&&(!filterId||e.pid===filterId||e.a===filterId||e.b===filterId))out.push(`<li class="x"><span class="t">${hm(e.at)}</span><span class="grow">${e.kind==="swap"?`بدل ${esc(name(e.a))} ويا ${esc(name(e.b))} بـ${Number(e.total).toLocaleString("en-US")}`:`${esc(name(e.pid))} طلب +${Number(e.amt).toLocaleString("en-US")}`} <span class="chip red">انرفض</span></span></li>`);
   }
@@ -661,6 +680,8 @@ function recordTable(rec,players,filterId){
 /* ---------- الشيت ---------- */
 function renderSheet(){
   const el=$("#sheet");
+  // التصويت انتهى قبل لا تنسكر النافذة
+  if(sheet&&st&&((sheet.type==="fNcVote"&&!st.nc)||(sheet.type==="fVote"&&!st.vote)||(sheet.type==="swapAskMe"&&!(st.me&&st.me.swapAsk))))sheet=null;
   if(!sheet||!st){el.innerHTML="";return}
   let inner="";
   const close=`<button class="btn sm ghost" data-a="closeSheet" aria-label="سكّر">✕</button>`;
@@ -739,6 +760,16 @@ function renderSheet(){
     const me=st.me,others=st.players.filter(p=>p.id!==me.id&&!st.round.resigned.includes(p.id));
     inner=`<div class="hd"><h2>بدلت ويا منو؟</h2>${close}</div><div class="list">${others.map(p=>`<button class="li" data-a="fSwapPick" data-id="${p.id}"><span class="nm">${esc(p.name)}</span></button>`).join("")}</div>`;
   }
+  else if(sheet.type==="fNc"){
+    const out=st.round.expelled||[],res=st.round.resigned||[];
+    inner=`<div class="hd"><h2>طرح الثقة بمنو؟</h2>${close}</div><p class="muted small">الكل يصوت إلا هو، والأغلبية تطرده من هالجولة.</p><div class="list" style="margin-top:10px">${st.players.filter(p=>p.id!==st.me.id&&!out.includes(p.id)&&!res.includes(p.id)).map(p=>`<button class="li" data-a="fNcPick" data-id="${p.id}"><span class="nm">${esc(p.name)}</span>${st.trust.includes(p.id)?`<span class="chip green">ثقة</span>`:""}</button>`).join("")}</div>`;
+  }
+  else if(sheet.type==="fNcVote"){
+    const v=st.nc;
+    inner=`<div class="hd"><h2>طرح الثقة</h2></div><p><b>${esc(v.by)}</b> طرح الثقة بـ<b>${esc(v.target)}</b>. توافق يطلع من هالجولة؟</p>
+    <p class="muted small" style="margin-top:6px">مع ${v.yes}، ضد ${v.no}، من ${v.of}. الأغلبية تطرده، والتعادل يبطل التصويت.</p>
+    <div class="row" style="margin-top:14px"><button class="btn red grow" data-a="fNcAns" data-id="${v.id}" data-y="1">مع الطرح</button><button class="btn grow" data-a="fNcAns" data-id="${v.id}" data-y="0">ضد</button></div>`;
+  }
   else if(sheet.type==="fEnd"){
     const c=st.canEnd||{};const b=(k,ic,txt,why)=>`<button class="li" data-a="fPropose" data-k="${k}" ${c[k]?"":"disabled style='opacity:.4'"}>${ic}<span class="nm">${voteName(k)}<br><span class="muted small">${c[k]?txt:why}</span></span></button>`;
     inner=`<div class="hd"><h2>نهاية الجولة ${st.round.no}</h2>${close}</div><p class="muted small">يروح لأهل الثقة يوافقون عليه.</p>
@@ -771,11 +802,12 @@ function renderSheet(){
 function renderDock(){
   const d=$("#dock");
   if(view==="game"&&st&&st.mode==="free"&&st.phase==="play"&&st.me&&!(st.record&&st.secretName===st.me.name)){
-    const o=st.round.status==="open",res=st.me.resigned,busyS=st.me.swap||st.me.swapWait;
-    d.innerHTML=`<div class="dock"><div class="in">
+    const o=st.round.status==="open",res=st.me.resigned||st.me.out,busyS=st.me.swap||st.me.swapWait;
+    d.innerHTML=`<div class="dock"><div class="in five">
     <button class="btn" data-a="fSwapOpen" ${!o||res||busyS?"disabled":""}>${ICON.swap}بدلت</button>
     <button class="btn" data-a="fResign" ${!o||res||st.me.resignAsked?"disabled":""}>${ICON.flag}استقلت</button>
     <button class="btn" data-a="fSecret" ${st.secretName||st.me.secretAsked?"disabled":""}>${ICON.lock}جلسة سرية</button>
+    <button class="btn" data-a="fNcOpen" ${!o||st.nc?"disabled":""}>${ICON.cross}طرح الثقة</button>
     <button class="btn gold" data-a="fEndOpen" ${st.vote?"disabled":""}>${ICON.gavel}نهاية الجولة</button></div></div>`;return}
   if(view!=="game"||!st||!st.judge||st.phase!=="play"){d.innerHTML="";return}
   const ic=k=>ICON[k];
@@ -804,7 +836,9 @@ function nextFx(){
   else if(e.type==="swap"){cls="fx-swap";dur=3400;html=`<div class="swap"><div class="c a">${esc(e.a)}</div><div class="c b">${esc(e.b)}</div></div><div class="big">بدل!</div><div class="sub">${esc(e.a)} ويا ${esc(e.b)}</div>`}
   else if(e.type==="secret"){cls="fx-secret";dur=3200;html=`<span class="cur r"></span><span class="cur l"></span><div class="inner">${ICON.lock}<div class="big">جلسة سرية</div><div class="sub" style="color:#ffd9c8">${esc(e.name)} يشوف السجل الحين</div></div>`}
   else if(e.type==="over"){dur=4200;html=`<div class="fall conf">${Array.from({length:26},(_,i)=>`<i style="left:${(i*3.9+1)%98}%;--r:${(i%2?1:-1)*(200+i*15)}deg;animation-delay:${(i*.06).toFixed(2)}s"></i>`).join("")}</div>${gavelSVG()}<div class="big">انتهت الجلسة</div><div class="sub">النتيجة طلعت.</div>`}
-  else if(e.type==="secretAway"){dur=2600;html=`${ICON.lock.replace("<svg",'<svg width="60" height="60" style="color:#ffb3aa"')}<div class="big" style="font-size:2.4rem">${esc(e.name)} طلع من الجلسة السرية</div><div class="sub">قلب على تطبيق ثاني أو طلع من الصفحة.</div>`}
+  else if(e.type==="secretAway"){dur=2600;html=`${ICON.lock.replace("<svg",'<svg width="60" height="60" style="color:#ffb3aa"')}<div class="big" style="font-size:2.4rem">${esc(e.name)} طلع من الجلسة السرية</div><div class="sub">قلب على تطبيق ثاني أو طلع من الصفحة، فانسكرت.</div>`}
+  else if(e.type==="expel"){cls="fx-dissolve";dur=3800;html=`<div class="stamp" style="font-size:clamp(2.2rem,11vw,3rem)">انطرحت<br>الثقة</div><div class="big" style="font-size:2.4rem">${esc(e.name)} طلع من الجولة</div><div class="sub">${e.yes} مع، ${e.no} ضد.</div>`}
+  else if(e.type==="ncFail"||e.type==="ncVoid"){toast(e.type==="ncVoid"?`تعادلت الأصوات، بطل طرح الثقة بـ${e.name}`:`ما انطرحت الثقة بـ${e.name}`);nextFx();return}
   else if(e.type==="secretEnd"){toast(e.by?`${e.by} سكّر الجلسة السرية`:`${e.name} سكّر الجلسة السرية`);nextFx();return}
   else if(e.type==="again"){dur=2400;html=`${gavelSVG()}<div class="big">قيم ثاني</div>`}
   else{nextFx();return}
@@ -850,6 +884,11 @@ document.addEventListener("click",ev=>{
     case "goOwner":view="owner";render();setTimeout(()=>{const i=document.querySelector("input[name=name]");i&&i.focus()},50);break;
     /* بدون حكم */
     case "setTrust":send({t:"setTrust",id});break;
+    case "rounds":send({t:"setRounds",n:Number(t.dataset.n)});break;
+    case "roundsAuto":send({t:"setRounds",n:null});break;
+    case "fNcOpen":sheet={type:"fNc"};renderSheet();break;
+    case "fNcPick":ask(`تطرح الثقة بـ${nm(id)}؟`,"الكل يصوت إلا هو. إذا الأغلبية وافقت يطلع من هالجولة، وتنحسب له أصوات البدل بس. وإذا تعادلت يبطل.","اطرح الثقة",()=>send({t:"ncStart",id}),true);break;
+    case "fNcAns":send({t:"ncAns",id,yes:t.dataset.y==="1"});sheet=null;renderSheet();break;
     case "fSwapOpen":sheet={type:"fSwap"};renderSheet();break;
     case "fSwapPick":ask(`بدلت ويا ${nm(id)}؟`,"يطلع لكم انتوا الاثنين تكتبون أصواتكم، والمجموع يروح لأهل الثقة.","إي بدلنا",()=>send({t:"swapStart",with:id}));break;
     case "fSwapAmt":{const v=calcEval(calcExpr);if(v==null||v<0)break;send({t:"swapAmt",id,amt:v});calcExpr="";break}
@@ -933,7 +972,10 @@ render=function(){_render();
   if(st&&st.mode==="free"&&st.me){
     const f=st.me.flash;if(f&&!flashSeen.has(f.id)){flashSeen.add(f.id);fxQ.length=0;fxBusy=true;showFlash(f)}
     const n=st.me.notice;if(n&&!noticeSeen.has(n.id)){noticeSeen.add(n.id);if(noticeSeen.size>1||Date.now()-0)toast(n.text)}
-    if(st.vote&&st.vote.canAnswer&&st.phase==="play"&&(!sheet||sheet.type!=="fVote")){sheet={type:"fVote"};renderSheet()}
+    if(st.nc&&!st.nc.mine&&!st.nc.isTarget&&st.phase==="play"&&(!sheet||sheet.type!=="fNcVote")){sheet={type:"fNcVote"};renderSheet()}
+    else if(sheet&&sheet.type==="fNcVote"&&(!st.nc||st.nc.mine)){sheet=null;renderSheet()}
+    else if(sheet&&sheet.type==="fNcVote")renderSheet();
+    else if(st.vote&&st.vote.canAnswer&&st.phase==="play"&&(!sheet||sheet.type!=="fVote")){sheet={type:"fVote"};renderSheet()}
     else if(sheet&&sheet.type==="fVote"&&(!st.vote||!st.vote.canAnswer)){sheet=null;renderSheet()}
     else if(sheet&&sheet.type==="fVote")renderSheet();
   }if(st&&st.me&&st.me.swapAsk&&(!sheet||sheet.type!=="swapAskMe")&&st.phase==="play"){calcExpr="";sheet={type:"swapAskMe"};renderSheet()}else if(sheet&&sheet.type==="swapAskMe"&&!(st&&st.me&&st.me.swapAsk)){sheet=null;renderSheet()}};
