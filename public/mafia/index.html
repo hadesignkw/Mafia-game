@@ -1428,7 +1428,7 @@ function sceneSound(e){if(!receptionAudio?.enabled)return;const A=receptionAudio
   else if(type==="tie"){P("gavel",{gain:.8});P("coins",{gain:.35,delay:.4})}
   else if(type==="snipe"){P("shot",{gain:1.2,vary:false});P("gasp",{gain:.5,delay:.5});P("tension",{gain:.5,delay:.8})}
   else if(type==="cast"){P("chips",{gain:.9})}
-  else if(type==="answer"){if(/مافيا/.test(e.text||""))P("tension",{gain:.8});else P("bell",{gain:.45})}
+  /* تفتيش الشريف: بدون صوت عشان اللي جنبه ما يعرف دوره */
   else if(type==="win"){if(e.winner==="town")P("win",{gain:.7});else{P("shot",{gain:.9});P("tension",{gain:.8,delay:.3})}}
 }
 /* خلفية الصوت حسب المرحلة */
