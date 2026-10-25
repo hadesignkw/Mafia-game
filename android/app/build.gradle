@@ -1,0 +1,24 @@
+plugins { id "com.android.application" }
+
+android {
+    namespace "kw.hadesign.diwan"
+    compileSdk 34
+    defaultConfig {
+        applicationId "kw.hadesign.diwan"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            // التوقيع بمفتاح جهاز البناء، عشان ما نحط مفاتيح سرية بالريبو
+            signingConfig signingConfigs.debug
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

@@ -1,0 +1,35 @@
+name: تطبيق أندرويد
+
+on:
+  push:
+    branches: [main, android-app]
+    paths: ["android/**", ".github/workflows/android.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: بناء الـAPK
+        run: gradle -p android assembleRelease --no-daemon
+      - name: تجهيز الملف
+        run: cp android/app/build/outputs/apk/release/app-release.apk diwan-almudallal.apk
+      - name: رفعه بصفحة التنزيل
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: app-${{ github.ref_name }}-${{ github.run_number }}
+          name: ديوان المدلل (${{ github.run_number }})
+          prerelease: ${{ github.ref_name != 'main' }}
+          make_latest: ${{ github.ref_name == 'main' }}
+          files: diwan-almudallal.apk
