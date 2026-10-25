@@ -1034,7 +1034,8 @@ const en=s=>String(s||"").replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d
 function lsGet(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null}catch{return null}}
 function lsSet(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,JSON.stringify(v))}catch{}}
 let toastT;function toast(m){const t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,3400)}
-const buzz=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch{}};
+/* بالليل ما فيه اهتزاز عشان محد يحس منو عنده دور */
+const buzz=p=>{try{if(view==="game"&&st&&(st.phase==="night"||st.phase==="night0"))return;navigator.vibrate&&navigator.vibrate(p)}catch{}};
 
 /* ---------- الحالة ---------- */
 let sess=lsGet("mafia.sess"); // {code, token, judge}
