@@ -893,6 +893,8 @@ body[data-phase=day] .vcard,body[data-phase=day] .mini{background:rgba(255,250,2
 #fx.fx-dusk{background-image:linear-gradient(#080d1766,#080d17aa),var(--farm-night);color:#edf2fa}
 #fx:is(.fx-dawn,.fx-dusk) .rx-event-scene{display:none}
 #fx.fx-dusk .star{display:none}
+body:not(.reception-mode) .announce{background:var(--panel);-webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px);border:1px solid var(--line);border-inline-start:4px solid var(--brass);border-radius:14px;padding:12px 14px;font-weight:600;box-shadow:0 8px 24px #0003}
+body[data-phase=day]:not(.reception-mode) .announce{background:rgba(255,250,239,.94);color:#1f2226}
 body[data-phase=day] .pick:not(.on):not(.res){background:rgba(255,250,239,.92);color:var(--fg);border-color:var(--line)}
 @media(prefers-reduced-transparency:reduce){body:not(.reception-mode){--panel:#101c2b}body[data-phase=day]:not(.reception-mode){--panel:#fffaf0}}
 
