@@ -47,7 +47,7 @@
 "use strict";
 const ROUNDS=9,KEY="diwan.hand",BASE_W=60,BASE_L=200;
 // [المفتاح، الاسم، الدبلة، نقص الفايز، اللي ما نزل، دبلة الورق]
-const TYPES=[["khalsa","خالصة",1,30,100,1],["hand","هند عادي",1,60,200,2],["one","واحد",2,60,200,2],["two","ثنين",4,60,200,2],["three","ثلاث",8,60,200,2]];
+const TYPES=[["khalsa","خالصة",1,30,100,1],["hand","هند عادي",1,60,200,2],["one","واحد",2,60,200,2],["two","ثنين",4,60,200,2],["three","ثلاث",6,60,200,2]];
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const load=()=>{try{return JSON.parse(localStorage.getItem(KEY))||null}catch{return null}};
