@@ -349,7 +349,7 @@ html{scroll-behavior:smooth}
 .enter .grid>*{animation:enterUp .45s cubic-bezier(.2,.8,.2,1) both}
 .enter .grid>*:nth-child(2){animation-delay:.25s}.enter .grid>*:nth-child(3){animation-delay:.29s}.enter .grid>*:nth-child(4){animation-delay:.33s}.enter .grid>*:nth-child(5){animation-delay:.37s}.enter .grid>*:nth-child(6){animation-delay:.41s}.enter .grid>*:nth-child(n+7){animation-delay:.45s}
 .enter .grid>*:first-child{animation-delay:.21s}
-@keyframes enterUp{from{opacity:0;transform:translateY(14px)}}
+@keyframes enterUp{from{opacity:0;transform:translateY(16px) scale(.98);filter:blur(4px)}}
 .demobar,.enter>.demobar{animation:none}
 .li.new{animation:slideIn .45s cubic-bezier(.2,.8,.2,1) both}
 @keyframes slideIn{from{opacity:0;transform:translateX(-24px)}}
@@ -588,6 +588,114 @@ select{font:inherit;font-size:1rem;width:100%;background:var(--bg);color:var(--f
 /* زر الرجوع للقاضي فوق صورة النتيجة بالتجربة */
 #fx .democlose{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));inset-inline:16px;z-index:3;display:flex;justify-content:center}
 
+/* ---------- الشخصيات: ترمش وتتنفس ---------- */
+.ch{display:block;overflow:visible}
+.ch .torso,.ch .hd{transform-box:view-box}
+.ch .torso{transform-origin:80px 182px;animation:breath 3.8s ease-in-out infinite}
+.ch .hd{transform-origin:80px 124px;animation:nod 3.8s ease-in-out infinite}
+@keyframes breath{50%{transform:scale(1.018,1.012)}}
+@keyframes nod{50%{transform:translateY(-1.6px) rotate(.8deg)}}
+.ch .eyes,.ch .ceyes{transform-box:fill-box;transform-origin:center;animation:blink 4.6s infinite}
+.ch-cop .eyes{animation-delay:-1.3s}.ch-doctor .eyes{animation-delay:-2.6s}.ch-citizen .eyes{animation-delay:-.7s}.ch-sniper .eyes{animation-delay:-3.4s}
+.ch .ceyes{animation-duration:3.1s}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.08)}}
+.ch .glint{animation:glint 4.2s ease-in-out infinite}
+@keyframes glint{0%,70%,100%{opacity:0;transform:translateX(-3px)}78%{opacity:1}86%{opacity:0;transform:translateX(6px)}}
+.ch .brow{transform-box:fill-box;transform-origin:center;animation:browUp 5.5s ease-in-out infinite}
+@keyframes browUp{0%,60%,80%,100%{transform:none}66%,74%{transform:translateY(-3px) rotate(-8deg)}}
+.ch .ember{animation:ember 2.2s ease-in-out infinite}
+.ch .smk{opacity:0;transform-box:fill-box;transform-origin:50% 100%;animation:smk 3.2s ease-out infinite}
+.ch .smk.d2{animation-delay:1.6s}
+.ch .ear{transform-box:fill-box;transform-origin:50% 100%;animation:twitch 3.4s infinite}
+.ch .ear.e2{animation-delay:-1.7s}
+@keyframes twitch{0%,86%,100%{transform:none}90%{transform:rotate(-16deg)}95%{transform:rotate(8deg)}}
+.ch .badge{animation:badge 3s ease-in-out infinite}
+@keyframes badge{0%,70%,100%{fill:#e9c46a}80%{fill:#fff6cf}}
+.ch .dot{animation:dotP 1.2s ease-in-out infinite}
+@keyframes dotP{50%{opacity:.35}}
+.ch .scope{transform-box:fill-box;transform-origin:center;animation:scope 4s ease-in-out infinite}
+@keyframes scope{0%,100%{transform:none}50%{transform:rotate(8deg)}}
+
+/* ---------- الكرت الجديد: صورة الشخصية فوق ---------- */
+.flip:not(.open){animation:hover 4s ease-in-out infinite}
+@keyframes hover{50%{translate:0 -5px}}
+.flip-in{transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg))}
+.flip.open .flip-in{transform:rotateX(var(--rx,0deg)) rotateY(calc(180deg + var(--ry,0deg)))}
+.flip.tilt .flip-in{transition-duration:.18s}
+.face.back{position:relative;overflow:hidden;box-shadow:inset 0 0 0 6px #2a0f0e,inset 0 0 0 7px color-mix(in srgb,var(--brass) 50%,transparent),0 20px 50px rgb(0 0 0 / .5)}
+.face.back::before{content:"";position:absolute;inset:14px;border:1px dashed color-mix(in srgb,var(--brass) 35%,transparent);border-radius:12px;pointer-events:none}
+.face.back::after,.face.front::after{content:"";position:absolute;inset:0;z-index:6;pointer-events:none;border-radius:inherit;background:linear-gradient(115deg,transparent 30%,rgb(255 240 210 / .2) 45%,transparent 60%);transform:translateX(-130%)}
+.face.back::after{animation:gloss 1.2s ease-in-out infinite;animation-delay:2s;animation-duration:4.5s}
+.flip.open .face.front::after{animation:gloss 1.1s 1s ease-in-out both}
+@keyframes gloss{0%{transform:translateX(-130%)}30%,100%{transform:translateX(130%)}}
+.face.back .emb{animation:embPulse 3s ease-in-out infinite}
+@keyframes embPulse{50%{transform:scale(1.08);filter:drop-shadow(0 0 10px rgb(236 210 154 / .45))}}
+.face.front{padding-top:0;box-shadow:0 20px 50px rgb(0 0 0 / .5),inset 0 0 0 1px color-mix(in srgb,var(--accent) 35%,transparent)}
+.face.front .rfx{z-index:5;mix-blend-mode:screen}
+.face .art{position:relative;margin:0 -18px;height:236px;border-radius:19px 19px 0 0;overflow:hidden;
+  background:radial-gradient(70% 75% at 50% 100%,color-mix(in srgb,var(--accent) 60%,transparent),transparent 72%),radial-gradient(50% 60% at 50% 0%,rgb(255 230 180 / .2),transparent 70%),linear-gradient(180deg,#0e0b0a,#1c1411);
+  border-bottom:1px solid color-mix(in srgb,var(--accent) 55%,var(--line))}
+.face .art::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 22px,rgb(255 255 255 / .03) 22px 23px);pointer-events:none}
+.face .art .sky{position:absolute;left:0;right:0;bottom:0;width:100%;height:64px;color:rgb(0 0 0 / .5)}
+.face .art .ch{position:absolute;left:0;right:0;bottom:-2px;margin:auto;width:212px;height:auto;filter:drop-shadow(0 -2px 18px color-mix(in srgb,var(--accent) 40%,transparent))}
+.face .art .tm{position:absolute;top:12px;inset-inline-start:12px;z-index:2;background:rgb(0 0 0 / .5);font-size:.85rem}
+.face .art .fk{position:absolute;top:12px;inset-inline-end:12px;z-index:2;background:rgb(0 0 0 / .5);color:#ffd27a;border-color:#ffd27a;font-size:.85rem}
+.flip.open .art .ch{animation:charIn .9s .4s cubic-bezier(.2,1.25,.4,1) both}
+@keyframes charIn{from{transform:translateY(70px) scale(.85);opacity:0}}
+.face .ribbon{display:flex;justify-content:center;margin-top:-26px;position:relative;z-index:2}
+.face .ribbon .rn{background:var(--panel2);border:1px solid color-mix(in srgb,var(--accent) 60%,transparent);border-radius:14px;padding:2px 22px 6px;box-shadow:0 10px 24px rgb(0 0 0 / .5);text-align:center}
+.flip.open .ribbon{animation:ribIn .6s .85s cubic-bezier(.2,1.5,.4,1) both}
+@keyframes ribIn{from{transform:scale(.5);opacity:0}}
+.flip.open .face.front>p,.flip.open .face.front>.sep,.flip.open .face.front>h3,.flip.open .face.front>.list,.flip.open .face.front>.notes,.flip.open .face.front>span.small{animation:fxin .5s 1.1s both}
+.face.front>.glare{position:absolute;inset:0;z-index:4;pointer-events:none;border-radius:inherit;background:radial-gradient(45% 35% at var(--gx,50%) var(--gy,30%),rgb(255 255 255 / .16),transparent 70%);opacity:0;transition:opacity .3s}
+.flip.tilt .glare{opacity:1}
+
+/* صورة دورك الصغيرة فوق خيارات الليل */
+.mebadge{--c:var(--town);display:flex;align-items:center;gap:10px;align-self:flex-start;padding-block:4px;padding-inline:4px 14px;border-radius:99px;background:var(--bg);border:1px solid color-mix(in srgb,var(--c) 50%,var(--line));font-size:.9rem;animation:slideIn .45s cubic-bezier(.2,.8,.2,1) both}
+.mebadge b{color:var(--c)}
+.fs{width:46px;height:46px;flex:none;display:block;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 50% 100%,color-mix(in srgb,var(--c,var(--brass)) 55%,#000),#0e0b0a);box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--c,var(--brass)) 60%,transparent)}
+.fs .ch{width:100%;height:100%}
+.li .fs{width:34px;height:34px}
+
+/* اللي يسولف: صورته وموجات صوت */
+.spav{--c:var(--brass);position:relative;width:84px;height:84px;display:grid;place-items:center}
+.spav span{position:relative;z-index:1;width:70px;height:70px;border-radius:50%;display:grid;place-items:center;font-family:var(--ruqaa);font-weight:700;font-size:2.2rem;line-height:1;color:#1d1408;
+  background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--c) 55%,#fff),var(--c) 60%,color-mix(in srgb,var(--c) 60%,#000));box-shadow:0 6px 18px rgb(0 0 0 / .45);animation:talk .9s ease-in-out infinite}
+.spav i{position:absolute;inset:7px;border-radius:50%;border:2px solid var(--c);opacity:0;animation:wave 1.8s ease-out infinite}
+.spav i:nth-child(2){animation-delay:.6s}.spav i:nth-child(3){animation-delay:1.2s}
+@keyframes wave{0%{transform:scale(.95);opacity:.85}100%{transform:scale(1.6);opacity:0}}
+@keyframes talk{50%{transform:scale(1.05)}}
+.timer.end .spav i,.timer.end .spav span{animation:none}
+
+/* بولارويد اللي طلع */
+.pola{position:relative;z-index:2;background:#f3ecdc;padding:10px 10px 0;width:min(176px,48vw);box-shadow:0 24px 60px rgb(0 0 0 / .65);transform:rotate(-4deg);animation:polaIn .9s .1s cubic-bezier(.2,1.25,.4,1) both}
+.pola::before{content:"";position:absolute;top:-10px;left:50%;width:62px;height:20px;margin-left:-31px;background:rgb(240 220 160 / .7);transform:rotate(3deg)}
+.pola .ph{position:relative;aspect-ratio:1;overflow:hidden;background:#1b1512}
+.pola .ph svg{display:block;width:100%;height:100%}
+.pola .cap{font-family:var(--ruqaa);font-weight:700;color:#1d1408;text-align:center;font-size:1.5rem;line-height:1.2;padding:4px 2px 8px;overflow-wrap:anywhere}
+.pola.x .anon{filter:grayscale(.55) sepia(.3)}
+.pola .xm,.pola .am{position:absolute;inset:0}
+.pola .xm path{fill:none;stroke:#d8251c;stroke-width:11;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100;animation:cut .3s 1s ease-out forwards;filter:drop-shadow(0 0 6px rgb(255 40 30 / .6))}
+.pola .xm path+path{animation-delay:1.25s}
+.pola .am{stroke:#ff3b30;stroke-width:3;animation:aim 1s .6s cubic-bezier(.2,.8,.2,1) both}
+@keyframes polaIn{from{transform:translateY(-70vh) rotate(28deg);opacity:0}70%{transform:translateY(6px) rotate(-7deg)}}
+.fx-out .pola{margin-top:4px}
+.fx-out .pola .stamp{position:absolute;inset:0;margin:auto;width:fit-content;height:fit-content;font-size:3.4rem;padding:0 16px;line-height:1.2;background:rgb(13 9 4 / .6);animation-delay:1s}
+.fx-snipe .pola{transform:rotate(3deg)}
+
+/* آخر اللعبة: الكل ينكشف كرته */
+.reveal{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+.mini{--c:var(--town);position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:0 6px 10px;border-radius:14px;overflow:hidden;text-align:center;min-width:0;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 32%,#0e0b0a),var(--panel2) 72%);border:1px solid color-mix(in srgb,var(--c) 45%,var(--line));animation:miniIn .7s cubic-bezier(.2,1.2,.4,1) both}
+.mini.m{--c:var(--blood)}
+.mini .ch{width:100%;height:auto}
+.mini b{font-size:.92rem;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mini .chip{font-size:.72rem;white-space:normal;justify-content:center}
+.mini.out .ch{filter:grayscale(.85) brightness(.7)}
+.mini.out::after{content:"طلع";position:absolute;top:8px;inset-inline-end:-22px;transform:rotate(-35deg);background:var(--blood);color:#fff;font-size:.7rem;font-weight:800;padding:1px 26px}
+.mini.me{box-shadow:0 0 0 2px var(--brass)}
+@keyframes miniIn{from{transform:perspective(600px) rotateY(90deg) scale(.8);opacity:0}}
+
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}
 }
@@ -625,6 +733,53 @@ const ICON={
   citizen:'<svg viewBox="0 0 64 64" fill="currentColor"><circle cx="32" cy="18" r="11"/><path d="M10 58c0-13 10-22 22-22s22 9 22 22z"/></svg>',
   emblem:'<svg viewBox="0 0 64 64" fill="currentColor"><path d="M10 40h44l-4 6H14zM18 38c0-10 6-18 14-18s14 8 14 18zM22 20h20l-2-8H24z"/></svg>'
 };
+
+/* ---------- الشخصيات: رسمة لكل دور، ترمش وتتنفس ---------- */
+const PC={skin:"#c98d63",neck:"#a56f4a",ink:"#1a1210"};
+const pHead=()=>`<circle cx="50" cy="84" r="7" fill="${PC.skin}"/><circle cx="110" cy="84" r="7" fill="${PC.skin}"/><ellipse cx="80" cy="80" rx="30" ry="34" fill="${PC.skin}"/><path d="M80 84q-4 9 1 11" stroke="#8a5a3c" stroke-width="2.2" fill="none" stroke-linecap="round"/><ellipse cx="63" cy="94" rx="5" ry="3" fill="#e0705a" opacity=".25"/><ellipse cx="97" cy="94" rx="5" ry="3" fill="#e0705a" opacity=".25"/>`;
+const pEyes=`<g class="eyes"><ellipse cx="69" cy="81" rx="3.3" ry="4.5" fill="${PC.ink}"/><ellipse cx="91" cy="81" rx="3.3" ry="4.5" fill="${PC.ink}"/><circle cx="70.2" cy="79.4" r="1.1" fill="#fff"/><circle cx="92.2" cy="79.4" r="1.1" fill="#fff"/></g>`;
+const pNeck=`<path d="M68 102h24v24H68z" fill="${PC.neck}"/>`;
+const pMust=`<path d="M63 100q9-8 17-3q8-5 17 3q-8 5-17 1q-9 4-17-1z" fill="${PC.ink}"/>`;
+const pBody=c=>`<path d="M12 182c4-42 30-60 68-60s64 18 68 60z" fill="${c}"/>`;
+const pLine=(d,w=3)=>`<path d="${d}" stroke="${PC.ink}" stroke-width="${w}" stroke-linecap="round" fill="none"/>`;
+const CHAR={
+  mafia:`<g class="torso">${pNeck}${pBody("#16110f")}<path d="M66 122l14 40 14-40z" fill="#efe3c8"/><path d="M76 124h8l-1 6h-6z" fill="#8f2420"/><path d="M77 129h6l3 24-6 8-6-8z" fill="#b8322c"/><path d="M64 122 50 136l24 44-6-40zM96 122l14 14-24 44 6-40z" fill="#0a0807"/><path d="M104 148l10-3 2 6-10 2z" fill="#c9a35b"/></g>
+    <g class="hd">${pHead()}<path d="M50 66q-2 12 2 22l4-2q-2-10 0-18zM110 66q2 12-2 22l-4-2q2-10 0-18z" fill="${PC.ink}"/>${pLine("M60 69q7-2 14 1")}<path class="brow" d="M86 68q7-4 14 0" stroke="${PC.ink}" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <rect x="57" y="74" width="21" height="13" rx="5" fill="#0b0b0e"/><rect x="82" y="74" width="21" height="13" rx="5" fill="#0b0b0e"/><path d="M78 78h4" stroke="#0b0b0e" stroke-width="3"/><path class="glint" d="M60 77h7M85 77h7" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+    <path d="M61 101q10-10 19-4q9-6 19 4q-9 6-19 1q-10 5-19-1z" fill="${PC.ink}"/><path d="M74 108q6 2 10 0" stroke="#5a2a1a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <path d="M86 107l20-5" stroke="#efe3c8" stroke-width="3.4" stroke-linecap="round"/><path d="M86 107l5-1.3" stroke="#c9a35b" stroke-width="3.6" stroke-linecap="round"/><circle class="ember" cx="107" cy="101.7" r="2.2" fill="#ff6a3d"/>
+    <path class="smk" d="M108 98c-4-6 4-10 0-16s4-10 0-16" stroke="#c9ced2" stroke-width="2.2" fill="none" stroke-linecap="round"/><path class="smk d2" d="M108 98c4-6-4-10 0-16s-4-10 0-16" stroke="#c9ced2" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <g transform="rotate(-5 80 50)"><path d="M54 56c0-24 10-32 26-32s26 8 26 32z" fill="#17110f"/><path d="M68 30q12 8 24 0" stroke="#0a0807" stroke-width="3" fill="none"/><rect x="54" y="47" width="52" height="8" fill="#7a1d1b"/><ellipse cx="80" cy="57" rx="46" ry="8" fill="#0f0b0a"/><path d="M36 57q44 10 88 0" stroke="#c9a35b" stroke-opacity=".4" stroke-width="1.5" fill="none"/></g></g>`,
+  cop:`<g class="torso">${pNeck}${pBody("#22314d")}<path d="M66 122l14 16 14-16-4 18-10 6-10-6z" fill="#9cb4d8"/><path d="M77 134h6l2 22-5 6-5-6z" fill="#0e1626"/><path d="M24 150q14-14 30-18l2 8q-16 4-28 16zM136 150q-14-14-30-18l-2 8q16 4 28 16z" fill="#c9a35b"/>
+    <path class="badge" d="M112 144l3.5 7 7.5 1-5.5 5 1.5 7.5-7-4-7 4 1.5-7.5-5.5-5 7.5-1z" fill="#e9c46a" stroke="#a07415"/><path d="M44 160h20" stroke="#0e1626" stroke-width="2"/></g>
+    <g class="hd">${pHead()}${pEyes}${pLine("M61 69l14 4M99 69l-14 4",3.4)}${pMust}<path d="M74 107h12" stroke="#5a2a1a" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M48 60q0-30 32-32q32 2 32 32z" fill="#1d2a44"/><rect x="48" y="52" width="64" height="9" rx="2" fill="#0e1626"/><path d="M48 61q32 14 64 0l-3 7q-29 11-58 0z" fill="#0b0b0e"/><path d="M50 61q30 6 60 0" stroke="#c9a35b" stroke-width="1.6" fill="none"/><circle class="badge" cx="80" cy="44" r="6.5" fill="#e9c46a" stroke="#a07415"/></g>`,
+  doctor:`<g class="torso">${pNeck}${pBody("#f1eee7")}<path d="M64 122l16 30 16-30z" fill="#4fa38c"/><path d="M62 122 48 138l26 44-8-40zM98 122l14 16-26 44 8-40z" fill="#e2ddd2"/>
+    <path d="M66 124q-10 26 8 38M94 124q10 26-8 38M74 162q6 6 12 0" stroke="#3b3f45" stroke-width="3" fill="none"/><circle cx="80" cy="170" r="6" fill="#b9c0c8" stroke="#3b3f45" stroke-width="2"/>
+    <g class="cat"><path class="ear" d="M118 150l3-12 8 8z" fill="#e0913c"/><path class="ear e2" d="M140 150l-3-12-8 8z" fill="#e0913c"/><ellipse cx="129" cy="158" rx="13" ry="11" fill="#e0913c"/><path d="M123 150q6 3 12 0" stroke="#b86a20" stroke-width="2" fill="none"/><g class="ceyes"><ellipse cx="124" cy="157" rx="2" ry="2.8" fill="${PC.ink}"/><ellipse cx="134" cy="157" rx="2" ry="2.8" fill="${PC.ink}"/></g><path d="M127 162l2 2 2-2" stroke="${PC.ink}" stroke-width="1.4" fill="none"/><path d="M117 161h-8M117 164l-7 2M141 161h8M141 164l7 2" stroke="#fff" stroke-width="1"/><path d="M113 167h32v15h-32z" fill="#e2ddd2"/><path d="M113 167h32" stroke="#cfc8b8" stroke-width="2"/></g></g>
+    <g class="hd">${pHead()}<path d="M49 78q-3-36 31-38q34 2 31 38q-4-18-14-22q-10 6-34 2q-10 4-14 20z" fill="#2a1d14"/>${pEyes}<g fill="none" stroke="#3a2d22" stroke-width="2.4"><circle cx="69" cy="81" r="9"/><circle cx="91" cy="81" r="9"/><path d="M78 81h4M60 80l-9-3M100 80l9-3"/></g>${pLine("M61 67q7-4 14 0M85 67q7-4 14 0",2.8)}<path d="M70 101q10 11 20 0z" fill="#5a2a1a"/><path d="M72.5 101.5h15v2.6h-15z" fill="#fff"/></g>`,
+  sniper:`<g class="torso">${pNeck}${pBody("#4b5733")}<g fill="#35401f"><circle cx="30" cy="160" r="9"/><circle cx="46" cy="140" r="8"/><circle cx="118" cy="140" r="8"/><circle cx="134" cy="160" r="9"/><circle cx="62" cy="172" r="7"/><circle cx="102" cy="172" r="7"/></g><g fill="#6b7a45"><circle cx="38" cy="150" r="5"/><circle cx="126" cy="150" r="5"/><circle cx="80" cy="176" r="6"/></g><path d="M40 136l60 46" stroke="#2a2a22" stroke-width="7"/></g>
+    <g class="hd">${pHead()}<path d="M57 91l12-3M57 96l12-3M91 88l12 3M91 93l12 3" stroke="#3a4a24" stroke-width="3" stroke-linecap="round" opacity=".8"/><g class="eyes"><ellipse cx="69" cy="81" rx="3.3" ry="4.5" fill="${PC.ink}"/><circle cx="70.2" cy="79.4" r="1.1" fill="#fff"/></g>${pLine("M61 70q7-3 14 1")}${pLine("M86 81q5-2 10 0",2.6)}
+    <g class="scope"><circle cx="91" cy="81" r="11" fill="#ff4a3a" fill-opacity=".14" stroke="#1d1d1d" stroke-width="4.5"/><path d="M91 72v18M82 81h18" stroke="#1d1d1d" stroke-width="1.2"/><circle class="dot" cx="91" cy="81" r="1.8" fill="#ff3b30"/><path d="M102 81h8" stroke="#1d1d1d" stroke-width="4"/></g>
+    <path d="M73 106q8 3 14-2" stroke="#5a2a1a" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M46 62q0-26 36-28q36 2 32 22q-30-4-68 6z" fill="#3d4a2a"/><path d="M46 62q34-8 68-6" stroke="#2a3419" stroke-width="5" fill="none" stroke-linecap="round"/><circle cx="62" cy="53" r="4" fill="#c9a35b"/></g>`,
+  citizen:`<g class="torso">${pNeck}${pBody("#f4f1ea")}<path d="M68 124q12 8 24 0" stroke="#d8d2c4" stroke-width="3" fill="none"/><path d="M80 128v34" stroke="#d8d2c4" stroke-width="2"/><circle cx="80" cy="140" r="1.8" fill="#c9bfa8"/><circle cx="80" cy="150" r="1.8" fill="#c9bfa8"/>
+    <path d="M45 86q-10 40-19 86q22 10 40-4l2-60zM115 86q10 40 19 86q-22 10-40-4l-2-60z" fill="#fbfaf6" stroke="#ddd6c8"/></g>
+    <g class="hd"><path d="M44 92q-6-60 36-62q42 2 36 62z" fill="#efece4"/>${pHead()}${pEyes}${pLine("M61 68q7-4 14 0M85 68q7-4 14 0")}${pMust}<path d="M71 104q9 10 18 0z" fill="#5a2a1a"/><path d="M73 104.5h14v2.4h-14z" fill="#fff"/><path d="M75 113q5 5 10 0l-2 6q-3 2-6 0z" fill="${PC.ink}"/>
+    <path d="M47 86q-4-48 33-50q37 2 33 50q-6-26-33-28q-27 2-33 28z" fill="#fbfaf6" stroke="#ddd6c8"/><path d="M50 55q30-14 60 0" stroke="#141010" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M51 61q29-12 58 0" stroke="#141010" stroke-width="4.5" fill="none" stroke-linecap="round"/></g>`
+};
+/* vb: "full" للكرت، "head" للصورة الصغيرة، "bust" للكروت الصغيرة */
+const PVB={full:"0 0 160 182",head:"36 30 88 88",bust:"8 22 144 160"};
+const portrait=(r,vb="full",cls="")=>CHAR[r]?`<svg class="ch ch-${r} ${cls}" viewBox="${PVB[vb]}" aria-hidden="true">${CHAR[r]}</svg>`:"";
+/* صورة لاعب ما ينعرف دوره: ظل بلون مقعده وأول حرف من اسمه */
+function anon(name){const c=seatColor(name),l=esc([...(name||"")][0]||"؟");
+  return`<svg class="anon" viewBox="0 0 120 120" aria-hidden="true"><rect width="120" height="120" fill="#201915"/><circle cx="60" cy="120" r="70" fill="${c}" opacity=".12"/><path d="M14 124c2-34 22-48 46-48s44 14 46 48z" fill="${c}" opacity=".8"/><circle cx="60" cy="46" r="25" fill="${c}"/><text x="60" y="56" text-anchor="middle" font-family="Aref Ruqaa,serif" font-weight="700" font-size="30" fill="#1d1408">${l}</text></svg>`}
+/* صورة بولارويد للي طلع، والعلامة حسب طريقة طلعته */
+function polaroid(name,mark){
+  const m=mark==="x"?`<svg class="xm" viewBox="0 0 100 100" aria-hidden="true"><path d="M18 18 82 82M82 18 18 82"/></svg>`:mark==="out"?`<div class="stamp">طلع</div>`:mark==="aim"?`<svg class="am" viewBox="0 0 100 100" fill="none" aria-hidden="true"><circle cx="50" cy="50" r="30"/><path d="M50 8v24M50 68v24M8 50h24M68 50h24"/></svg>`:"";
+  return`<div class="pola ${mark||""}"><div class="ph">${anon(name)}${m}</div><div class="cap">${esc(name)}</div></div>`}
+function meBadge(){const r=st.me&&st.me.role;if(!ROLE[r])return"";const c=ROLE[r].team==="m"?"var(--blood)":"var(--town)";
+  return`<div class="mebadge" style="--c:${c}"><span class="fs">${portrait(r,"head")}</span><span>دورك: <b>${ROLE[r].n}</b></span></div>`}
+const SKY=`<svg class="sky" viewBox="0 0 360 70" preserveAspectRatio="none" fill="currentColor" aria-hidden="true"><path d="M0 70V40h22V28h18v12h14V18h20v22h16V30h24v40zM130 70V34h20V22h10v-8h4v8h10v12h18v36zM210 70V44h16V26h22v18h14V34h20v36zM290 70V30h18V20h14v10h16v14h22v26z"/></svg>`;
 
 const LAMP=`<div class="lamp" aria-hidden="true"><div class="rig"><span class="cord"></span><svg class="shade" width="96" height="56" viewBox="0 0 120 70"><defs><linearGradient id="sh" x1="0" x2="1"><stop offset="0" stop-color="#1f1a16"/><stop offset=".45" stop-color="#4e4237"/><stop offset="1" stop-color="#16120f"/></linearGradient></defs><rect x="54" y="0" width="12" height="12" rx="2" fill="#2d2621"/><path d="M44 12h32l40 46H4z" fill="url(#sh)"/><path d="M4 58h112" stroke="#c9a35b" stroke-opacity=".5" stroke-width="2"/><ellipse class="bulb" cx="60" cy="60" rx="16" ry="7" fill="#ffe2a6"/></svg></div><span class="beam"></span></div>`;
 const SCENE_NIGHT=`<svg class="scene-svg" viewBox="0 0 360 260" aria-hidden="true"><defs><linearGradient id="bm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd98c" stop-opacity=".5"/><stop offset="1" stop-color="#ffd98c" stop-opacity="0"/></linearGradient></defs>
@@ -933,12 +1088,12 @@ function playNext(){
   else if(e.type==="deal"){cls="fx-deal";dur=2400;html=`<div class="fan">${[-30,-15,0,15,30].map((r,i)=>`<i style="transform:rotate(${r}deg);animation-delay:${i*.06}s"></i>`).join("")}</div><div class="big">توزعت الكروت</div><div class="sub">${isMe?"اقلب كرتك وغطّ الشاشة عن اللي جنبك":"كل واحد يشوف دوره بتلفونه"}</div>`;dealAnim=true;buzz(60)}
   else if(e.type==="dusk"){cls="fx-dusk";dur=7000;html=stars(30)+SCENE_NIGHT+`<div class="big">الليل</div><div class="sub">كل واحد يتابع تلفونه</div>`}
   else if(e.type==="dawn"){cls="fx-dawn";dur=7000;html=SCENE_DAY+`<div class="big">الصبح</div><div class="sub">بدا النهار</div>`}
-  else if(e.type==="kill"){cls="fx-kill";dur=12000;const tape="مسرح جريمة · لا تقرب · ".repeat(8);html=`<div class="tape t1"><span>${tape}</span></div><div class="tape t2"><span>${tape}</span></div><svg class="chalk" viewBox="0 0 220 150" aria-hidden="true"><path class="ln" d="M110 22a14 14 0 1 1-0.1 0M104 50c-6 2-10 8-12 16l-30-8-22 10M116 50c6 2 10 8 12 16l26-20 24-4M96 66l-2 30-20 26-24 6M124 66l4 30 14 28 22 10M96 96h30"/><path class="ln2" d="M150 30c8-8 22-8 30 0l4 6h-38zM144 36h46"/><circle class="blood" cx="120" cy="84" r="9"/></svg><div class="big">فقص</div><div class="sub">${esc(e.who)} طلع من اللعبة</div><div class="sub" style="animation-delay:1.3s">صيدة سهلة والبيطري مدوّج 😴</div>${e.sniper?`<div class="chip m" style="font-size:1rem">قناص! بيسحب واحد وياه</div>`:""}`;buzz([80,60,200])}
+  else if(e.type==="kill"){cls="fx-kill";dur=12000;const tape="مسرح جريمة · لا تقرب · ".repeat(8);html=`<div class="tape t1"><span>${tape}</span></div><div class="tape t2"><span>${tape}</span></div>${polaroid(e.who,"x")}<div class="big">فقص</div><div class="sub">${esc(e.who)} طلع من اللعبة</div><div class="sub" style="animation-delay:1.3s">صيدة سهلة والبيطري مدوّج 😴</div>${e.sniper?`<div class="chip m" style="font-size:1rem">قناص! بيسحب واحد وياه</div>`:""}`;buzz([80,60,200])}
   else if(e.type==="saved"){cls="fx-saved";dur=12000;html=`<svg class="cross" viewBox="0 0 64 64" fill="currentColor"><path d="M24 6h16v18h18v16H40v18H24V40H6V24h18z"/></svg><svg class="ecg" viewBox="0 0 320 90"><path d="M0 50 H90 L105 20 L120 80 L140 8 L158 70 L172 50 H320"/></svg><div class="big">اغتيال شامط</div><div class="sub">البيطري موجووووود 🔥</div>`;buzz([40,80,40])}
-  else if(e.type==="nokill"){cls="fx-dawn";dur=12000;html=`<div class="sun"></div><div class="big">خرمس</div><div class="sub">المافيا ما عرفوا يفقصون</div>`}
-  else if(e.type==="out"){cls="fx-out hit";dur=12000;html=`<svg class="gavel" viewBox="0 0 120 120" aria-hidden="true"><g class="gv"><rect x="54" y="40" width="10" height="66" rx="4" fill="#8a5a33"/><rect x="26" y="14" width="66" height="30" rx="8" fill="#5a3720" stroke="#c9a35b" stroke-width="3"/><rect x="21" y="19" width="9" height="20" rx="2" fill="#c9a35b"/><rect x="88" y="19" width="9" height="20" rx="2" fill="#c9a35b"/></g><ellipse cx="59" cy="112" rx="40" ry="6" fill="#2a1a0c"/></svg><div class="stamp">طلع</div><div class="sub" style="margin-top:14px">${esc(e.who)} طلع بالتصويت</div><div class="muted">${ar(e.votes)} صوت</div>${e.sniper?`<div class="chip m" style="font-size:1rem">قناص! بيسحب واحد وياه</div>`:""}`;buzz([30,40,160])}
+  else if(e.type==="nokill"){cls="fx-dawn";dur=12000;html=SCENE_DAY+`<div class="big">خرمس</div><div class="sub">المافيا ما عرفوا يفقصون</div>`}
+  else if(e.type==="out"){cls="fx-out hit";dur=12000;html=`<svg class="gavel" viewBox="0 0 120 120" aria-hidden="true"><g class="gv"><rect x="54" y="40" width="10" height="66" rx="4" fill="#8a5a33"/><rect x="26" y="14" width="66" height="30" rx="8" fill="#5a3720" stroke="#c9a35b" stroke-width="3"/><rect x="21" y="19" width="9" height="20" rx="2" fill="#c9a35b"/><rect x="88" y="19" width="9" height="20" rx="2" fill="#c9a35b"/></g><ellipse cx="59" cy="112" rx="40" ry="6" fill="#2a1a0c"/></svg>${polaroid(e.who,"out")}<div class="sub" style="margin-top:14px">${esc(e.who)} طلع بالتصويت</div><div class="muted">${ar(e.votes)} صوت</div>${e.sniper?`<div class="chip m" style="font-size:1rem">قناص! بيسحب واحد وياه</div>`:""}`;buzz([30,40,160])}
   else if(e.type==="tie"){cls="fx-tie";dur=12000;html=`<svg class="scale" viewBox="0 0 120 90" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"><path d="M60 8v74M30 84h60M14 22h92M14 22 4 52h22zM106 22l-10 30h22z"/></svg><div class="big">${e.none?"ما أحد صوّت":"تعادل"}</div><div class="sub">التصويت ما ينحسب</div>`}
-  else if(e.type==="snipe"){cls="fx-snipe";dur=12000;html=`<div style="position:relative"><svg class="cross-h" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="50" cy="50" r="36"/><circle cx="50" cy="50" r="22" stroke-dasharray="4 5"/><path d="M50 2v26M50 72v26M2 50h26M72 50h26"/></svg><div class="who">${esc(e.who)}</div></div><div class="big" style="font-size:2.4rem">القناص سحبه</div>`;buzz([20,30,20,30,200])}
+  else if(e.type==="snipe"){cls="fx-snipe";dur=12000;html=`${polaroid(e.who,"aim")}<div class="big" style="font-size:2.4rem">القناص سحبه</div>`;buzz([20,30,20,30,200])}
   else if(e.type==="cast"){cls="fx-cast hit";dur=2600;
     const me=st&&st.me&&st.me.id;
     html=`<div class="voter">${e.v===me?"أنت صوّتت على":esc(e.voter)+" صوّت على"}</div><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v15M5 12l7 7 7-7"/></svg><div class="target">${e.t===me?"أنت":esc(e.target)}</div>${e.next?`<div class="nextup">${e.nextMe?"<b>دورك الحين!</b>":"الدور على "+esc(e.next)}</div>`:`<div class="nextup">الكل صوّت</div>`}`;
@@ -1111,7 +1266,7 @@ function header(){
   return demoBar()+`<div class="top"><div><h2>${st.judge?"القاضي":esc(me&&me.name||"")}</h2><span class="chip b">${PHASE_N[st.phase]||""}${st.round&&st.phase!=="lobby"&&st.phase!=="over"?" · الجولة "+ar(st.round):""}</span></div>
   <div class="row" style="align-items:center">${st.phase==="lobby"?`<span class="code">${ar(st.code)}</span>`:""}<button class="btn sm ghost" data-a="leave">اطلع</button></div></div>
   ${(()=>{const mine=st.me&&st.timer&&st.timer.pid===st.me.id;
-    return`<div class="timer" id="timer" hidden><span class="lab">${mine?"جا دورك":"يسولف الحين"}</span><div class="who">${mine?"دورك!":st.timer?esc(st.timer.name):""}</div><div class="ring"><svg viewBox="0 0 62 62"><circle class="bgc" cx="31" cy="31" r="26"/><circle class="fgc" cx="31" cy="31" r="26" stroke-dasharray="163.36" stroke-dashoffset="0"/></svg><div class="t">40</div></div><div class="over">${mine?"بس بس لا تكثر":"بس بس لا يكثر"}</div></div>`})()}
+    return`<div class="timer" id="timer" hidden><span class="lab">${mine?"جا دورك":"يسولف الحين"}</span>${st.timer?`<div class="spav" style="--c:${mine?"var(--brass)":seatColor(st.timer.name||"")}"><i></i><i></i><i></i><span>${esc([...(st.timer.name||"")][0]||"؟")}</span></div>`:""}<div class="who">${mine?"دورك!":st.timer?esc(st.timer.name):""}</div><div class="ring"><svg viewBox="0 0 62 62"><circle class="bgc" cx="31" cy="31" r="26"/><circle class="fgc" cx="31" cy="31" r="26" stroke-dasharray="163.36" stroke-dashoffset="0"/></svg><div class="t">40</div></div><div class="over">${mine?"بس بس لا تكثر":"بس بس لا يكثر"}</div></div>`})()}
   ${st.announce&&st.phase!=="lobby"?`<p class="announce ${(()=>{const c=st.announce!==lastAnn;lastAnn=st.announce;return c?"changed":""})()}">${esc(ar(st.announce))}</p>`:""}`;
 }
 /* لوحة التصويت: دور منو، ترتيب الأصوات، ومنو صوّت على منو */
@@ -1177,7 +1332,7 @@ function rolesBoard(){
   const J=st.judge,ids=Object.keys(J.roles);
   const order=["mafia","cop","doctor","sniper","citizen"];
   const by=r=>ids.filter(i=>J.roles[i]===r);
-  const cell=(r,i)=>{const p=P(i);return`<div class="li ${p.alive?"":"out"}">${dot(p)}<span class="ico" style="width:22px;height:22px;flex:none;color:var(--${ROLE[r].team==="m"?"blood":"town"})">${ICON[r]}</span><span class="nm">${esc(p.name||"لاعب")}</span><span class="chip ${ROLE[r].team}">${ROLE[r].n}${J.fakeCop===i?" · نصاب":""}</span>${p.alive?"":`<span class="small muted">طالع</span>`}</div>`};
+  const cell=(r,i)=>{const p=P(i);return`<div class="li ${p.alive?"":"out"}">${dot(p)}<span class="fs" style="--c:var(--${ROLE[r].team==="m"?"blood":"town"})">${portrait(r,"head")}</span><span class="nm">${esc(p.name||"لاعب")}</span><span class="chip ${ROLE[r].team}">${ROLE[r].n}${J.fakeCop===i?" · نصاب":""}</span>${p.alive?"":`<span class="small muted">طالع</span>`}</div>`};
   const group=(t,title)=>`<div><h3 style="color:var(--${t==="m"?"blood":"town"})">${title}</h3><div class="list">${order.filter(r=>ROLE[r].team===t).flatMap(r=>by(r).map(i=>cell(r,i))).join("")}</div></div>`;
   const out=ids.filter(i=>!P(i).alive).length;
   return`<div class="panel roles"><button class="roles-head" data-a="roles" aria-expanded="${rolesOpen}"><h2>الأدوار</h2><span class="muted small">${ids.length-out} باقين${out?` · ${out} طلعوا`:""}</span><span class="chev ${rolesOpen?"up":""}">⌄</span></button>${rolesOpen?`<div class="roles-body ${rolesJust?"anim":""}">${group("m","المافيا")}${group("t","الشعب")}</div>`:""}</div>`;
@@ -1288,15 +1443,15 @@ function playerView(){
 }
 function cardView(){
   const me=st.me,r=ROLE[me.role],accent=r.team==="m"?"var(--blood)":"var(--town)";
-  let front=`<span class="chip ${r.team}" style="align-self:flex-start">${r.team==="m"?"المافيا":"الشعب"}</span>
-    <div style="display:flex;align-items:center;gap:12px"><span class="ico">${ICON[me.role]}</span><span class="rn">${r.n}${me.fake?"<br><small style='font-size:1.1rem'>والنصاب</small>":""}</span></div>
+  let front=`<div class="art">${SKY}${portrait(me.role)}<span class="chip ${r.team} tm">${r.team==="m"?"المافيا":"الشعب"}</span></div>
+    <div class="ribbon"><span class="rn">${r.n}${me.fake?"<br><small style='font-size:1.1rem'>والنصاب</small>":""}</span></div>
     <p class="muted">${r.d}${me.fake?" ربعك عيّنوك النصاب: إذا قال القاضي الشرطة يرفعون إيدهم، ارفع إيدك وسوّ نفسك مجنون 🤪":""}</p>`;
   if(me.team)front+=`<div class="sep"></div><h3>ربعك المافيا</h3><div class="list">${me.team.map(t=>`<div class="li ${isAlive(t.id)?"":"out"}"><span class="nm">${esc(nm(t.id))}${t.id===me.id?" (أنت)":""}</span><span class="chip m">${ROLE[t.role].n}${t.fake?" · نصاب":""}</span></div>`).join("")}</div>`;
   if(me.notes&&me.notes.length)front+=`<div class="sep"></div><h3>بينك وبين نفسك</h3><ul class="notes">${me.notes.map(n=>`<li>${esc(ar(n))}</li>`).join("")}</ul>`;
   front+=`<span class="muted small">دوس عشان تقلبه وتخبيه</span>`;
   return`<button class="flip ${cardOpen?"open":""} ${dealAnim?"deal":""}" data-a="card" aria-label="كرتك" style="--accent:${accent}"><div class="flip-in">
     <div class="face back"><span class="emb">${ICON.emblem}</span><span style="font-family:var(--display);font-size:1.5rem">كرتك</span><span class="muted small hint">دوس عشان تقلبه، وغطّ الشاشة عن اللي جنبك</span></div>
-    <div class="face front"><span class="rfx rfx-${me.role}"></span>${front}</div></div></button>`;
+    <div class="face front"><span class="rfx rfx-${me.role}"></span>${front}<span class="glare"></span></div></div></button>`;
 }
 const popSeen=new Set();
 function picker(k,ids,red){
@@ -1316,15 +1471,15 @@ function aliveList(){
 function actionView(){
   const p=st.phase,me=st.me,role=me.role,al=aliveIds(),others=al.filter(i=>i!==me.id);
   const nightBox=t=>`<div class="panel nightbox"><div class="zz"><span class="leye"><i></i></span><span class="leye"><i></i></span><b>z</b><b>z</b><b>z</b></div><h2>${t||"غمّض عيونك"}</h2><p class="muted small">مو دورك الحين، القاضي بيصحّيك.</p></div>`;
-  if(st.sniperPending===me.id)return`<div class="panel"><h2>أنت القناص</h2><p>اختار واحد يطلع وياك. دوره يطلع لك أنت والقاضي بس.</p>${picker("snipe",others,true)}</div>`;
+  if(st.sniperPending===me.id)return`<div class="panel">${meBadge()}<h2>أنت القناص</h2><p>اختار واحد يطلع وياك. دوره يطلع لك أنت والقاضي بس.</p>${picker("snipe",others,true)}</div>`;
   if(p==="night0"){
-    if(st.step==="mafia"&&isM(role))return`<div class="panel"><h2>اختاروا النصاب بينكم</h2><p class="muted small">كل واحد يختار من ربعه، حتى نفسه. الأغلبية تفوز، وإذا تعادلتوا القاضي يختار.</p>${picker("fakecop",me.team.filter(t=>isAlive(t.id)).map(t=>t.id))}${teamPicks()}${(()=>{const f=me.team.find(t=>t.fake);return`<p class="announce" style="font-size:1.05rem">النصاب: ${f?(f.id===me.id?"أنت! إذا قال القاضي الشرطة يرفعون إيدهم، ارفع إيدك وسوّ نفسك مجنون 🤪":esc(nm(f.id))):"ما تحدد للحين"}</p>`})()}</div>`;
+    if(st.step==="mafia"&&isM(role))return`<div class="panel">${meBadge()}<h2>اختاروا النصاب بينكم</h2><p class="muted small">كل واحد يختار من ربعه، حتى نفسه. الأغلبية تفوز، وإذا تعادلتوا القاضي يختار.</p>${picker("fakecop",me.team.filter(t=>isAlive(t.id)).map(t=>t.id))}${teamPicks()}${(()=>{const f=me.team.find(t=>t.fake);return`<p class="announce" style="font-size:1.05rem">النصاب: ${f?(f.id===me.id?"أنت! إذا قال القاضي الشرطة يرفعون إيدهم، ارفع إيدك وسوّ نفسك مجنون 🤪":esc(nm(f.id))):"ما تحدد للحين"}</p>`})()}</div>`;
     if(st.step==="police"&&role==="cop")return queryBox(others);
     return nightBox();
   }
   if(p==="night"){
-    if(st.step==="mafia"&&isM(role))return`<div class="panel"><h2>منو تفقصون؟</h2><p class="muted small">كل واحد يختار، وربعك يشوفون اختيارك. الأغلبية تفوز، وإذا تعادلتوا القاضي يختار من اختياراتكم.</p>${picker("kill",others,true)}${teamPicks()}${mateCard()}</div>`;
-    if(st.step==="doctor"&&role==="doctor")return`<div class="panel"><h2>منو تفزع له؟</h2><p class="muted small">تقدر تختار نفسك.</p>${picker("save",al)}</div>`;
+    if(st.step==="mafia"&&isM(role))return`<div class="panel">${meBadge()}<h2>منو تفقصون؟</h2><p class="muted small">كل واحد يختار، وربعك يشوفون اختيارك. الأغلبية تفوز، وإذا تعادلتوا القاضي يختار من اختياراتكم.</p>${picker("kill",others,true)}${teamPicks()}${mateCard()}</div>`;
+    if(st.step==="doctor"&&role==="doctor")return`<div class="panel">${meBadge()}<h2>منو تفزع له؟</h2><p class="muted small">تقدر تختار نفسك.</p>${picker("save",al)}</div>`;
     if(st.step==="police"&&role==="cop")return queryBox(others);
     return nightBox();
   }
@@ -1370,12 +1525,12 @@ function queryBox(others){
     if(!revealed.has(key)){revealed.set(key,performance.now());buzz(bad?[60,40,60]:40)}
     const age=performance.now()-revealed.get(key),fresh=age<2600,d=`style="animation-delay:-${Math.round(age)}ms"`;
     const ids=others.includes(q)?others:[q,...others];
-    return`<div class="panel"><h2>نتيجة التفتيش</h2>${count}<div class="grid">${ids.map(id=>id===q
+    return`<div class="panel">${meBadge()}<h2>نتيجة التفتيش</h2>${count}<div class="grid">${ids.map(id=>id===q
       ?`<button class="pick res ${bad?"m":"t"} ${fresh?"reveal":""}" ${fresh?d:""} disabled><span class="nmv">${esc(nm(id))}</span><span class="lbl">${word}</span>${fresh?`<span class="flash" ${d}>${word}</span>`:""}</button>`
       :`<button class="pick dim" disabled>${esc(nm(id))}</button>`).join("")}</div><p class="muted small">احفظ الجواب، يروح لما يقلب القاضي للخطوة الجاية.</p></div>`;
   }
   if(!left)return`<div class="panel nightbox"><h2>خلاص قزرتها، ما عندك أسئلة</h2><p style="font-size:1.2rem">عاد الحين أنت وربعك بيّضوها 🔥</p></div>`;
-  return`<div class="panel"><h2>فتّش عن نصاب</h2>${count}<p class="muted small">تفتيش واحد بالليلة، وعدد تفتيشاتك كلها بعدد المافيا. دوس على الشخص والجواب يطلع على اسمه.</p>${picker("query",others)}</div>`;
+  return`<div class="panel">${meBadge()}<h2>فتّش عن نصاب</h2>${count}<p class="muted small">تفتيش واحد بالليلة، وعدد تفتيشاتك كلها بعدد المافيا. دوس على الشخص والجواب يطلع على اسمه.</p>${picker("query",others)}</div>`;
 }
 function bestPanel(){
   const b=st.best||[],town=st.winner==="town";
@@ -1385,7 +1540,7 @@ function bestPanel(){
 }
 function overView(){
   const w=st.winner;
-  return bestPanel()+`<div class="panel"><h2 style="color:var(--${w==="town"?"town":"blood"})">${w==="town"?"فاز الشعب":"فازت المافيا"}</h2><table>${st.players.map(p=>{const r=st.reveal[p.id];return`<tr><td>${esc(p.name)}${p.id===st.me.id?" (أنت)":""}</td><td class="${isM(r.role)?"err":""}">${ROLE[r.role].n}${r.fake?" · النصاب":""}</td></tr>`}).join("")}</table><p class="muted small">انطر القاضي يبدا لعبة جديدة.</p></div>`;
+  return bestPanel()+`<div class="panel"><h2 style="color:var(--${w==="town"?"town":"blood"})">${w==="town"?"فاز الشعب":"فازت المافيا"}</h2><div class="reveal">${st.players.map((p,i)=>{const r=st.reveal[p.id],t=ROLE[r.role].team;return`<div class="mini ${t} ${p.alive?"":"out"} ${p.id===st.me.id?"me":""}" style="animation-delay:${(.4+i*.12).toFixed(2)}s">${portrait(r.role,"bust")}<b>${esc(p.name)}${p.id===st.me.id?" (أنت)":""}</b><span class="chip ${t}">${ROLE[r.role].n}${r.fake?" · النصاب":""}</span></div>`}).join("")}</div><p class="muted small">انطر القاضي يبدا لعبة جديدة.</p></div>`;
 }
 
 /* ---------- الأحداث ---------- */
@@ -1401,8 +1556,9 @@ document.addEventListener("click",e=>{
   else if(a==="demo")startDemo(+($("#demoN")&&$("#demoN").value||8));
   else if(a==="cmd")send({t:b.dataset.c,id});
   else if(a==="card"){
-    cardOpen=!cardOpen;b.classList.toggle("open",cardOpen);
-    buzz(15)}
+    cardOpen=!cardOpen;b.classList.remove("tilt");b.classList.toggle("open",cardOpen);
+    const fi=b.querySelector(".flip-in");if(fi){fi.style.removeProperty("--rx");fi.style.removeProperty("--ry")}
+    buzz(cardOpen?[20,40,60]:15)}
   else if(a==="roles"){const body=document.querySelector(".roles-body");
     if(rolesOpen&&body){body.classList.add("closing");document.querySelector(".chev").classList.remove("up");setTimeout(()=>{rolesOpen=false;render()},230)}
     else{rolesOpen=true;rolesJust=true;render();rolesJust=false}}
@@ -1415,6 +1571,19 @@ document.addEventListener("pointerdown",e=>{
   sp.className="rip";sp.style.cssText=`width:${d}px;height:${d}px;left:${e.clientX-r.left-d/2}px;top:${e.clientY-r.top-d/2}px`;
   b.appendChild(sp);setTimeout(()=>sp.remove(),650);
 });
+/* الكرت يميل مع الإصبع والضو يلحقه */
+const noMotion=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
+document.addEventListener("pointermove",e=>{
+  const f=e.target.closest&&e.target.closest(".flip");if(!f||noMotion())return;
+  const r=f.getBoundingClientRect(),x=Math.min(1,Math.max(0,(e.clientX-r.left)/r.width)),y=Math.min(1,Math.max(0,(e.clientY-r.top)/r.height));
+  const fi=f.querySelector(".flip-in"),open=f.classList.contains("open");if(!fi)return;
+  f.classList.add("tilt");
+  fi.style.setProperty("--rx",((.5-y)*12).toFixed(2)+"deg");fi.style.setProperty("--ry",((x-.5)*(open?-16:16)).toFixed(2)+"deg");
+  f.style.setProperty("--gx",((open?1-x:x)*100).toFixed(1)+"%");f.style.setProperty("--gy",(y*100).toFixed(1)+"%");
+});
+const untilt=f=>{if(!f)return;f.classList.remove("tilt");const fi=f.querySelector(".flip-in");if(fi){fi.style.removeProperty("--rx");fi.style.removeProperty("--ry")}};
+document.addEventListener("pointerout",e=>{const f=e.target.closest&&e.target.closest(".flip");if(f&&!f.contains(e.relatedTarget))untilt(f)});
+document.addEventListener("pointerup",e=>{if(e.pointerType!=="mouse")untilt(e.target.closest&&e.target.closest(".flip"))});
 /* حفظ توكن اللاعب لكل غرفة عشان لو طلع ورجع */
 setInterval(()=>{if(sess&&!sess.judge&&sess.token)lsSet("mafia.tok."+sess.code,sess.token)},1500);
 
