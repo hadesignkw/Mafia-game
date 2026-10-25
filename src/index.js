@@ -13,8 +13,8 @@ const MIN_PLAYERS = 6;
 const MAX_PLAYERS = 30;
 const TALK = 40;
 // أقصى عدد مافيا: لازم يبقى الشريف والبيطري والقناص، والمافيا أقل من الشعب
-const maxMafia = (n) => Math.max(1, Math.min(n - 3, Math.floor((n - 1) / 2)));
-const DEF_SET = { mode: "default", mafia: 2, talk: TALK };
+const maxMafia = (n, c = 1, d = 1) => Math.max(1, Math.min(n - (c + d + 1), Math.floor((n - 1) / 2)));
+const DEF_SET = { mode: "default", mafia: 2, talk: TALK, cops: 1, docs: 1 };
 const STEPS0 = ["police", "mafia"]; // الليلة الأولى: الشريف يفتش، والمافيا يتعارفون ويختارون النصاب
 const STEPS = ["mafia", "doctor", "police"];
 // الأغلبية: إذا فيه اختيار واحد فايز يرجع، وإذا تعادل يرجع المتعادلين
@@ -210,32 +210,36 @@ export class Room extends DurableObject {
     if ((s.phase === "vote" || s.phase === "result") && (s.voteOrder || []).length)
       pub.vote = { order: s.voteOrder, turn: s.voteTurn, votes: s.votes, cur: this.curVoter() };
     if (s.phase === "over") pub.best = this.best();
-    if (s.phase === "over") pub.reveal = Object.fromEntries(s.order.map((id) => [id, { role: s.roles[id], fake: s.fakeCop === id }]));
+    if (s.phase === "over") pub.reveal = Object.fromEntries(s.order.map((id) => [id, { role: s.roles[id], fake: this.isFake(id) }]));
     if (a.judge) {
       pub.judge = {
-        roles: s.roles, fakeCop: s.fakeCop, night: s.night, votes: s.votes, log: s.log.slice(-60),
-        queriesLeft: Math.max(0, (s.queryMax || 0) - (s.queriesUsed || 0)), queryMax: s.queryMax || 0,
+        roles: s.roles, fakeCop: s.fakeCop, night: { ...s.night, queried: this.qmap(), save: this.smap() }, votes: s.votes, log: s.log.slice(-60),
+        queriesLeft: s.order.filter((i) => s.roles[i] === "cop" && s.alive[i]).reduce((a, i) => a + Math.max(0, (s.queryMax || 0) - this.qUsed(i)), 0), queryMax: s.queryMax || 0,
         mafiaNext: s.lobby.length >= MIN_PLAYERS ? this.mafiaFor(s.lobby.length) : null,
-        settings: this.sets(), mafiaMax: maxMafia(Math.max(s.lobby.length, MIN_PLAYERS)), talk: this.talkSec(),
+        settings: this.sets(), talk: this.talkSec(), fakes: this.fakes(), fakeNeed: s.fakeNeed || 1,
+        mafiaMax: maxMafia(Math.max(s.lobby.length, MIN_PLAYERS), this.copsFor(s.lobby.length), this.docsFor(s.lobby.length)),
+        rolesMax: Math.max(1, Math.max(s.lobby.length, MIN_PLAYERS) - this.mafiaFor(Math.max(s.lobby.length, MIN_PLAYERS)) - 2),
+        cops: Object.fromEntries(s.order.filter((i) => s.roles[i] === "cop").map((i) => [i, { left: Math.max(0, (s.queryMax || 0) - this.qUsed(i)), q: this.qmap()[i] || null }])),
       };
       return pub;
     }
     const pid = a.pid, role = s.roles[pid];
     pub.me = { id: pid, name: s.players[pid]?.name, inGame: s.order.includes(pid) && s.phase !== "lobby" };
     if (role && pub.me.inGame) {
-      Object.assign(pub.me, { role, fake: s.fakeCop === pid, notes: s.notes[pid] || [] });
-      if (role === "cop") Object.assign(pub.me, { queriesLeft: Math.max(0, (s.queryMax || 0) - (s.queriesUsed || 0)), queryMax: s.queryMax || 0, queryMafia: s.night.queried ? isM(s.roles[s.night.queried]) : null });
+      Object.assign(pub.me, { role, fake: this.isFake(pid), notes: s.notes[pid] || [] });
+      if (role === "cop") Object.assign(pub.me, { queriesLeft: Math.max(0, (s.queryMax || 0) - this.qUsed(pid)), queryMax: s.queryMax || 0, queryMafia: this.qmap()[pid] ? isM(s.roles[this.qmap()[pid]]) : null });
+      if (isM(role)) Object.assign(pub.me, { fakesDone: s.fakesDone || [], fakeNeed: s.fakeNeed || 1 });
       const n = s.night;
       if (isM(role)) pub.me.team = s.order.filter((i) => isM(s.roles[i])).map((i) => ({
-        id: i, role: s.roles[i], fake: s.fakeCop === i,
+        id: i, role: s.roles[i], fake: this.isFake(i),
         pick: s.phase === "night0" ? (n.fake || {})[i] || null : s.phase === "night" ? n.sugg[i] || null : null,
         at: s.phase === "night" ? (n.suggAt || {})[i] || 0 : 0,
       }));
       pub.me.sel = {
         fakecop: isM(role) ? (n.fake || {})[pid] || null : null,
         kill: isM(role) ? n.sugg[pid] || null : null,
-        save: role === "doctor" ? n.save : null,
-        query: role === "cop" ? n.queried : null,
+        save: role === "doctor" ? this.smap()[pid] || null : null,
+        query: role === "cop" ? this.qmap()[pid] || null : null,
         vote: s.votes[pid] || null,
       };
     }
@@ -246,7 +250,16 @@ export class Room extends DurableObject {
   nm(id) { return this.s.players[id]?.name || "لاعب"; }
   // إعدادات الغرفة: افتراضي أو مخصص من القاضي
   sets() { return this.s.settings || DEF_SET; }
-  mafiaFor(n) { const c = this.sets(); return c.mode === "custom" ? Math.min(c.mafia, maxMafia(n)) : mafiaCount(n); }
+  // عدد الشرطة والبياطرة (بالمخصص بس)، والشرطة ما يزيدون عن المافيا عشان النصابين
+  copsFor(n) { const c = this.sets(); return c.mode === "custom" ? Math.max(1, Math.min(c.cops || 1, 4)) : 1; }
+  docsFor(n) { const c = this.sets(); return c.mode === "custom" ? Math.max(1, Math.min(c.docs || 1, 4)) : 1; }
+  mafiaFor(n) { const c = this.sets(); return c.mode === "custom" ? Math.min(c.mafia, maxMafia(n, this.copsFor(n), this.docsFor(n))) : mafiaCount(n); }
+  // النصابين: اللي تأكدوا + اللي المافيا مختارينه الحين
+  fakes() { const s = this.s; return [...(s.fakesDone || []), s.fakeCop].filter(Boolean); }
+  isFake(id) { return this.fakes().includes(id); }
+  qmap() { const q = this.s.night.queried; return q && typeof q === "object" ? q : {}; }
+  smap() { const v = this.s.night.save; return v && typeof v === "object" ? v : {}; }
+  qUsed(id) { const u = this.s.queriesUsed; return u && typeof u === "object" ? u[id] || 0 : 0; }
   talkSec() { const c = this.sets(); return c.mode === "custom" ? c.talk : TALK; }
   aliveIds() { return this.s.order.filter((i) => this.s.alive[i]); }
   // منو دوره يصوّت الحين
@@ -286,7 +299,9 @@ export class Room extends DurableObject {
           const mode = m.mode === "custom" ? "custom" : "default";
           const mafia = Math.max(1, Math.min(7, parseInt(m.mafia, 10) || 2));
           const talk = Math.max(10, Math.min(300, Math.round((parseInt(m.talk, 10) || TALK) / 5) * 5));
-          s.settings = { mode, mafia, talk };
+          const cops = Math.max(1, Math.min(4, parseInt(m.cops, 10) || 1));
+          const docs = Math.max(1, Math.min(4, parseInt(m.docs, 10) || 1));
+          s.settings = { mode, mafia, talk, cops, docs };
         }
         break;
       case "start": return this.start();
@@ -315,21 +330,29 @@ export class Room extends DurableObject {
         if (s.event) { s.event.closed = true; if (s.event.after) s.event.after.closed = true; }
         break;
       case "setFake":
-        if (s.phase === "night0" && isM(s.roles[id]) && s.alive[id]) { s.fakeCop = id; s.night.fakeByJudge = true; this.log(`القاضي حط ${this.nm(id)} نصاب`); }
+        if (s.phase === "night0" && isM(s.roles[id]) && s.alive[id] && !(s.fakesDone || []).includes(id)) { s.fakeCop = id; s.night.fakeByJudge = true; this.log(`القاضي حط ${this.nm(id)} نصاب`); this.lockFake(); }
         break;
       case "killFor": // تلفونات المافيا فيها مشكلة: القاضي يختار منو ينغتال
         if (s.phase === "night" && s.step === "mafia" && s.alive[id]) { s.night.kill = id; s.night.killByJudge = true; this.log(`القاضي اختار الاغتيال بدال المافيا: ${this.nm(id)}`); }
         break;
       case "saveFor":
-        if (s.phase === "night" && s.step === "doctor" && s.alive[id]) { s.night.save = id; this.log(`القاضي اختار الفزعة بدال البيطري: ${this.nm(id)}`); }
+        if (s.phase === "night" && s.step === "doctor" && s.alive[id]) {
+          const docs = this.aliveIds().filter((i) => s.roles[i] === "doctor"), sv = this.smap();
+          const by = docs.includes(m.by) ? m.by : docs.find((i) => !sv[i]);
+          if (by) { s.night.save = { ...sv, [by]: id }; this.log(`القاضي فزع بدال ${this.nm(by)}: ${this.nm(id)}`); }
+        }
         break;
-      case "queryFor": { const cop = this.aliveIds().find((i) => s.roles[i] === "cop"); if (cop) this.doQuery(cop, id); break; }
+      case "queryFor": {
+        const cops = this.aliveIds().filter((i) => s.roles[i] === "cop"), q = this.qmap();
+        const cop = cops.includes(m.by) ? m.by : cops.find((i) => !q[i] && this.qUsed(i) < (s.queryMax || 0));
+        if (cop) this.doQuery(cop, id); break;
+      }
       case "pickKill":
         if (s.phase === "night" && s.step === "mafia" && Object.values(s.night.sugg).includes(id)) { s.night.kill = id; s.night.killByJudge = true; }
         break;
       case "snipeFor": if (s.sniperPending && s.alive[id] && id !== s.sniperPending) this.resolveSnipe(s.sniperPending, id); break;
       case "newGame":
-        Object.assign(s, { phase: "lobby", step: null, round: 0, timer: null, sniperPending: null, winner: null, announce: "", event: null, order: [], alive: {}, roles: {}, fakeCop: null, notes: {}, votes: {}, voteOrder: [], voteTurn: 0, night: blankNight() });
+        Object.assign(s, { phase: "lobby", step: null, round: 0, timer: null, sniperPending: null, winner: null, announce: "", event: null, order: [], alive: {}, roles: {}, fakeCop: null, fakesDone: [], notes: {}, votes: {}, voteOrder: [], voteTurn: 0, night: blankNight() });
         break;
     }
   }
@@ -340,16 +363,20 @@ export class Room extends DurableObject {
     if (s.phase !== "lobby" || ids.length < MIN_PLAYERS) return;
     const sh = [...ids];
     for (let i = sh.length - 1; i > 0; i--) { const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1); [sh[i], sh[j]] = [sh[j], sh[i]]; }
-    const m = this.mafiaFor(ids.length), roles = {};
-    sh.forEach((id, i) => { roles[id] = i < m ? "mafia" : i === m ? "cop" : i === m + 1 ? "doctor" : i === m + 2 ? "sniper" : "citizen"; });
+    const n = ids.length, m = this.mafiaFor(n), roles = {};
+    // الشرطة ما يزيدون عن المافيا (لكل شريف نصاب)، ولازم يبقى مكان للقناص
+    let c = Math.min(this.copsFor(n), m), d = this.docsFor(n);
+    while (m + c + d + 1 > n && d > 1) d--;
+    while (m + c + d + 1 > n && c > 1) c--;
+    sh.forEach((id, i) => { roles[id] = i < m ? "mafia" : i < m + c ? "cop" : i < m + c + d ? "doctor" : i === m + c + d ? "sniper" : "citizen"; });
     Object.assign(s, {
       gen: s.gen + 1, order: ids, roles, alive: Object.fromEntries(ids.map((i) => [i, true])),
       phase: "deal", step: null, round: 0, timer: null, sniperPending: null, winner: null, canVote: false,
-      fakeCop: null, notes: {}, votes: {}, voteOrder: [], voteTurn: 0, voteHist: [], night: blankNight(), log: [], queryMax: m, queriesUsed: 0,
+      fakeCop: null, fakesDone: [], fakeNeed: c, notes: {}, votes: {}, voteOrder: [], voteTurn: 0, voteHist: [], night: blankNight(), log: [], queryMax: m, queriesUsed: {},
       announce: "كل واحد يقلب كرته ويشوف دوره.",
     });
     this.ev("deal");
-    this.log(`بدت اللعبة: ${ids.length} لاعبين، ${m} مافيا`);
+    this.log(`بدت اللعبة: ${n} لاعبين، ${m} مافيا${c > 1 ? `، ${c} شرطة` : ""}${d > 1 ? `، ${d} بياطرة` : ""}`);
   }
 
   next() {
@@ -378,10 +405,10 @@ export class Room extends DurableObject {
   eliminate(id, why) { this.s.alive[id] = false; this.log(`${this.nm(id)} طلع (${why}) ← ${ROLE_N[this.s.roles[id]]}`); }
 
   resolveMorning() {
-    const s = this.s, k = s.night.kill, sv = s.night.save;
+    const s = this.s, k = s.night.kill, saved = Object.values(this.smap());
     let msg;
     if (!k) { msg = "المافيا ما عرفوا يغتالون أحد الليلة."; this.ev("nokill"); }
-    else if (k === sv) { msg = "اغتيال شامط، البيطري موجووووود 🔥"; this.log(`البيطري لحّق على ${this.nm(k)}`); this.ev("saved"); }
+    else if (saved.includes(k)) { msg = "اغتيال شامط، البيطري موجووووود 🔥"; this.log(`البيطري لحّق على ${this.nm(k)}`); this.ev("saved"); }
     else {
       this.eliminate(k, "اغتيال");
       msg = `${s.roles[k] === "sniper" ? `ودّع ${this.nm(k)}` : `تم اغتيال ${this.nm(k)}`} وطلع من اللعبة. صيدة سهلة والبيطري مدوّج 😴`;
@@ -418,7 +445,7 @@ export class Room extends DurableObject {
   resolveSnipe(sn, t) {
     const s = this.s;
     this.eliminate(t, "سحبه القناص");
-    this.note(sn, `سحبت ${this.nm(t)} وياك، دوره: ${ROLE_N[s.roles[t]]}${s.fakeCop === t ? " (النصاب)" : ""}`);
+    this.note(sn, `سحبت ${this.nm(t)} وياك، دوره: ${ROLE_N[s.roles[t]]}${this.isFake(t) ? " (النصاب)" : ""}`);
     s.sniperPending = null;
     s.announce = (s.announce || "") + ` القناص سحب ${this.nm(t)} وياه.`;
     this.ev("snipe", { who: this.nm(t) });
@@ -454,12 +481,19 @@ export class Room extends DurableObject {
   // تفتيشات الشريف كلها باللعبة بعدد المافيا، وحدة بالليلة
   doQuery(cop, t) {
     const s = this.s, n = s.night;
-    if (!((s.phase === "night" || s.phase === "night0") && s.step === "police" && s.alive[cop] && s.alive[t] && t !== cop && !n.queried && (s.queriesUsed || 0) < (s.queryMax || 0))) return;
-    n.queried = t;
-    s.queriesUsed = (s.queriesUsed || 0) + 1;
+    if (!((s.phase === "night" || s.phase === "night0") && s.step === "police" && s.alive[cop] && s.alive[t] && t !== cop && !this.qmap()[cop] && this.qUsed(cop) < (s.queryMax || 0))) return;
+    n.queried = { ...this.qmap(), [cop]: t };
+    s.queriesUsed = { ...(s.queriesUsed && typeof s.queriesUsed === "object" ? s.queriesUsed : {}), [cop]: this.qUsed(cop) + 1 };
     const ans = isM(s.roles[t]) ? "مافيا" : "شعب";
     this.note(cop, `${s.phase === "night0" ? "الليلة الأولى" : "الليلة " + s.round}: ${this.nm(t)} طلع ${ans}`);
-    this.log(`الشريف فتّش عن ${this.nm(t)} ← ${ans}`);
+    this.log(`${this.nm(cop)} (الشريف) فتّش عن ${this.nm(t)} ← ${ans}`);
+  }
+
+  // يثبت النصاب الحالي إذا باقي نصابين بعده
+  lockFake() {
+    const s = this.s, done = s.fakesDone || [];
+    if (!s.fakeCop || done.length + 1 >= (s.fakeNeed || 1)) return;
+    s.fakesDone = [...done, s.fakeCop]; s.fakeCop = null; s.night.fake = {}; s.night.fakeByJudge = false;
   }
 
   // هل الخطوة الحالية خلصت؟ ما نروح للي بعدها إلا لما يختارون
@@ -467,9 +501,9 @@ export class Room extends DurableObject {
     const s = this.s, n = s.night, al = this.aliveIds();
     const mafiaAlive = al.some((i) => isM(s.roles[i]));
     switch (s.step) {
-      case "police": return !al.some((i) => s.roles[i] === "cop") || (s.queriesUsed || 0) >= (s.queryMax || 0) || !!n.queried;
-      case "mafia": return !mafiaAlive || (s.phase === "night0" ? !!s.fakeCop : !!n.kill);
-      case "doctor": return !al.some((i) => s.roles[i] === "doctor") || !!n.save;
+      case "police": return al.filter((i) => s.roles[i] === "cop").every((i) => this.qUsed(i) >= (s.queryMax || 0) || !!this.qmap()[i]);
+      case "mafia": return !mafiaAlive || (s.phase === "night0" ? this.fakes().length >= Math.min(s.fakeNeed || 1, al.filter((i) => isM(s.roles[i])).length) : !!n.kill);
+      case "doctor": return al.filter((i) => s.roles[i] === "doctor").every((i) => !!this.smap()[i]);
     }
     return true;
   }
@@ -485,12 +519,14 @@ export class Room extends DurableObject {
     const role = s.roles[pid], alive = s.alive[pid], t = m.id, tA = s.alive[t], n = s.night;
     switch (m.k) {
       case "fakecop":
-        if (s.phase === "night0" && s.step === "mafia" && isM(role) && isM(s.roles[t])) {
+        if (s.phase === "night0" && s.step === "mafia" && isM(role) && isM(s.roles[t]) && !(s.fakesDone || []).includes(t)) {
           n.fake = n.fake || {};
           n.fake[pid] = t;
           const r = plurality(this.aliveIds().filter((i) => isM(s.roles[i])).map((i) => n.fake[i]));
           if (r.winner) { s.fakeCop = r.winner; n.fakeByJudge = false; }
           else if (!(n.fakeByJudge && r.tied.includes(s.fakeCop))) { s.fakeCop = null; n.fakeByJudge = false; }
+          // أكثر من نصاب: إذا الكل اختار وفيه فايز، يتثبت وينتقلون للنصاب اللي بعده
+          if (s.fakeCop && this.aliveIds().filter((i) => isM(s.roles[i])).every((i) => n.fake[i])) this.lockFake();
         }
         break;
       case "kill":
@@ -502,7 +538,7 @@ export class Room extends DurableObject {
         }
         break;
       case "save":
-        if (s.phase === "night" && s.step === "doctor" && alive && role === "doctor" && tA) n.save = t;
+        if (s.phase === "night" && s.step === "doctor" && alive && role === "doctor" && tA) n.save = { ...this.smap(), [pid]: t };
         break;
       case "query":
         if (alive && role === "cop") this.doQuery(pid, t);
@@ -517,4 +553,4 @@ export class Room extends DurableObject {
   }
 }
 
-function blankNight() { return { sugg: {}, suggAt: {}, fake: {}, kill: null, save: null, queried: null, killByJudge: false, fakeByJudge: false }; }
+function blankNight() { return { sugg: {}, suggAt: {}, fake: {}, kill: null, save: {}, queried: {}, killByJudge: false, fakeByJudge: false }; }
