@@ -918,15 +918,23 @@ const normalize=v=>String(v||'').replace(/[٠-٩]/g,c=>'٠١٢٣٤٥٦٧٨٩'.in
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 class ReceptionAudio{
  constructor(){this.enabled=false;this.ctx=null;this.nodes=[];this.timers=new Set();this.voices=[];this.refresh=()=>{this.voices=global.speechSynthesis?.getVoices()||[]};this.refresh();global.speechSynthesis?.addEventListener('voiceschanged',this.refresh);this.onVisibility=()=>{if(document.hidden)this.pause();else if(this.enabled)this.resume()};document.addEventListener('visibilitychange',this.onVisibility)}
- async start(){try{this.ctx??=new(global.AudioContext||global.webkitAudioContext)();await this.ctx.resume();this.enabled=true;if(!this.master){this.master=this.ctx.createGain();this.master.gain.value=.15;this.master.connect(this.ctx.destination);this.ambient()}this.master.gain.setTargetAtTime(.15,this.ctx.currentTime,.2);return true}catch{return false}}
- ambient(){const c=this.ctx;for(const [hz,g] of [[48,.12],[96,.025],[143,.012]]){const o=c.createOscillator(),a=c.createGain();o.frequency.value=hz;a.gain.value=g;o.connect(a).connect(this.master);o.start();this.nodes.push(o)}const n=c.createBuffer(1,c.sampleRate*4,c.sampleRate);const d=n.getChannelData(0);let y=0;for(let i=0;i<d.length;i++){y=(y+Math.random()*.04-.02)/1.02;d[i]=y*2}const src=c.createBufferSource();src.buffer=n;src.loop=true;const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=500;src.connect(f).connect(this.master);src.start();this.nodes.push(src);this.timer=setInterval(()=>{if(this.enabled&&!document.hidden)this.tone(65+Math.random()*30,.7,.07)},11000)}
- tone(hz,duration=.1,level=.1,type='sine'){if(!this.enabled||!this.ctx||document.hidden)return;const c=this.ctx,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=hz;g.gain.setValueAtTime(.0001,c.currentTime);g.gain.exponentialRampToValueAtTime(level,c.currentTime+.012);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+duration);o.connect(g).connect(this.master);o.start();o.stop(c.currentTime+duration+.02);o.onended=()=>{o.disconnect();g.disconnect()}}
- scratch(){if(!this.enabled||!this.ctx)return;const c=this.ctx,b=c.createBuffer(1,c.sampleRate*.09,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*.2*Math.sin(Math.PI*i/d.length);const src=c.createBufferSource(),f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=2300;f.Q.value=.7;src.buffer=b;src.connect(f).connect(this.master);src.start();src.onended=()=>{src.disconnect();f.disconnect()}}
+ async start(){try{this.ctx??=new(global.AudioContext||global.webkitAudioContext)();await this.ctx.resume();this.enabled=true;if(!this.master){this.master=this.ctx.createGain();this.master.gain.value=.9;this.master.connect(this.ctx.destination);this.load()}this.master.gain.setTargetAtTime(.9,this.ctx.currentTime,.2);this.setAmb(this.wantAmb||'',true);return true}catch{return false}}
+ /* أصوات حقيقية (CC0) — كل حدث له صوته، والخلفية تتغير مع المرحلة */
+ load(){this.ambName??='';this.buf??={};this.loading??={};const base='/mafia/sfx/';const all=['click','select','error','flip','slide','shuffle','chips','gavel','whoosh','door','silenced','shot','gasp','heartbeat','tension','win','rooster','tick','buzzer','bell','coins','pen','amb-night','amb-day','amb-crowd'];
+  for(const n of all){if(this.buf[n]||this.loading[n])continue;this.loading[n]=fetch(base+n+'.mp3').then(r=>r.arrayBuffer()).then(a=>new Promise((ok,no)=>this.ctx.decodeAudioData(a,ok,no))).then(b=>{this.buf[n]=b;if(n===this.wantAmb)this.setAmb(n,true);return b}).catch(()=>{delete this.loading[n]})}}
+ play(n,{gain=.6,delay=0,rate=1,vary=true}={}){if(!this.enabled||!this.ctx||document.hidden)return;const b=this.buf?.[n];if(!b)return;
+  const c=this.ctx,s=c.createBufferSource(),g=c.createGain();s.buffer=b;s.playbackRate.value=rate*(vary?(.96+Math.random()*.08):1);g.gain.value=gain*(vary?(.9+Math.random()*.2):1);s.connect(g).connect(this.master);s.start(c.currentTime+delay);s.onended=()=>{s.disconnect();g.disconnect()}}
+ setAmb(n,force=false){this.wantAmb=n;if(!this.ctx||(!force&&this.ambName===n))return;const c=this.ctx,now=c.currentTime;
+  if(this.amb){const o=this.amb;o.g.gain.cancelScheduledValues(now);o.g.gain.setTargetAtTime(0,now,.6);setTimeout(()=>{try{o.s.stop()}catch{}o.s.disconnect();o.g.disconnect()},3500);this.amb=null;this.ambName=''}
+  if(!n||!this.enabled)return;const b=this.buf?.[n];if(!b)return;const s=c.createBufferSource(),g=c.createGain();s.buffer=b;s.loop=true;g.gain.value=0;s.connect(g).connect(this.master);s.start(now,Math.random()*b.duration*.8);
+  g.gain.setTargetAtTime({'amb-night':.5,'amb-day':.42,'amb-crowd':.3}[n]||.4,now,.9);this.amb={s,g};this.ambName=n}
+ tone(hz,duration=.1,level=.1,type='sine'){if(!this.enabled||!this.ctx||document.hidden)return;const c=this.ctx,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=hz;g.gain.setValueAtTime(.0001,c.currentTime);g.gain.exponentialRampToValueAtTime(level*.17,c.currentTime+.012);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+duration);o.connect(g).connect(this.master);o.start();o.stop(c.currentTime+duration+.02);o.onended=()=>{o.disconnect();g.disconnect()}}
+ scratch(){if(!this.enabled||!this.ctx)return;if(this.buf?.pen){this.play('pen',{gain:1.6});return}const c=this.ctx,b=c.createBuffer(1,c.sampleRate*.09,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*.2*Math.sin(Math.PI*i/d.length);const src=c.createBufferSource(),f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=2300;f.Q.value=.7;src.buffer=b;src.connect(f).connect(this.master);src.start();src.onended=()=>{src.disconnect();f.disconnect()}}
  async speak(text,key){if(!this.enabled)return;global.speechSynthesis?.cancel();const url=global.RECEPTION_VOICE_URLS?.[key];if(url){try{this.voice=new Audio(url);this.voice.volume=.75;await this.voice.play();return}catch{}}if(!global.speechSynthesis)return;const u=new SpeechSynthesisUtterance(text);const v=this.voices.find(v=>/ar-KW/i.test(v.lang))||this.voices.find(v=>/^ar/i.test(v.lang));if(!v)return;u.voice=v;u.lang=v.lang;u.rate=.88;u.pitch=.8;u.volume=.7;global.speechSynthesis.speak(u)}
  pause(){this.ctx?.suspend().catch(()=>{});global.speechSynthesis?.cancel();this.voice?.pause()}
  resume(){this.ctx?.resume().catch(()=>{})}
- mute(){this.enabled=false;this.pause()}
- dispose(){clearInterval(this.timer);this.mute();this.nodes.forEach(n=>{try{n.stop()}catch{}});this.ctx?.close().catch(()=>{});global.speechSynthesis?.removeEventListener('voiceschanged',this.refresh);document.removeEventListener('visibilitychange',this.onVisibility)}
+ mute(){const w=this.wantAmb;this.enabled=false;this.setAmb('',true);this.wantAmb=w;this.pause()}
+ dispose(){clearInterval(this.timer);this.mute();try{this.amb?.s.stop()}catch{};this.nodes.forEach(n=>{try{n.stop()}catch{}});this.ctx?.close().catch(()=>{});global.speechSynthesis?.removeEventListener('voiceschanged',this.refresh);document.removeEventListener('visibilitychange',this.onVisibility)}
 }
 /* A continuous texture mesh gives gentle local motion without hard cutout edges. */
 class SceneMesh{
@@ -949,7 +957,7 @@ class HomeReception{
  audioLabel(){this.button.textContent=this.audio.enabled?'الصوت شغّال · كتم':'تشغيل الصوت';this.button.setAttribute('aria-pressed',String(this.audio.enabled))}
  setValue(raw,animate=true){const value=normalize(raw),previous=this.value;this.value=value;this.input.value=value;this.root.querySelectorAll('.rx-digits span').forEach((el,i)=>{el.textContent=value[i]||'';el.classList.toggle('rx-active',i===value.length)});this.root.querySelector('.rx-ledger').textContent=value;if(animate&&value!==previous){this.mesh?.write();this.audio.scratch();this.say('');this.onInput(value)}}
  say(text){this.caption.textContent=text}
- state(s){this.stateName=s||'idle';if(this.reaction){const key=s==='wrong'?'wrong':['welcome','open'].includes(s)?'welcome':null;this.reaction.classList.toggle('rx-shown',!!key);if(key&&global.RECEPTION_REACTIONS?.[key])this.reaction.src=global.RECEPTION_REACTIONS[key]}this.root.dataset.state=this.stateName;this.mesh?.setState(this.stateName);this.busy=['reading','wrong','welcome','open'].includes(this.stateName);this.input.disabled=this.busy;this.submit.disabled=this.busy;this.root.setAttribute('aria-busy',String(this.busy));if(s==='reading')this.say('خلني أشوف…');if(s==='wrong'){this.say('غلط الرقم، إنت منو؟');this.audio.tone(95,.28,.2,'triangle');this.audio.speak('غلط الرقم، إنت منو؟','wrong')}if(s==='welcome'){this.say('حياك');this.audio.tone(190,.6,.07);this.audio.speak('حياك','welcome')}if(s==='open'){this.say('حياك');this.audio.tone(58,.85,.06,'triangle')}if(!s||s==='idle')this.say('')}
+ state(s){this.stateName=s||'idle';if(this.reaction){const key=s==='wrong'?'wrong':['welcome','open'].includes(s)?'welcome':null;this.reaction.classList.toggle('rx-shown',!!key);if(key&&global.RECEPTION_REACTIONS?.[key])this.reaction.src=global.RECEPTION_REACTIONS[key]}this.root.dataset.state=this.stateName;this.mesh?.setState(this.stateName);this.busy=['reading','wrong','welcome','open'].includes(this.stateName);this.input.disabled=this.busy;this.submit.disabled=this.busy;this.root.setAttribute('aria-busy',String(this.busy));if(s==='reading')this.say('خلني أشوف…');if(s==='wrong'){this.say('غلط الرقم، إنت منو؟');this.audio.play('error',{gain:.7});this.audio.play('gavel',{gain:.8,delay:.05});this.audio.speak('غلط الرقم، إنت منو؟','wrong')}if(s==='welcome'){this.say('حياك');this.audio.play('door',{gain:.5});this.audio.play('select',{gain:.35,delay:.25});this.audio.speak('حياك','welcome')}if(s==='open'){this.say('حياك');this.audio.tone(58,.85,.06,'triangle')}if(!s||s==='idle')this.say('')}
  networkError(){this.state('idle');this.say('ما في إنترنت؟ جرّب مرة ثانية.')}
  dispose(){this.disposed=true;this.sequence++;this.abort.abort();this.mesh?.dispose();if(this.ownsAudio)this.audio.dispose()}
 }
@@ -1293,7 +1301,7 @@ function playNext(){
   if(fxBusy||!fxQ.length)return;
   const e=fxQ.shift();const fx=$("#fx");
   if(STICKY.has(e.type)&&fxClosed(e.id))return playNext();
-  fxBusy=true;curFx=e;sceneSound(e.type);
+  fxBusy=true;curFx=e;sceneSound(e);
   const night=e.type==="dusk", isMe=st&&st.me;
   let cls="",html="",dur=3200;
   const tap=`<div class="tap">دوس عشان تكمل</div>`;
@@ -1362,9 +1370,9 @@ function drawTimer(){
   const left=Math.max(0,(st.timer.endsAt-(Date.now()+offset))/1000);
   el.hidden=false;el.classList.toggle("end",left<=0);
   const tt=el.querySelector(".t"),sec=left<=0?"0":ar(Math.ceil(left));
-  if(tt.textContent!==sec){tt.textContent=sec;if(left<=10){tt.classList.remove("tick");void tt.offsetWidth;tt.classList.add("tick")}}
+  if(tt.textContent!==sec){tt.textContent=sec;if(left>0&&left<=10)receptionAudio?.play("tick",{gain:left<=5?.7:.45,vary:false});if(left<=10){tt.classList.remove("tick");void tt.offsetWidth;tt.classList.add("tick")}}
   const C=2*Math.PI*26;el.querySelector(".fgc").style.strokeDashoffset=String(C*(1-left/st.timer.dur));
-  if(left<=0&&lastBuzzT!==st.timer.id){lastBuzzT=st.timer.id;buzz([200,80,200])}
+  if(left<=0&&lastBuzzT!==st.timer.id){lastBuzzT=st.timer.id;receptionAudio?.play("buzzer",{gain:.55});buzz([200,80,200])}
 }
 setInterval(drawTimer,200);
 
@@ -1375,6 +1383,7 @@ function screenKey(){if(view!=="game"||!st)return view+(st?"":"-wait");return[de
 const rowCls=id=>{if(seenRows.has(id))return"";seenRows.add(id);return"new"};
 function render(){
   document.body.dataset.phase=phaseAttr();
+  if(receptionAudio)receptionAudio.setAmb(phaseAmb());
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content",phaseAttr()==="day"?"#f2ede3":"#040405");
   if(st?.phase!=="deal")cardOpen=false;
   const app=$("#app"),k=screenKey(),changed=k!==lastScreen;lastScreen=k;
@@ -1408,7 +1417,31 @@ function syncReception(){
  if(home&&gameAudioButton){gameAudioButton.remove();gameAudioButton=null}
 }
 function phaseScene(){return '';}
-function sceneSound(type){if(!receptionAudio?.enabled)return;receptionAudio.resume();const map={deal:[260,.16,.09],dusk:[58,.85,.08],dawn:[185,.65,.06],kill:[48,.5,.16],saved:[330,.4,.08],out:[85,.18,.15],tie:[140,.25,.07],snipe:[55,.13,.14],cast:[190,.075,.06],win:[290,.8,.07],answer:[220,.2,.06]};const p=map[type];if(p)receptionAudio.tone(...p)}
+function sceneSound(e){if(!receptionAudio?.enabled)return;const A=receptionAudio;A.resume();const type=e.type||e,P=(n,o)=>A.play(n,o);
+  if(type==="deal"){P("shuffle",{gain:.9});P("slide",{gain:.6,delay:1.2});P("slide",{gain:.6,delay:1.45});P("slide",{gain:.6,delay:1.7})}
+  else if(type==="dusk"){P("whoosh",{gain:.5});P("door",{gain:.45,delay:.35})}
+  else if(type==="dawn"){P("rooster",{gain:.5,delay:.3})}
+  else if(type==="kill"){P("silenced",{gain:1,vary:false});P("gasp",{gain:.55,delay:.45});P("tension",{gain:.55,delay:.9})}
+  else if(type==="saved"){P("heartbeat",{gain:.9});P("bell",{gain:.35,delay:2.6})}
+  else if(type==="nokill"){P("rooster",{gain:.45,delay:.2});P("coins",{gain:.4,delay:1.4})}
+  else if(type==="out"){P("gavel",{gain:1,vary:false});P("gavel",{gain:1,delay:.38,vary:false});P("gavel",{gain:1.1,delay:.76,vary:false});P("gasp",{gain:.4,delay:1.1})}
+  else if(type==="tie"){P("gavel",{gain:.8});P("coins",{gain:.35,delay:.4})}
+  else if(type==="snipe"){P("shot",{gain:1.2,vary:false});P("gasp",{gain:.5,delay:.5});P("tension",{gain:.5,delay:.8})}
+  else if(type==="cast"){P("chips",{gain:.9})}
+  else if(type==="answer"){if(/مافيا/.test(e.text||""))P("tension",{gain:.8});else P("bell",{gain:.45})}
+  else if(type==="win"){if(e.winner==="town")P("win",{gain:.7});else{P("shot",{gain:.9});P("tension",{gain:.8,delay:.3})}}
+}
+/* خلفية الصوت حسب المرحلة */
+function phaseAmb(){if(!st||view!=="game")return"";if(st.phase==="night"||st.phase==="night0")return"amb-night";if(st.phase==="vote"||st.phase==="result")return"amb-crowd";if(st.phase==="day")return"amb-day";return""}
+/* صوت لكل زر */
+document.addEventListener("pointerdown",e=>{if(!receptionAudio?.enabled)return;const b=e.target.closest&&e.target.closest("button,.pick,a.back,[data-a]");if(!b||b.classList.contains("rx-game-sound"))return;
+  if(b.disabled||b.getAttribute("aria-disabled")==="true"){receptionAudio.play("error",{gain:.35});return}
+  if(b.dataset.a==="card")return;
+  if(b.classList.contains("pick"))receptionAudio.play("select",{gain:.35});
+  else if(b.dataset.c==="vote"||b.dataset.c==="voteFor")receptionAudio.play("chips",{gain:.7});
+  else if(b.dataset.c==="kick")receptionAudio.play("error",{gain:.4});
+  else if(b.classList.contains("primary"))receptionAudio.play("select",{gain:.45,rate:.9});
+  else receptionAudio.play("click",{gain:.6})},{capture:true,passive:true});
 
 function legacyHomeView(){
   const intro=!doorSeen;doorSeen=true;
@@ -1796,7 +1829,7 @@ document.addEventListener("click",e=>{
   else if(a==="card"){
     cardOpen=!cardOpen;b.classList.remove("tilt","still");b.dataset.keep=`card|${st.gen}|${cardOpen?1:0}|${b.dataset.h}`;b.classList.toggle("open",cardOpen);
     const fi=b.querySelector(".flip-in");if(fi){fi.style.removeProperty("--rx");fi.style.removeProperty("--ry")}
-    buzz(cardOpen?[20,40,60]:15)}
+    receptionAudio?.play(cardOpen?"flip":"slide",{gain:.9});buzz(cardOpen?[20,40,60]:15)}
   else if(a==="roles"){const body=document.querySelector(".roles-body");
     if(rolesOpen&&body){body.classList.add("closing");document.querySelector(".chev").classList.remove("up");setTimeout(()=>{rolesOpen=false;render()},230)}
     else{rolesOpen=true;rolesJust=true;render();rolesJust=false}}
