@@ -1,0 +1,59 @@
+/* Farm diwaniya: all selectors scoped; original game state remains independent. */
+:root{--diwan-day:0;--diwan-sunset:0;--diwan-night:1;--diwan-tint:#0a14283b}
+:root[data-diwan-time=day]{--diwan-day:1;--diwan-night:0;--diwan-tint:#30221612}
+:root[data-diwan-time=sunrise]{--diwan-day:.65;--diwan-sunset:.65;--diwan-night:0;--diwan-tint:#fbc78616}
+:root[data-diwan-time=sunset]{--diwan-sunset:1;--diwan-night:0;--diwan-tint:#8e451722}
+:root[data-diwan-time=dawn]{--diwan-day:calc(var(--dawn-light)*.6);--diwan-night:calc(1 - var(--dawn-light)*.6);--diwan-tint:#7685b340}
+body[data-diwan-page]{isolation:isolate;background:#181915;color:#f6eddf}
+.diwan-scene{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:#171c23}
+.diwan-photo,.diwan-atmosphere{position:absolute;inset:0;transition:opacity 18s ease,background 18s ease}
+.diwan-photo{background-size:cover;background-position:center}
+.diwan-photo.day{background-image:url('/theme/farm-day.webp');opacity:var(--diwan-day)}
+.diwan-photo.sunset{background-image:url('/theme/farm-sunset.webp');opacity:var(--diwan-sunset)}
+.diwan-photo.night{background-image:url('/theme/farm-night.webp');opacity:var(--diwan-night)}
+.diwan-atmosphere{background:linear-gradient(#15110d18,#110e0812 65%,#110e0845),var(--diwan-tint)}
+[data-diwan-cloud=true] .diwan-atmosphere{background:linear-gradient(#16232c66,#101d2830)}
+[data-diwan-rain=true] .diwan-atmosphere{background:linear-gradient(#16232c80,#101d2840)}
+.diwan-rain{position:absolute;inset:4% 6% 36%;overflow:hidden;opacity:0;transition:opacity 3s}
+[data-diwan-rain=true] .diwan-rain{opacity:.65}
+.diwan-rain i{position:absolute;top:-30px;width:1px;height:28px;background:linear-gradient(transparent,#deedfa);animation:diwan-rainfall .8s linear infinite;animation-play-state:paused}
+[data-diwan-rain=true] .diwan-rain i{animation-play-state:running}
+@keyframes diwan-rainfall{to{transform:translate(-60px,90vh)}}
+.diwan-clock{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#fff8ec;background:#241b15b8;border:1px solid #dbc59c55;border-radius:16px;padding:10px 14px;font-family:'Readex Pro',Tahoma,sans-serif;font-variant-numeric:tabular-nums;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);margin-bottom:12px;position:relative;z-index:2;flex:0 0 auto}
+.diwan-clock>div{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.diwan-time{font-size:1rem;font-weight:600;white-space:nowrap}.diwan-date{font-size:.72rem;direction:ltr}.diwan-context{font-size:.68rem;line-height:1.8}
+body[data-diwan-page]>.noir{display:none}
+body[data-diwan-page] main{position:relative;z-index:1}
+body[data-diwan-page=home] main{max-width:620px;padding-top:max(18px,env(safe-area-inset-top));padding-bottom:32px}
+body[data-diwan-page=home] .top{width:auto;margin:0;height:auto;overflow:visible;padding:32px 0 24px}
+body[data-diwan-page=home] .lamp,body[data-diwan-page=games] .lamp{display:none}
+body[data-diwan-page=home] .title{margin:0;animation:none}
+body[data-diwan-page=home] .title h1{font-size:clamp(2rem,9vw,3.4rem);line-height:1.4;text-shadow:0 2px 18px #000b;color:#fff4dd}
+body[data-diwan-page=home] .title p{color:#fff4dd;text-shadow:0 1px 8px #000}
+body[data-diwan-page=home] nav{gap:12px;margin:0 auto;width:min(100%,440px)}
+body[data-diwan-page=home] .door{grid-template-columns:1fr 54px;align-items:center;min-height:78px;padding:16px 20px;border:1px solid #d2b38199;border-radius:16px;background:linear-gradient(110deg,#38281bdc,#1f1b18ce);box-shadow:0 8px 24px #0003,inset 0 1px #fff1;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);animation:none;transition:transform .2s,border-color .2s}
+body[data-diwan-page=home] .door:hover{transform:translateY(-2px);border-color:#f4d9a7}
+body[data-diwan-page=home] .door h2{font-size:1.12rem;text-shadow:none;line-height:1.5}
+body[data-diwan-page=home] .door p,body[data-diwan-page=home] .door .go{display:none}
+body[data-diwan-page=home] .door svg.art{width:50px;height:52px;margin:0;opacity:.9}
+.diwan-credit{display:block;width:fit-content;margin:24px auto 0;color:#fff3da;background:#241b15b8;border-radius:20px;padding:5px 12px;font-size:.6rem;text-decoration:none}
+body[data-diwan-page=games] .scene{height:auto;min-height:0;padding:20px 0}
+body[data-diwan-page=games] .title{margin-top:0}
+body[data-diwan-page=games] .poster,body[data-diwan-page=games] .soon{background:#291f19de;border:1px solid #d2b38188;border-radius:20px;backdrop-filter:blur(12px)}
+body[data-diwan-page=score]::before,body[data-diwan-page=score]::after{display:none}
+body[data-diwan-page=score] .diwan-clock{padding:4px 10px;border-radius:10px;margin-bottom:6px;gap:6px}
+body[data-diwan-page=score] .diwan-time{font-size:.72rem}body[data-diwan-page=score] .diwan-date{font-size:.6rem}body[data-diwan-page=score] .diwan-context{font-size:.58rem}
+body[data-diwan-page=score] .panel,body[data-diwan-page=score] .team,body[data-diwan-page=parliament] .panel{background:#24231de8;border-color:#c5a67566;backdrop-filter:blur(12px)}
+/* Mafia retains its game-day/night and reception scenes, including night privacy. */
+body[data-diwan-page=mafia]>.diwan-scene{display:none}
+body[data-diwan-page=mafia]>.diwan-clock{margin:8px auto;max-width:540px;width:calc(100% - 32px)}
+@media(min-width:700px){body[data-diwan-page=home] .top{padding-top:48px;padding-bottom:32px}body[data-diwan-page=home] .door{min-height:88px}}
+@media(max-height:700px){body[data-diwan-page=home] .top{padding:12px 0}body[data-diwan-page=home] .door{min-height:65px;padding:8px 18px}body[data-diwan-page=score] .diwan-context{display:none}}
+@media(prefers-reduced-motion:reduce){.diwan-photo,.diwan-atmosphere{transition:none}.diwan-rain i{animation:none!important}.diwan-rain{background:repeating-linear-gradient(110deg,transparent 0 28px,#d5e6f433 29px,transparent 30px);opacity:0}[data-diwan-rain=true] .diwan-rain{opacity:.4}}
+body[data-diwan-page=games] .scene .table,body[data-diwan-page=games] .scene .fan{display:none}
+body[data-diwan-page=games] main{padding-top:max(14px,env(safe-area-inset-top))}
+body[data-diwan-page=games] .title p{color:#fff2dc;text-shadow:0 1px 8px #000}
+.diwan-atmosphere::before{content:'';position:absolute;inset:0 0 40%;opacity:0;background:radial-gradient(ellipse at 15% 15%,#7c8d9c88,transparent 60%),radial-gradient(ellipse at 80% 35%,#6c7b8a88,transparent 55%);filter:blur(20px);transition:opacity 5s}
+[data-diwan-cloud=true] .diwan-atmosphere::before,[data-diwan-rain=true] .diwan-atmosphere::before{opacity:1}
+
+body[data-diwan-page=games] .diwan-clock{margin-top:30px}
+body[data-diwan-page=games] .home{color:#fff2dc;text-shadow:0 1px 6px #000}
