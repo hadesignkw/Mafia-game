@@ -47,7 +47,7 @@ main{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:0 max(16p
 
 /* ---------- الألعاب ---------- */
 .games{position:relative;z-index:2;display:flex;flex-direction:column;gap:14px;margin-top:-6px}
-.poster{position:relative;display:grid;grid-template-columns:1fr 112px;align-items:end;min-height:200px;padding:20px 18px 18px;border-radius:6px 6px 22px 22px;
+.poster{position:relative;display:grid;grid-template-columns:1fr 150px;align-items:end;min-height:200px;padding:20px 18px 18px;border-radius:6px 6px 22px 22px;
   color:inherit;text-decoration:none;overflow:hidden;isolation:isolate;
   background:radial-gradient(90% 120% at 15% 100%,#5b1512 0%,#2a0c0a 45%,#120807 100%);
   box-shadow:0 0 0 1px rgb(201 163 91 / .45),0 0 0 5px #120807,0 0 0 6px rgb(201 163 91 / .25),0 24px 50px rgb(0 0 0 / .6);
@@ -61,7 +61,7 @@ main{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:0 max(16p
 .poster p{margin:0;color:#d9c8a8;font-size:.95rem}
 .poster .go{margin-top:8px;align-self:flex-start;font-weight:800;font-size:.95rem;padding:9px 18px;border-radius:99px;color:#1d1408;
   background:linear-gradient(180deg,var(--brass-hi),var(--brass) 55%,#8c6b2e);box-shadow:0 2px 0 #5a4219,0 6px 16px rgb(0 0 0 / .45)}
-.poster .man{position:relative;z-index:1;width:112px;height:150px;margin-bottom:-18px;filter:drop-shadow(0 0 16px rgb(184 50 44 / .45))}
+.poster .man{position:relative;z-index:1;width:170px;height:170px;object-fit:contain;object-position:bottom;margin:0 -12px -18px -8px;filter:drop-shadow(0 0 16px rgb(184 50 44 / .45))}
 .poster .players{position:absolute;top:14px;left:16px;z-index:2;font-size:.78rem;color:var(--brass-hi);border:1px solid rgb(201 163 91 / .5);border-radius:99px;padding:2px 10px;background:rgb(0 0 0 / .3)}
 .soon{display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:16px;border:1px dashed rgb(201 163 91 / .3);color:var(--smoke);
   background:rgb(28 20 16 / .55);animation:rise .8s 1.8s cubic-bezier(.2,.8,.2,1) both}
@@ -108,18 +108,7 @@ main{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:0 max(16p
         <p>القاضي يفتح غرفة، والربع يدخلون من تلفوناتهم ويكتشفون منو المافيا بينهم.</p>
         <span class="go">ادخل اللعبة</span>
       </span>
-      <svg class="man" viewBox="0 0 120 160" aria-hidden="true">
-        <path d="M10 160c4-40 24-56 50-56s46 16 50 56z" fill="#0b0807" stroke="#c9a35b" stroke-opacity=".35" stroke-width="1.5"/>
-        <path d="M46 104l14 34 14-34z" fill="#e8dcc0"/>
-        <path d="M56.5 110h7l2.5 28-6 9-6-9z" fill="#b8322c"/>
-        <path d="M46 104l-8 10 18 30zM74 104l8 10-18 30z" fill="#16100d"/>
-        <ellipse cx="60" cy="80" rx="21" ry="22" fill="#14100e"/>
-        <path d="M39 70q21 9 42 0v-8H39z" fill="#000" fill-opacity=".75"/>
-        <path d="M30 56c0-24 12-34 30-34s30 10 30 34z" fill="#0d0a09" stroke="#c9a35b" stroke-opacity=".35" stroke-width="1.5"/>
-        <path d="M50 26q10 8 20 0" stroke="#000" stroke-width="3" fill="none"/>
-        <rect x="30" y="48" width="60" height="8" fill="#5b1512"/>
-        <ellipse cx="60" cy="58" rx="48" ry="9" fill="#0d0a09" stroke="#c9a35b" stroke-opacity=".4" stroke-width="1.5"/>
-      </svg>
+      <img class="man" src="/mafia/chars/mafia.webp" alt="" aria-hidden="true">
     </a>
     <div class="soon"><span class="q">؟</span><span><b>لعبة جاية</b>نجهزها لسهرة ثانية</span></div>
   </nav>
