@@ -11,9 +11,9 @@
 <meta property="og:title" content="تسجيل برلمان · ارررحبو">
 <meta property="og:description" content="الحكم فتح الجلسة. ادخل برقم الغرفة وسجّل اسمك.">
 <meta property="og:locale" content="ar_KW">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=Aref+Ruqaa:wght@400;700&display=swap">
+
+<link rel="preload" href="/fonts/readex-pro-arabic-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/readex-pro-arabic-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/noir.css">
 <style>
 /* قاعة مجلس الأمة بالليل: جلد أخضر، نحاس، ورق تصويت، وختم أحمر */
@@ -21,7 +21,7 @@
   --bg:#08120f;--panel:rgb(15 28 23 / .92);--panel2:#13241e;--line:#26392f;
   --seat:#1d4a3a;--seat-hi:#2f6e56;--brass:#c9a35b;--brass-hi:#ecd29a;--brass-ink:#1d1408;
   --paper:#efe6cf;--paper-ink:#2a2116;--stamp:#c23b2e;--fg:#ece4cf;--muted:#9aa89f;--good:#7cc3a0;
-  --ruqaa:"Aref Ruqaa","Almarai",serif;--body:"Almarai",Tahoma,sans-serif;
+  --ruqaa:"Readex Pro",Tahoma,sans-serif;--body:"Readex Pro",Tahoma,sans-serif;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -950,7 +950,7 @@ function nextFx(){
   if(!e){fxBusy=false;el.innerHTML="";return}
   fxBusy=true;let cls="",html="",dur=3200;
   if(e.type==="round"){cls="fx-round";dur=3000;html=`${gavelSVG()}<div class="big">الجولة ${e.no}</div><div class="sub">من ${e.of} جولات${e.no===1?"، وما فيها فرز ولا حل":e.no===e.of?"، وما فيها حل مجلس":""}</div>`}
-  else if(e.type==="sort"){dur=3600;html=`<div class="box3">${[0,1,2,3,4].map(i=>`<i style="--x:${(i-2)*40}px;--r:${(i-2)*18}deg;animation-delay:${i*.18}s"></i>`).join("")}<svg viewBox="0 0 180 130"><rect x="10" y="20" width="160" height="110" rx="8" fill="#1d4a3a" stroke="#c9a35b" stroke-width="3"/><rect x="58" y="12" width="64" height="12" rx="3" fill="#06100d" stroke="#c9a35b" stroke-width="2"/><rect x="40" y="60" width="100" height="30" rx="4" fill="#efe6cf"/><text x="90" y="81" text-anchor="middle" font-family="Almarai" font-weight="800" font-size="16" fill="#2a2116">أصوات</text></svg></div><div class="big">فرز الأصوات</div><div class="sub">${e.sub||(e.then==="over"?"خلصت آخر جولة.":`الجولة ${e.no} انسجلت، وتبدا الجولة ${e.next}.`)}</div>`}
+  else if(e.type==="sort"){dur=3600;html=`<div class="box3">${[0,1,2,3,4].map(i=>`<i style="--x:${(i-2)*40}px;--r:${(i-2)*18}deg;animation-delay:${i*.18}s"></i>`).join("")}<svg viewBox="0 0 180 130"><rect x="10" y="20" width="160" height="110" rx="8" fill="#1d4a3a" stroke="#c9a35b" stroke-width="3"/><rect x="58" y="12" width="64" height="12" rx="3" fill="#06100d" stroke="#c9a35b" stroke-width="2"/><rect x="40" y="60" width="100" height="30" rx="4" fill="#efe6cf"/><text x="90" y="81" text-anchor="middle" font-family="Readex Pro" font-weight="800" font-size="16" fill="#2a2116">أصوات</text></svg></div><div class="big">فرز الأصوات</div><div class="sub">${e.sub||(e.then==="over"?"خلصت آخر جولة.":`الجولة ${e.no} انسجلت، وتبدا الجولة ${e.next}.`)}</div>`}
   else if(e.type==="cards"){dur=3400;html=`<div class="fall">${Array.from({length:14},(_,i)=>`<i style="left:${(i*7.3+3)%96}%;--r:${(i%2?1:-1)*(120+i*20)}deg;animation-delay:${(i*.09).toFixed(2)}s"></i>`).join("")}</div><div class="big">خلصت الكروت</div><div class="sub">${e.sub||(e.then==="over"?"خلصت آخر جولة.":`الجولة ${e.no} انسجلت، وتبدا الجولة ${e.next}.`)}</div>`}
   else if(e.type==="dissolve"){cls="fx-dissolve";dur=4200;html=`<div class="stamp">حُلّ<br>المجلس</div><div class="seatsdim">${Array.from({length:9},(_,i)=>`<span style="animation-delay:${(1.1+i*.08).toFixed(2)}s"></span>`).join("")}</div><div class="sub">أصوات الجولة ${e.no} انمسحت إلا المستقيلين.${e.sub?" "+e.sub:""}</div>`}
   else if(e.type==="resign"){dur=3400;html=`<div class="tear"><span class="r"></span><span class="l"></span></div><div class="big" style="font-size:2.6rem">${esc(e.name)} استقال</div><div class="sub">أصواته محفوظة بهالجولة.</div>`}

@@ -27,7 +27,9 @@
 <meta name="twitter:image" content="https://ha-games.habeeb3.workers.dev/mafia/og.png?v=2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=Aref+Ruqaa:wght@400;700&family=Caveat:wght@700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap">
+<link rel="preload" href="/fonts/readex-pro-arabic-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/readex-pro-arabic-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/noir.css">
 <style>
 /* لوحة واحدة بعرض التلفون، والليل والنهار يغيّرون لون الخلفية */
@@ -35,8 +37,8 @@
   --bg:#0e0b09;--panel:rgb(27 20 16 / .9);--panel2:#261c16;--line:#3b2d22;
   --fg:#efe3c8;--muted:#a69886;--brass:#c9a35b;--brass-hi:#ecd29a;--brass-ink:#1d1408;
   --blood:#c9443b;--town:#6fae93;
-  --display:"Almarai",Tahoma,"Segoe UI",sans-serif;--ruqaa:"Aref Ruqaa","Almarai",serif;
-  --body:"Almarai",Tahoma,"Segoe UI",sans-serif;
+  --display:"Readex Pro",Tahoma,sans-serif;--ruqaa:"Readex Pro",Tahoma,sans-serif;
+  --body:"Readex Pro",Tahoma,sans-serif;
   color-scheme:dark;
 }
 body[data-phase="night"]{--bg:#06070b;--panel:rgb(13 15 21 / .9);--panel2:#161a23;--line:#262c38}
@@ -794,7 +796,7 @@ const portrait=(r,vb="full",cls="")=>CHAR[r]?`<span class="ch ch-${r} pv-${vb} $
 ["mafia","cop","doctor","sniper","citizen"].forEach(r=>{const i=new Image();i.src=`/mafia/chars/${r}.webp`});
 /* صورة لاعب ما ينعرف دوره: ظل بلون مقعده وأول حرف من اسمه */
 function anon(name){const c=seatColor(name),l=esc([...(name||"")][0]||"؟");
-  return`<svg class="anon" viewBox="0 0 120 120" aria-hidden="true"><rect width="120" height="120" fill="#201915"/><circle cx="60" cy="120" r="70" fill="${c}" opacity=".12"/><path d="M14 124c2-34 22-48 46-48s44 14 46 48z" fill="${c}" opacity=".8"/><circle cx="60" cy="46" r="25" fill="${c}"/><text x="60" y="56" text-anchor="middle" font-family="Aref Ruqaa,serif" font-weight="700" font-size="30" fill="#1d1408">${l}</text></svg>`}
+  return`<svg class="anon" viewBox="0 0 120 120" aria-hidden="true"><rect width="120" height="120" fill="#201915"/><circle cx="60" cy="120" r="70" fill="${c}" opacity=".12"/><path d="M14 124c2-34 22-48 46-48s44 14 46 48z" fill="${c}" opacity=".8"/><circle cx="60" cy="46" r="25" fill="${c}"/><text x="60" y="56" text-anchor="middle" font-family="Readex Pro,sans-serif" font-weight="700" font-size="30" fill="#1d1408">${l}</text></svg>`}
 /* صورة بولارويد للي طلع، والعلامة حسب طريقة طلعته */
 function polaroid(name,mark){
   const m=mark==="x"?`<svg class="xm" viewBox="0 0 100 100" aria-hidden="true"><path d="M18 18 82 82M82 18 18 82"/></svg>`:mark==="out"?`<div class="stamp">طلع</div>`:mark==="aim"?`<svg class="am" viewBox="0 0 100 100" fill="none" aria-hidden="true"><circle cx="50" cy="50" r="30"/><path d="M50 8v24M50 68v24M8 50h24M68 50h24"/></svg>`:"";
@@ -813,7 +815,7 @@ const SCENE_NIGHT=`<svg class="scene-svg" viewBox="0 0 360 260" aria-hidden="tru
 <g><path d="M222 214c2-44 18-62 40-62s38 18 40 62z" fill="#0f0b0a" stroke="#c9a35b" stroke-opacity=".35"/>
 <path d="M248 112c0-15 6-20 14-20s14 5 14 20z" fill="#0b0908" stroke="#c9a35b" stroke-opacity=".35"/><rect x="248" y="106" width="28" height="5" fill="#5b1512"/><ellipse cx="262" cy="112.5" rx="22" ry="4" fill="#0b0908" stroke="#c9a35b" stroke-opacity=".4"/>
 <g class="paper"><path d="M226 118h36v58h-36z" fill="#e9dfc6"/><path d="M262 118h36v58h-36z" fill="#ded2b5"/><path d="M262 118v58" stroke="#b9ab8a"/>
-<text x="262" y="132" font-family="Aref Ruqaa,serif" font-weight="700" font-size="11" fill="#2a1d14" text-anchor="middle" direction="rtl">منو الصيدة اليوم؟</text><path d="M230 137h64" stroke="#b8322c" stroke-width="1.6"/>
+<text x="262" y="132" font-family="Readex Pro,sans-serif" font-weight="700" font-size="11" fill="#2a1d14" text-anchor="middle" direction="rtl">منو الصيدة اليوم؟</text><path d="M230 137h64" stroke="#b8322c" stroke-width="1.6"/>
 <path d="M266 144h28M266 150h28M266 156h20M266 162h28M266 168h24M230 144h28M230 150h22M230 156h28M230 162h28M230 168h18" stroke="#6d6250" stroke-width="2"/>
 <circle cx="225" cy="150" r="5" fill="#0f0b0a"/><circle cx="299" cy="150" r="5" fill="#0f0b0a"/></g></g>
 <ellipse cx="180" cy="204" rx="128" ry="18" fill="#2c1b10"/><ellipse cx="180" cy="199" rx="128" ry="18" fill="#5a3a22"/><ellipse cx="180" cy="199" rx="128" ry="18" fill="none" stroke="#c9a35b" stroke-opacity=".25"/>
