@@ -46,7 +46,8 @@
 <script>
 "use strict";
 const ROUNDS=9,KEY="diwan.hand",BASE_W=60,BASE_L=200;
-const TYPES=[["hand","هند عادي",1],["one","واحد",2],["two","ثنين",4],["three","ثلاث",8]];
+// [المفتاح، الاسم، الدبلة، نقص الفايز، اللي ما نزل، دبلة الورق]
+const TYPES=[["khalsa","خالصة",1,30,100,1],["hand","هند عادي",1,60,200,2],["one","واحد",2,60,200,2],["two","ثنين",4,60,200,2],["three","ثلاث",8,60,200,2]];
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const load=()=>{try{return JSON.parse(localStorage.getItem(KEY))||null}catch{return null}};
@@ -57,12 +58,13 @@ const tot=i=>S.rounds.reduce((a,r)=>a+r.p[i],0);
 const fmt=n=>n>0?"+"+n:String(n);
 function sfx(type){try{const c=sfx.c||(sfx.c=new(window.AudioContext||window.webkitAudioContext)());const o=c.createOscillator(),g=c.createGain(),t=c.currentTime;o.type="triangle";o.frequency.setValueAtTime(type==="win"?520:type==="undo"?240:420,t);if(type==="win")o.frequency.exponentialRampToValueAtTime(880,t+.35);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.12,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+(type==="win"?.6:.15));o.connect(g).connect(c.destination);o.start();o.stop(t+.7)}catch{}}
 
-/* حسبة الهند: الفايز −60×الدبلة، وكل لاعب خسران: ما نزل 200×الدبلة، واللي نازل ورقه ×2×الدبلة */
+/* الهند: الفايز −60×الدبلة، وكل خسران ما نزل 200×الدبلة، واللي نازل ورقه ×2×الدبلة
+   الخالصة: الفايز −30، وكل خسران ما نزل 100، واللي نازل ورقه بدون دبلة */
 function calc(f){
-  const k=TYPES.find(t=>t[0]===f.type)[2],w=f.team,l=1-w,p=[0,0];
-  p[w]=-BASE_W*k;
-  const n=f.down?(f.both?2:1):0,cards=f.down?(parseInt(f.pts[0],10)||0)+(f.both?(parseInt(f.pts[1],10)||0):0):0;
-  p[l]=cards*2*k+(2-n)*BASE_L*k;
+  const [,,k,bw,nd,cm]=TYPES.find(t=>t[0]===f.type),w=f.team,l=1-w,p=[0,0];
+  p[w]=-bw*k;
+  const n=f.down?(f.both?2:1):0,cards=f.down?(parseInt(f.pts[0],10)||0):0;
+  p[l]=cards*cm*k+(2-n)*nd*k;
   return p;
 }
 function render(bump){
@@ -91,11 +93,11 @@ function renderEntry(){
     const l=1-F.team,dn=F.down;
     const lab=t=>{const p=calc({...F,type:t[0]});return`<small><bdi class="n">${fmt(p[F.team])}</bdi> / <bdi class="n">${fmt(p[l])}</bdi></small>`};
     body=`<p class="q">${esc(S.names[F.team])} هند… شنو نوعه؟</p>
-      <div class="types">${TYPES.map(t=>`<button class="btn" data-type="${t[0]}">${t[1]}${lab(t)}</button>`).join("")}<button class="btn zat" data-zat="1" style="grid-column:1/-1">زات<small>تخلص اللعبة و${esc(S.names[F.team])} يفوزون</small></button></div>
+      <div class="types">${TYPES.map(t=>`<button class="btn" data-type="${t[0]}">${t[1]}${lab(t)}</button>`).join("")}<button class="btn zat" data-zat="1">زات<small>تخلص اللعبة و${esc(S.names[F.team])} يفوزون</small></button></div>
       <label class="dn"><input type="checkbox" id="dn" ${dn?"checked":""}><span>فيه نزول من ${esc(S.names[l])}</span></label>
       ${dn?`<div class="tabs" style="margin-top:8px"><button class="chip ${F.both?"":"on"}" data-both="0">واحد نازل</button><button class="chip ${F.both?"on":""}" data-both="1">ثنينهم نازلين</button></div>
-        <div class="row">${(F.both?[0,1]:[0]).map(j=>`<label class="f"><span>${F.both?`جم بيد ${j?"الثاني":"الأول"}؟`:"جم بيد اللي نازل؟"}</span><input class="num" data-pts="${j}" type="number" inputmode="numeric" min="0" placeholder="0" value="${esc(F.pts[j]||"")}"></label>`).join("")}</div>
-        <p class="small muted" style="margin:6px 0 0">${F.both?"ورقهم ينجمع ويندبل.":"اللي ما نزل ينحسب عليه 200، واللي نازل ورقه يندبل."}</p>`:""}
+        <label class="f"><span>${F.both?"جم بيدهم (ثنينهم مع بعض)؟":"جم بيد اللي نازل؟"}</span><input class="num" data-pts="0" type="number" inputmode="numeric" min="0" placeholder="0" value="${esc(F.pts[0]||"")}"></label>
+        <p class="small muted" style="margin:6px 0 0">${F.both?"بالهند ورقهم يندبل، وبالخالصة ينحسب مثل ما هو.":"اللي ما نزل: 200 بالهند (100 بالخالصة). اللي نازل: ورقه يندبل بالهند، وبالخالصة مثل ما هو."}</p>`:""}
       <button class="btn sm" data-go="who" style="margin-top:10px">رجوع</button>`;
   }
   E.innerHTML=head+`<div class="step">${body}</div>`;
@@ -105,7 +107,7 @@ function renderEntry(){
   const dnb=$("#dn");if(dnb)dnb.onchange=()=>{F.down=dnb.checked;renderEntry()};
   E.querySelectorAll("[data-both]").forEach(b=>b.onclick=()=>{F.both=b.dataset.both==="1";renderEntry()});
   E.querySelectorAll("[data-pts]").forEach(i=>i.addEventListener("input",()=>{F.pts[+i.dataset.pts]=i.value;E.querySelectorAll("[data-type]").forEach(b=>{const p=calc({...F,type:b.dataset.type});const s=b.querySelectorAll("bdi");s[0].textContent=fmt(p[F.team]);s[1].textContent=fmt(p[1-F.team])})}));
-  E.querySelectorAll("[data-type]").forEach(b=>b.onclick=()=>{if(F.down&&!F.pts.slice(0,F.both?2:1).every(x=>x!=="")){toast("اكتب جم بيد اللي نازل");return}const ty=TYPES.find(x=>x[0]===b.dataset.type);addRound(calc({...F,type:ty[0]}),`${ty[1]} · ${S.names[F.team]}${F.down?(F.both?" · ثنينهم نازلين":" · واحد نازل"):""}`)});
+  E.querySelectorAll("[data-type]").forEach(b=>b.onclick=()=>{if(F.down&&F.pts[0]===""){toast(F.both?"اكتب جم بيدهم":"اكتب جم بيد اللي نازل");return}const ty=TYPES.find(x=>x[0]===b.dataset.type);addRound(calc({...F,type:ty[0]}),`${ty[1]} · ${S.names[F.team]}${F.down?(F.both?" · ثنينهم نازلين":" · واحد نازل"):""}`)});
   E.querySelectorAll("[data-zat]").forEach(b=>b.onclick=()=>doZat(F.team));
   E.querySelectorAll("[data-sign]").forEach(b=>b.onclick=()=>{b.textContent=b.textContent==="+"?"−":"+"});
   const madd=$("#madd");if(madd)madd.onclick=()=>{const v=[0,1].map(i=>{const x=Math.abs(parseInt($("#m"+i).value,10)||0);return E.querySelector(`[data-sign="${i}"]`).textContent==="−"?-x:x});if(!v[0]&&!v[1]){toast("اكتب النقاط أول");return}addRound(v,"يدوي")};
