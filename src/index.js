@@ -228,7 +228,7 @@ export class Room extends DurableObject {
     if (role && pub.me.inGame) {
       Object.assign(pub.me, { role, fake: this.isFake(pid), notes: s.notes[pid] || [] });
       if (role === "cop") Object.assign(pub.me, { queriesLeft: Math.max(0, (s.queryMax || 0) - this.qUsed(pid)), queryMax: s.queryMax || 0, queryMafia: this.qmap()[pid] ? isM(s.roles[this.qmap()[pid]]) : null });
-      if (isM(role)) Object.assign(pub.me, { fakesDone: s.fakesDone || [], fakeNeed: s.fakeNeed || 1 });
+      if (isM(role)) Object.assign(pub.me, { fakesDone: s.fakesDone || [], fakeNeed: s.fakeNeed || 1, fakeJudge: s.phase === "night0" ? this.judgeFakes() : [] });
       const n = s.night;
       if (isM(role)) pub.me.team = s.order.filter((i) => isM(s.roles[i])).map((i) => ({
         id: i, role: s.roles[i], fake: this.isFake(i),
@@ -257,6 +257,8 @@ export class Room extends DurableObject {
   // النصابين: اللي تأكدوا + اللي المافيا مختارينه الحين
   fakes() { const s = this.s; return [...(s.fakesDone || []), s.fakeCop].filter(Boolean); }
   isFake(id) { return this.fakes().includes(id); }
+  // النصابين اللي القاضي عيّنهم بدال المافيا (لما تعادلوا أو ما اختاروا)
+  judgeFakes() { const s = this.s; return [...(s.fakesJudge || []), ...(s.night.fakeByJudge && s.fakeCop ? [s.fakeCop] : [])]; }
   qmap() { const q = this.s.night.queried; return q && typeof q === "object" ? q : {}; }
   smap() { const v = this.s.night.save; return v && typeof v === "object" ? v : {}; }
   qUsed(id) { const u = this.s.queriesUsed; return u && typeof u === "object" ? u[id] || 0 : 0; }
@@ -372,7 +374,7 @@ export class Room extends DurableObject {
     Object.assign(s, {
       gen: s.gen + 1, order: ids, roles, alive: Object.fromEntries(ids.map((i) => [i, true])),
       phase: "deal", step: null, round: 0, timer: null, sniperPending: null, winner: null, canVote: false,
-      fakeCop: null, fakesDone: [], fakeNeed: c, notes: {}, votes: {}, voteOrder: [], voteTurn: 0, voteHist: [], night: blankNight(), log: [], queryMax: m, queriesUsed: {},
+      fakeCop: null, fakesDone: [], fakesJudge: [], fakeNeed: c, notes: {}, votes: {}, voteOrder: [], voteTurn: 0, voteHist: [], night: blankNight(), log: [], queryMax: m, queriesUsed: {},
       announce: "كل واحد يقلب كرته ويشوف دوره.",
     });
     this.ev("deal");
@@ -387,6 +389,9 @@ export class Room extends DurableObject {
     const i = steps.indexOf(s.step);
     if (i < steps.length - 1) { s.step = steps[i + 1]; return; }
     if (s.phase === "night0") {
+      // نخبر المافيا إذا القاضي عيّن النصاب عنهم
+      for (const f of this.judgeFakes()) for (const mm of this.aliveIds().filter((i) => isM(s.roles[i])))
+        this.note(mm, mm === f ? "القاضي اختار عنكم: أنت صرت النصاب" : `القاضي اختار عنكم: صار ${this.nm(f)} النصاب`);
       Object.assign(s, { phase: "day", step: null, round: 1, canVote: false, talked: {}, announce: "الصبح. الشرطة يرفعون إيدهم." });
       this.ev("dawn");
       return;
@@ -493,6 +498,7 @@ export class Room extends DurableObject {
   lockFake() {
     const s = this.s, done = s.fakesDone || [];
     if (!s.fakeCop || done.length + 1 >= (s.fakeNeed || 1)) return;
+    if (s.night.fakeByJudge) s.fakesJudge = [...(s.fakesJudge || []), s.fakeCop];
     s.fakesDone = [...done, s.fakeCop]; s.fakeCop = null; s.night.fake = {}; s.night.fakeByJudge = false;
   }
 
