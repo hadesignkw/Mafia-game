@@ -898,6 +898,10 @@ body[data-phase=day]:not(.reception-mode) .announce{background:rgba(255,250,239,
 .proxy{border:2px solid var(--blood);border-radius:16px;padding:12px;margin-bottom:14px;background:color-mix(in srgb,var(--blood) 10%,transparent);animation:annIn .45s cubic-bezier(.2,.8,.2,1) both}
 .proxy-h{display:flex;flex-direction:column;align-items:center;gap:2px;margin-bottom:10px;text-align:center}
 .proxy-h b{font-size:1.7rem;line-height:1.2}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.stp{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.stp-c{display:flex;align-items:center;gap:10px}.stp-c b{min-width:72px;text-align:center;font-size:1.4rem}.stp-c b small{font-size:.75rem;font-weight:400;color:var(--muted)}
+.stp-c .btn{min-width:46px;font-size:1.3rem;padding:0}
 body[data-phase=day] .pick:not(.on):not(.res){background:rgba(255,250,239,.92);color:var(--fg);border-color:var(--line)}
 @media(prefers-reduced-transparency:reduce){body:not(.reception-mode){--panel:#101c2b}body[data-phase=day]:not(.reception-mode){--panel:#fffaf0}}
 
@@ -1584,6 +1588,14 @@ function seats(judge){
 }
 const dot=p=>`<span class="dot ${p.online?"on":""}" title="${p.online?"موجود":"طلع من الموقع"}"></span>`;
 
+/* --- إعدادات الغرفة (القاضي قبل التوزيع) --- */
+function settingsPanel(){
+  const J=st.judge,c=J.settings||{mode:"default",mafia:2,talk:40},cu=c.mode==="custom",mx=J.mafiaMax||2,mf=Math.min(c.mafia,mx);
+  const step=(k,v,lab,unit,minus,plus)=>`<div class="stp"><span>${lab}</span><div class="stp-c"><button class="btn sm" data-a="set" data-k="${k}" data-v="${minus}" ${minus===null?"disabled":""} aria-label="أقل">−</button><b>${ar(v)}<small>${unit}</small></b><button class="btn sm" data-a="set" data-k="${k}" data-v="${plus}" ${plus===null?"disabled":""} aria-label="أكثر">+</button></div></div>`;
+  return`<div class="panel"><h3>الإعدادات</h3><div class="seg"><button class="pick ${cu?"":"on"}" data-a="set" data-k="mode" data-v="default">افتراضي</button><button class="pick ${cu?"on":""}" data-a="set" data-k="mode" data-v="custom">مخصص</button></div>
+  ${cu?step("mafia",mf,"عدد المافيا","",mf>1?mf-1:null,mf<mx?mf+1:null)+step("talk",c.talk,"وقت كل واحد يتكلم"," ثانية",c.talk>10?c.talk-10:null,c.talk<300?c.talk+10:null)+`<p class="muted small">أقصى مافيا بهالعدد: ${ar(mx)}</p>`
+  :`<p class="muted small">المافيا حسب عدد اللاعبين${J.mafiaNext?` (الحين ${ar(J.mafiaNext)})`:""}، وكل واحد يتكلم ${ar(40)} ثانية.</p>`}</div>`;
+}
 /* --- القاضي --- */
 function judgeView(){
   const J=st.judge;let h=header();
@@ -1593,6 +1605,7 @@ function judgeView(){
     <p class="muted small">${ar(n)} لاعب دخل${J.mafiaNext?` · المافيا بتكون ${ar(J.mafiaNext)}`:` · تحتاج ${ar(st.minPlayers-n)} بعد`}</p>
     <button class="btn share" data-a="share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v14"/></svg>ارسل رابط الغرفة</button>
     <button class="btn primary" data-a="cmd" data-c="start" ${n<st.minPlayers?"disabled":""}>وزّع الكروت</button></div>
+    ${settingsPanel()}
     <div class="panel"><h3>منو دخل <span class="count">${ar(n)}</span></h3>${n?seats(true):`<p class="muted">ما أحد دخل للحين.</p>`}</div>`;
     return h;
   }
@@ -1645,7 +1658,7 @@ function judgeControls(){
     h+=`<button class="btn primary" data-a="cmd" data-c="next" ${st.stepDone?"":"disabled"}>${last?(p==="night0"?"الصبح":"الصبح: طلّع النتيجة"):"اللي بعده: "+STEP_N[S[i+1]]}</button>`;
   }else if(p==="day"){
     {const isCop=i=>J.roles[i]==="cop"||J.fakeCop===i,copsStarted=(st.timer&&isCop(st.timer.pid))||Object.keys(st.talked||{}).some(i=>st.talked[i]&&isCop(i));
-    if(!copsStarted)h+=`<p class="script">${st.round===1?"<b>الشرطة يرفعون إيدهم.</b> ":""}الشرطة يتكلمون أول، اختار منو يبدا منهم. بعدين الشعب واحد واحد، وكل واحد له 40 ثانية.</p>`;}
+    if(!copsStarted)h+=`<p class="script">${st.round===1?"<b>الشرطة يرفعون إيدهم.</b> ":""}الشرطة يتكلمون أول، اختار منو يبدا منهم. بعدين الشعب واحد واحد، وكل واحد له ${ar(J.talk||40)} ثانية.</p>`;}
     if(st.sniperPending)h+=sniperFallback();
     else{
       if(st.timer)h+=`<div class="row"><button class="btn" data-a="cmd" data-c="restartT">أعد الوقت</button><button class="btn danger" data-a="cmd" data-c="stopT">وقّف الوقت</button></div>`;
@@ -1831,6 +1844,7 @@ document.addEventListener("click",e=>{
   else if(a==="persona")switchPersona(+b.dataset.i);
   else if(a==="demo")startDemo(+($("#demoN")&&$("#demoN").value||8));
   else if(a==="cmd")send({t:b.dataset.c,id});
+  else if(a==="set"&&st&&st.judge){const c={...(st.judge.settings||{mode:"default",mafia:2,talk:40})};const k=b.dataset.k,v=b.dataset.v;if(k==="mode"){c.mode=v;if(v==="custom"&&st.judge.mafiaNext)c.mafia=st.judge.mafiaNext}else c[k]=+v;send({t:"settings",...c})}
   else if(a==="card"){
     cardOpen=!cardOpen;b.classList.remove("tilt","still");b.dataset.keep=`card|${st.gen}|${cardOpen?1:0}|${b.dataset.h}`;b.classList.toggle("open",cardOpen);
     const fi=b.querySelector(".flip-in");if(fi){fi.style.removeProperty("--rx");fi.style.removeProperty("--ry")}

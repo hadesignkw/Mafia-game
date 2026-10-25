@@ -12,6 +12,9 @@ const mafiaCount = (n) => 2 + Math.floor((n - 6) / 4); // ٦–٩:٢ · ١٠–�
 const MIN_PLAYERS = 6;
 const MAX_PLAYERS = 30;
 const TALK = 40;
+// أقصى عدد مافيا: لازم يبقى الشريف والبيطري والقناص، والمافيا أقل من الشعب
+const maxMafia = (n) => Math.max(1, Math.min(n - 3, Math.floor((n - 1) / 2)));
+const DEF_SET = { mode: "default", mafia: 2, talk: TALK };
 const STEPS0 = ["police", "mafia"]; // الليلة الأولى: الشريف يفتش، والمافيا يتعارفون ويختارون النصاب
 const STEPS = ["mafia", "doctor", "police"];
 // الأغلبية: إذا فيه اختيار واحد فايز يرجع، وإذا تعادل يرجع المتعادلين
@@ -98,7 +101,7 @@ export class Room extends DurableObject {
     const judgeToken = tok();
     this.s = {
       code, judgeToken, createdAt: Date.now(), touched: Date.now(),
-      players: {}, lobby: [], order: [], phase: "lobby", step: null, round: 0, gen: 0, canVote: false,
+      settings: { ...DEF_SET }, players: {}, lobby: [], order: [], phase: "lobby", step: null, round: 0, gen: 0, canVote: false,
       alive: {}, roles: {}, fakeCop: null, notes: {}, night: blankNight(), votes: {}, voteOrder: [], voteTurn: 0,
       sniperPending: null, winner: null, announce: "", timer: null, event: null, log: [], demo: !!demo,
     };
@@ -212,7 +215,8 @@ export class Room extends DurableObject {
       pub.judge = {
         roles: s.roles, fakeCop: s.fakeCop, night: s.night, votes: s.votes, log: s.log.slice(-60),
         queriesLeft: Math.max(0, (s.queryMax || 0) - (s.queriesUsed || 0)), queryMax: s.queryMax || 0,
-        mafiaNext: s.lobby.length >= MIN_PLAYERS ? mafiaCount(s.lobby.length) : null,
+        mafiaNext: s.lobby.length >= MIN_PLAYERS ? this.mafiaFor(s.lobby.length) : null,
+        settings: this.sets(), mafiaMax: maxMafia(Math.max(s.lobby.length, MIN_PLAYERS)), talk: this.talkSec(),
       };
       return pub;
     }
@@ -240,6 +244,10 @@ export class Room extends DurableObject {
 
   /* ---------- أدوات ---------- */
   nm(id) { return this.s.players[id]?.name || "لاعب"; }
+  // إعدادات الغرفة: افتراضي أو مخصص من القاضي
+  sets() { return this.s.settings || DEF_SET; }
+  mafiaFor(n) { const c = this.sets(); return c.mode === "custom" ? Math.min(c.mafia, maxMafia(n)) : mafiaCount(n); }
+  talkSec() { const c = this.sets(); return c.mode === "custom" ? c.talk : TALK; }
   aliveIds() { return this.s.order.filter((i) => this.s.alive[i]); }
   // منو دوره يصوّت الحين
   curVoter() {
@@ -273,6 +281,14 @@ export class Room extends DurableObject {
           }
         }
         break;
+      case "settings": // القاضي يغير الإعدادات قبل التوزيع
+        if (s.phase === "lobby") {
+          const mode = m.mode === "custom" ? "custom" : "default";
+          const mafia = Math.max(1, Math.min(7, parseInt(m.mafia, 10) || 2));
+          const talk = Math.max(10, Math.min(300, Math.round((parseInt(m.talk, 10) || TALK) / 5) * 5));
+          s.settings = { mode, mafia, talk };
+        }
+        break;
       case "start": return this.start();
       case "begin":
         // القاضي يبدا اللعبة بعد ما شاف الكل أدوارهم، والكروت تنشال
@@ -291,10 +307,10 @@ export class Room extends DurableObject {
       case "closeVote": if (s.phase === "vote" && !this.curVoter()) this.closeVote(); break; // لازم الكل يصوّت
       case "voteFor": if (s.phase === "vote") this.castVote(this.curVoter(), id); break; // القاضي يصوّت بدال اللي تلفونه فيه مشكلة
       case "talk":
-        if (s.phase === "day" && s.alive[id] && !s.sniperPending) { s.timer = { pid: id, name: this.nm(id), endsAt: Date.now() + TALK * 1000, dur: TALK, id: sid() }; (s.talked = s.talked || {})[id] = true; s.announce = ""; }
+        if (s.phase === "day" && s.alive[id] && !s.sniperPending) { s.timer = { pid: id, name: this.nm(id), endsAt: Date.now() + this.talkSec() * 1000, dur: this.talkSec(), id: sid() }; (s.talked = s.talked || {})[id] = true; s.announce = ""; }
         break;
       case "stopT": s.timer = null; break;
-      case "restartT": if (s.timer && s.phase === "day") s.timer = { ...s.timer, endsAt: Date.now() + TALK * 1000, id: sid() }; break;
+      case "restartT": if (s.timer && s.phase === "day") s.timer = { ...s.timer, endsAt: Date.now() + (s.timer.dur || this.talkSec()) * 1000, id: sid() }; break;
       case "closeFx": // القاضي يسكر صورة النتيجة عند الكل
         if (s.event) { s.event.closed = true; if (s.event.after) s.event.after.closed = true; }
         break;
@@ -324,7 +340,7 @@ export class Room extends DurableObject {
     if (s.phase !== "lobby" || ids.length < MIN_PLAYERS) return;
     const sh = [...ids];
     for (let i = sh.length - 1; i > 0; i--) { const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1); [sh[i], sh[j]] = [sh[j], sh[i]]; }
-    const m = mafiaCount(ids.length), roles = {};
+    const m = this.mafiaFor(ids.length), roles = {};
     sh.forEach((id, i) => { roles[id] = i < m ? "mafia" : i === m ? "cop" : i === m + 1 ? "doctor" : i === m + 2 ? "sniper" : "citizen"; });
     Object.assign(s, {
       gen: s.gen + 1, order: ids, roles, alive: Object.fromEntries(ids.map((i) => [i, true])),
