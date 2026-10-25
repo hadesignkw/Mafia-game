@@ -1434,7 +1434,7 @@ function sceneSound(e){if(!receptionAudio?.enabled)return;const A=receptionAudio
 /* خلفية الصوت حسب المرحلة */
 function phaseAmb(){if(!st||view!=="game")return"";if(st.phase==="night"||st.phase==="night0")return"amb-night";if(st.phase==="vote"||st.phase==="result")return"amb-crowd";if(st.phase==="day")return"amb-day";return""}
 /* صوت لكل زر */
-document.addEventListener("pointerdown",e=>{if(!receptionAudio?.enabled)return;const b=e.target.closest&&e.target.closest("button,.pick,a.back,[data-a]");if(!b||b.classList.contains("rx-game-sound"))return;
+document.addEventListener("pointerdown",e=>{if(!receptionAudio?.enabled)return;if(view==="game"&&st&&(st.phase==="night"||st.phase==="night0"))return;/* بالليل الأزرار بدون صوت عشان محد يعرف منو عنده دور */const b=e.target.closest&&e.target.closest("button,.pick,a.back,[data-a]");if(!b||b.classList.contains("rx-game-sound"))return;
   if(b.disabled||b.getAttribute("aria-disabled")==="true"){receptionAudio.play("error",{gain:.35});return}
   if(b.dataset.a==="card")return;
   if(b.classList.contains("pick"))receptionAudio.play("select",{gain:.35});
