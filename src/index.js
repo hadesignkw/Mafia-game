@@ -14,7 +14,7 @@ const MAX_PLAYERS = 30;
 const TALK = 40;
 // أقصى عدد مافيا: لازم يبقى الشريف والبيطري والقناص، والمافيا أقل من الشعب
 const maxMafia = (n, c = 1, d = 1) => Math.max(1, Math.min(n - (c + d + 1), Math.floor((n - 1) / 2)));
-const DEF_SET = { mode: "default", mafia: 2, talk: TALK, cops: 1, docs: 1 };
+const DEF_SET = { mode: "default", mafia: 2, talk: TALK, cops: 1, docs: 1, cap: MAX_PLAYERS };
 const STEPS0 = ["police", "mafia"]; // الليلة الأولى: الشريف يفتش، والمافيا يتعارفون ويختارون النصاب
 const STEPS = ["mafia", "doctor", "police"];
 // الأغلبية: إذا فيه اختيار واحد فايز يرجع، وإذا تعادل يرجع المتعادلين
@@ -154,7 +154,7 @@ export class Room extends DurableObject {
       const name = String(m.name || "").trim().replace(/\s+/g, " ").slice(0, 24);
       if (!name) return this.err(ws, "اكتب اسمك.");
       if (s.phase !== "lobby") return this.err(ws, "اللعبة بدت، انطر لين تخلص الجولة.");
-      if (s.lobby.length >= MAX_PLAYERS) return this.err(ws, "الغرفة فلّت.");
+      if (s.lobby.length >= this.capFor()) return this.err(ws, "خلاص سكرنا، العدد اكتمل.");
       if (s.lobby.some((id) => s.players[id].name === name)) return this.err(ws, "هالاسم مستخدم، غيّره شوي.");
       const pid = sid(), token = tok();
       s.players[pid] = { name, token, at: Date.now() };
@@ -216,7 +216,7 @@ export class Room extends DurableObject {
         roles: s.roles, fakeCop: s.fakeCop, night: { ...s.night, queried: this.qmap(), save: this.smap() }, votes: s.votes, log: s.log.slice(-60),
         queriesLeft: s.order.filter((i) => s.roles[i] === "cop" && s.alive[i]).reduce((a, i) => a + Math.max(0, (s.queryMax || 0) - this.qUsed(i)), 0), queryMax: s.queryMax || 0,
         mafiaNext: s.lobby.length >= MIN_PLAYERS ? this.mafiaFor(s.lobby.length) : null,
-        settings: this.sets(), talk: this.talkSec(), fakes: this.fakes(), fakeNeed: s.fakeNeed || 1,
+        settings: this.sets(), cap: this.capFor(), talk: this.talkSec(), fakes: this.fakes(), fakeNeed: s.fakeNeed || 1,
         mafiaMax: maxMafia(Math.max(s.lobby.length, MIN_PLAYERS), this.copsFor(s.lobby.length), this.docsFor(s.lobby.length)),
         rolesMax: Math.max(1, Math.max(s.lobby.length, MIN_PLAYERS) - this.mafiaFor(Math.max(s.lobby.length, MIN_PLAYERS)) - 2),
         cops: Object.fromEntries(s.order.filter((i) => s.roles[i] === "cop").map((i) => [i, { left: Math.max(0, (s.queryMax || 0) - this.qUsed(i)), q: this.qmap()[i] || null }])),
@@ -251,9 +251,12 @@ export class Room extends DurableObject {
   // إعدادات الغرفة: افتراضي أو مخصص من القاضي
   sets() { return this.s.settings || DEF_SET; }
   // عدد الشرطة والبياطرة (بالمخصص بس)، والشرطة ما يزيدون عن المافيا عشان النصابين
-  copsFor(n) { const c = this.sets(); return c.mode === "custom" ? Math.max(1, Math.min(c.cops || 1, 4)) : 1; }
-  docsFor(n) { const c = this.sets(); return c.mode === "custom" ? Math.max(1, Math.min(c.docs || 1, 4)) : 1; }
-  mafiaFor(n) { const c = this.sets(); return c.mode === "custom" ? Math.min(c.mafia, maxMafia(n, this.copsFor(n), this.docsFor(n))) : mafiaCount(n); }
+  // بالمخصص القاضي حر: الأعداد مثل ما حطها (الشرط الوحيد إن الأدوار ما تزيد عن اللاعبين)
+  copsFor(n) { const c = this.sets(); return c.mode === "custom" ? Math.max(1, c.cops || 1) : 1; }
+  docsFor(n) { const c = this.sets(); return c.mode === "custom" ? Math.max(1, c.docs || 1) : 1; }
+  mafiaFor(n) { const c = this.sets(); return c.mode === "custom" ? Math.max(1, c.mafia || 1) : mafiaCount(n); }
+  // عدد اللاعبين المسموح: بالمخصص القاضي يحدده، والباقي ٣٠
+  capFor() { const c = this.sets(); return c.mode === "custom" ? Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, c.cap || MAX_PLAYERS)) : MAX_PLAYERS; }
   // النصابين: اللي تأكدوا + اللي المافيا مختارينه الحين
   fakes() { const s = this.s; return [...(s.fakesDone || []), s.fakeCop].filter(Boolean); }
   isFake(id) { return this.fakes().includes(id); }
@@ -299,11 +302,12 @@ export class Room extends DurableObject {
       case "settings": // القاضي يغير الإعدادات قبل التوزيع
         if (s.phase === "lobby") {
           const mode = m.mode === "custom" ? "custom" : "default";
-          const mafia = Math.max(1, Math.min(7, parseInt(m.mafia, 10) || 2));
+          const mafia = Math.max(1, Math.min(MAX_PLAYERS, parseInt(m.mafia, 10) || 2));
           const talk = Math.max(10, Math.min(300, Math.round((parseInt(m.talk, 10) || TALK) / 5) * 5));
-          const cops = Math.max(1, Math.min(4, parseInt(m.cops, 10) || 1));
-          const docs = Math.max(1, Math.min(4, parseInt(m.docs, 10) || 1));
-          s.settings = { mode, mafia, talk, cops, docs };
+          const cops = Math.max(1, Math.min(MAX_PLAYERS, parseInt(m.cops, 10) || 1));
+          const docs = Math.max(1, Math.min(MAX_PLAYERS, parseInt(m.docs, 10) || 1));
+          const cap = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, parseInt(m.cap, 10) || MAX_PLAYERS));
+          s.settings = { mode, mafia, talk, cops, docs, cap };
         }
         break;
       case "start": return this.start();
@@ -365,16 +369,17 @@ export class Room extends DurableObject {
     if (s.phase !== "lobby" || ids.length < MIN_PLAYERS) return;
     const sh = [...ids];
     for (let i = sh.length - 1; i > 0; i--) { const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1); [sh[i], sh[j]] = [sh[j], sh[i]]; }
-    const n = ids.length, m = this.mafiaFor(n), roles = {};
-    // الشرطة ما يزيدون عن المافيا (لكل شريف نصاب)، ولازم يبقى مكان للقناص
-    let c = Math.min(this.copsFor(n), m), d = this.docsFor(n);
+    const n = ids.length, cu = this.sets().mode === "custom", roles = {};
+    let m = this.mafiaFor(n), c = cu ? this.copsFor(n) : Math.min(this.copsFor(n), m), d = this.docsFor(n);
+    // بالمخصص: إذا الأدوار أكثر من اللاعبين ما نوزع (القاضي يعدّل الأعداد)
+    if (cu && m + c + d + 1 > n) return;
     while (m + c + d + 1 > n && d > 1) d--;
     while (m + c + d + 1 > n && c > 1) c--;
     sh.forEach((id, i) => { roles[id] = i < m ? "mafia" : i < m + c ? "cop" : i < m + c + d ? "doctor" : i === m + c + d ? "sniper" : "citizen"; });
     Object.assign(s, {
       gen: s.gen + 1, order: ids, roles, alive: Object.fromEntries(ids.map((i) => [i, true])),
       phase: "deal", step: null, round: 0, timer: null, sniperPending: null, winner: null, canVote: false,
-      fakeCop: null, fakesDone: [], fakesJudge: [], fakeNeed: c, notes: {}, votes: {}, voteOrder: [], voteTurn: 0, voteHist: [], night: blankNight(), log: [], queryMax: m, queriesUsed: {},
+      fakeCop: null, fakesDone: [], fakesJudge: [], fakeNeed: Math.min(c, m), notes: {}, votes: {}, voteOrder: [], voteTurn: 0, voteHist: [], night: blankNight(), log: [], queryMax: m, queriesUsed: {},
       announce: "كل واحد يقلب كرته ويشوف دوره.",
     });
     this.ev("deal");

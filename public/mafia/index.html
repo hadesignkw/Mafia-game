@@ -1590,11 +1590,13 @@ const dot=p=>`<span class="dot ${p.online?"on":""}" title="${p.online?"موجو�
 
 /* --- إعدادات الغرفة (القاضي قبل التوزيع) --- */
 function settingsPanel(){
-  const J=st.judge,c={cops:1,docs:1,...(J.settings||{mode:"default",mafia:2,talk:40})},cu=c.mode==="custom",mx=J.mafiaMax||2,mf=Math.min(c.mafia,mx);
-  const N=Math.max(st.players.length,st.minPlayers||6),cops=Math.min(c.cops,mf,4),cMax=Math.min(4,mf,Math.max(1,N-mf-c.docs-1)),docs=c.docs,dMax=Math.min(4,Math.max(1,N-mf-cops-1));
+  const J=st.judge,c={cops:1,docs:1,cap:30,...(J.settings||{mode:"default",mafia:2,talk:40})},cu=c.mode==="custom";
+  const n=st.players.length,mn=st.minPlayers||6,cap=Math.max(mn,Math.min(30,c.cap||30)),mf=Math.max(1,c.mafia),cops=Math.max(1,c.cops),docs=Math.max(1,c.docs);
+  // المخصص حر: الشرط الوحيد إن المافيا والشرطة والبياطرة والقناص ما يزيدون عن عدد اللاعبين
+  const used=mf+cops+docs+1,room=used<cap,capMin=Math.max(mn,n,used);
   const step=(k,v,lab,unit,minus,plus)=>`<div class="stp"><span>${lab}</span><div class="stp-c"><button class="btn sm" data-a="set" data-k="${k}" data-v="${minus}" ${minus===null?"disabled":""} aria-label="أقل">−</button><b>${ar(v)}<small>${unit}</small></b><button class="btn sm" data-a="set" data-k="${k}" data-v="${plus}" ${plus===null?"disabled":""} aria-label="أكثر">+</button></div></div>`;
   return`<div class="panel"><h3>الإعدادات</h3><div class="seg"><button class="pick ${cu?"":"on"}" data-a="set" data-k="mode" data-v="default">افتراضي</button><button class="pick ${cu?"on":""}" data-a="set" data-k="mode" data-v="custom">مخصص</button></div>
-  ${cu?step("mafia",mf,"عدد المافيا","",mf>1?mf-1:null,mf<mx?mf+1:null)+step("cops",cops,"عدد الشرطة (الشريف)","",cops>1?cops-1:null,cops<cMax?cops+1:null)+step("docs",docs,"عدد البياطرة","",docs>1?docs-1:null,docs<dMax?docs+1:null)+step("talk",c.talk,"وقت كل واحد يتكلم"," ثانية",c.talk>10?c.talk-10:null,c.talk<300?c.talk+10:null)+`<p class="muted small">أقصى مافيا بهالعدد: ${ar(mx)}. الشرطة ما يزيدون عن المافيا، ولكل شريف نصاب.</p>`
+  ${cu?step("cap",cap,"عدد اللاعبين","",cap>capMin?cap-1:null,cap<30?cap+1:null)+step("mafia",mf,"عدد المافيا","",mf>1?mf-1:null,room?mf+1:null)+step("cops",cops,"عدد الشرطة (الشريف)","",cops>1?cops-1:null,room?cops+1:null)+step("docs",docs,"عدد البياطرة","",docs>1?docs-1:null,room?docs+1:null)+step("talk",c.talk,"وقت كل واحد يتكلم"," ثانية",c.talk>10?c.talk-10:null,c.talk<300?c.talk+10:null)+`<p class="muted small">أول ${ar(cap)} يدخلون، واللي بعدهم يطلع له "العدد اكتمل". النصابين بعدد الشرطة${cops>mf?` (بس ما يزيدون عن المافيا، فبيكونون ${ar(mf)})`:""}، والباقين فداوية مع القناص.</p>`
   :`<p class="muted small">المافيا حسب عدد اللاعبين${J.mafiaNext?` (الحين ${ar(J.mafiaNext)})`:""}، وكل واحد يتكلم ${ar(40)} ثانية.</p>`}</div>`;
 }
 /* --- القاضي --- */
@@ -1603,9 +1605,9 @@ function judgeView(){
   if(st.phase==="lobby"){
     const n=st.players.length;
     h+=`<div class="panel"><h3>اللاعبين يدخلون برقم الغرفة</h3><p style="font-family:var(--display);font-size:3rem;text-align:center;letter-spacing:.2em;color:var(--brass);margin:0">${ar(st.code)}</p>
-    <p class="muted small">${ar(n)} لاعب دخل${J.mafiaNext?` · المافيا بتكون ${ar(J.mafiaNext)}`:` · تحتاج ${ar(st.minPlayers-n)} بعد`}</p>
+    <p class="muted small">${ar(n)}${J.settings&&J.settings.mode==="custom"?` من ${ar(J.cap||30)}`:""} لاعب دخل${J.mafiaNext?` · المافيا بتكون ${ar(J.mafiaNext)}`:` · تحتاج ${ar(st.minPlayers-n)} بعد`}</p>
     <button class="btn share" data-a="share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v14"/></svg>ارسل رابط الغرفة</button>
-    <button class="btn primary" data-a="cmd" data-c="start" ${n<st.minPlayers?"disabled":""}>وزّع الكروت</button></div>
+    ${(()=>{const c=J.settings||{},need=c.mode==="custom"?Math.max(st.minPlayers,(c.mafia||1)+(c.cops||1)+(c.docs||1)+1):st.minPlayers;return`<button class="btn primary" data-a="cmd" data-c="start" ${n<need?"disabled":""}>وزّع الكروت</button>${c.mode==="custom"&&n>=st.minPlayers&&n<need?`<p class="muted small">الأدوار تبي ${ar(need)} لاعب، نقّص الأعداد أو انطر يدخلون.</p>`:""}`})()}</div>
     ${settingsPanel()}
     <div class="panel"><h3>منو دخل <span class="count">${ar(n)}</span></h3>${n?seats(true):`<p class="muted">ما أحد دخل للحين.</p>`}</div>`;
     return h;
@@ -1851,7 +1853,7 @@ document.addEventListener("click",e=>{
   else if(a==="persona")switchPersona(+b.dataset.i);
   else if(a==="demo")startDemo(+($("#demoN")&&$("#demoN").value||8));
   else if(a==="cmd")send(b.dataset.by?{t:b.dataset.c,id,by:b.dataset.by}:{t:b.dataset.c,id});
-  else if(a==="set"&&st&&st.judge){const c={cops:1,docs:1,...(st.judge.settings||{mode:"default",mafia:2,talk:40})};const k=b.dataset.k,v=b.dataset.v;if(k==="mode"){c.mode=v;if(v==="custom"&&st.judge.mafiaNext)c.mafia=st.judge.mafiaNext}else c[k]=+v;send({t:"settings",...c})}
+  else if(a==="set"&&st&&st.judge){const c={cops:1,docs:1,...(st.judge.settings||{mode:"default",mafia:2,talk:40})};const k=b.dataset.k,v=b.dataset.v;if(k==="mode"){c.mode=v;if(v==="custom"){if(st.judge.mafiaNext)c.mafia=st.judge.mafiaNext;if(!c.cap||c.cap===30)c.cap=Math.max(st.minPlayers||6,st.players.length,15)}}else c[k]=+v;send({t:"settings",...c})}
   else if(a==="card"){
     cardOpen=!cardOpen;b.classList.remove("tilt","still");b.dataset.keep=`card|${st.gen}|${cardOpen?1:0}|${b.dataset.h}`;b.classList.toggle("open",cardOpen);
     const fi=b.querySelector(".flip-in");if(fi){fi.style.removeProperty("--rx");fi.style.removeProperty("--ry")}
