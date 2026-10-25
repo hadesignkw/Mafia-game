@@ -27,6 +27,7 @@
 .pl .num{font-size:1.2rem;min-height:46px;margin-top:6px}
 .sign{min-width:52px;font-size:1.3rem}
 .zat{border-color:#d06c58;color:#ffd8cf}
+.team .sub.need{color:var(--brass-hi);font-weight:600;font-size:.74rem}
 .dn{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;font-size:.88rem;border-radius:14px;background:#0006;border:1px solid var(--line);font-weight:600;cursor:pointer}
 .dn input{width:20px;height:20px;accent-color:var(--brass)}
 </style>
@@ -67,11 +68,21 @@ function calc(f){
   p[l]=cards*cm*k+(2-n)*nd*k;
   return p;
 }
+/* شنو يبي الفريق المتأخر عشان يطوف: كل هند منه ينقص عنه ويزيد على الثاني */
+function need(gap){
+  const g=TYPES.map(t=>({n:t[1],v:(t[3]+2*t[4])*t[2]})).sort((a,b)=>a.v-b.v);
+  const find=(list,max)=>{let best=null;const rec=(k,s0,pick,sum)=>{if(sum>gap){if(!best||pick.length<best.p.length||(pick.length===best.p.length&&sum<best.s))best={p:[...pick],s:sum};return}if(!k)return;for(let j=s0;j<list.length;j++){pick.push(list[j].n);rec(k-1,j,pick,sum+list[j].v);pick.pop()}};for(let k=1;k<=max&&!best;k++)rec(k,0,[],0);return best};
+  const say=b=>{const c={};[...b.p].reverse().forEach(n=>c[n]=(c[n]||0)+1);return Object.entries(c).map(([n,x])=>x>1?`${n} ×${x}`:n).join(" و")};
+  const one=find(g,1),plain=find(g.slice(0,2),3),any=find(g,3);
+  if(one&&plain&&plain.p.length>1)return`يبيلكم ${say(one)} أو ${say(plain)}`;
+  if(one)return`يبيلكم ${say(one)}`;
+  return any?`يبيلكم ${say(any)}`:"يبيلكم أكثر من 3 هندات أو زات";
+}
 function render(bump){
   const t=[tot(0),tot(1)],lead=t[0]===t[1]?-1:t[0]<t[1]?0:1;
   $("#board").innerHTML=[0,1].map(i=>`<div class="team ${i?"them":"us"} ${lead===i?"lead":""}">${lead===i?'<span class="crown">👑</span>':""}
     <input class="nm" data-i="${i}" value="${esc(S.names[i])}" maxlength="14" aria-label="اسم الفريق">
-    <div class="tot ${bump&&bump[i]?"bump":""}">${t[i]}</div><div class="sub">${lead===i?"متقدمين":"&nbsp;"}</div></div>`).join("");
+    <div class="tot ${bump&&bump[i]?"bump":""}">${t[i]}</div><div class="sub ${lead>=0&&lead!==i?"need":""}">${lead===i?"متقدمين":lead>=0&&!S.over?need(t[i]-t[1-i]):"&nbsp;"}</div></div>`).join("");
   document.querySelectorAll("input.nm").forEach(e=>e.addEventListener("change",()=>{S.names[+e.dataset.i]=e.value.trim()||(+e.dataset.i?"لهم":"لنا");save();render()}));
   $("#hist").innerHTML=S.rounds.map((r,k)=>`<li><span class="n">${k+1}</span><span class="v us">${fmt(r.p[0])}</span><span class="v them">${fmt(r.p[1])}</span><button data-del="${k}" aria-label="احذف الجولة">✕</button>${r.tag?`<span class="tag">${esc(r.tag)}</span>`:""}</li>`).reverse().join("");
   $("#empty").hidden=S.rounds.length>0;$("#undo").disabled=!S.rounds.length&&!S.zat;
