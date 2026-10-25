@@ -895,6 +895,9 @@ body[data-phase=day] .vcard,body[data-phase=day] .mini{background:rgba(255,250,2
 #fx.fx-dusk .star{display:none}
 body:not(.reception-mode) .announce{background:var(--panel);-webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px);border:1px solid var(--line);border-inline-start:4px solid var(--brass);border-radius:14px;padding:12px 14px;font-weight:600;box-shadow:0 8px 24px #0003}
 body[data-phase=day]:not(.reception-mode) .announce{background:rgba(255,250,239,.94);color:#1f2226}
+.proxy{border:2px solid var(--blood);border-radius:16px;padding:12px;margin-bottom:14px;background:color-mix(in srgb,var(--blood) 10%,transparent);animation:annIn .45s cubic-bezier(.2,.8,.2,1) both}
+.proxy-h{display:flex;flex-direction:column;align-items:center;gap:2px;margin-bottom:10px;text-align:center}
+.proxy-h b{font-size:1.7rem;line-height:1.2}
 body[data-phase=day] .pick:not(.on):not(.res){background:rgba(255,250,239,.92);color:var(--fg);border-color:var(--line)}
 @media(prefers-reduced-transparency:reduce){body:not(.reception-mode){--panel:#101c2b}body[data-phase=day]:not(.reception-mode){--panel:#fffaf0}}
 
@@ -1654,8 +1657,9 @@ function judgeControls(){
     h+=st.canVote?`<button class="btn primary" data-a="cmd" data-c="vote" ${st.sniperPending?"disabled":""}>ابدا التصويت</button>`:`<p class="muted small">أول نهار بدون تصويت.</p><button class="btn primary" data-a="cmd" data-c="night">الليل</button>`;
   }else if(p==="vote"){
     const V=st.vote||{order:[],votes:{}},al=aliveIds(),done=al.filter(v=>V.votes[v]).length,cur=V.cur;
+    /* كرت فوق: صوّت عن اللي عليه الدور، ويتغير الاسم أول ما يصوّت هو */
+    if(cur)h+=`<div class="proxy" data-keep="proxy|${cur}"><div class="proxy-h"><span class="small muted">الدور على</span><b>${esc(nm(cur))}</b><span class="small muted">تلفونه علق أو طفى؟ صوّت عنه:</span></div><div class="grid">${al.filter(i=>i!==cur).map(i=>`<button class="pick red" data-a="cmd" data-c="voteFor" data-id="${i}">${esc(nm(i))}</button>`).join("")}</div></div>`;
     h+=`<p class="script"><b>التصويت بالدور</b> والترتيب عشوائي. كل واحد يصوّت من تلفونه والكل يشوف صوته.</p><p>صوّت <span class="tally">${ar(done)}</span> من ${ar(al.length)}</p>`;
-    if(cur)h+=`<details><summary class="small muted">تلفون ${esc(nm(cur))} فيه مشكلة؟ صوّت بداله</summary><div class="grid" style="margin-top:8px">${al.filter(i=>i!==cur).map(i=>`<button class="pick red" data-a="cmd" data-c="voteFor" data-id="${i}">${esc(nm(i))}</button>`).join("")}</div></details>`;
     h+=`<button class="btn primary" data-a="cmd" data-c="closeVote" ${cur?"disabled":""}>${cur?"ننطر الكل يصوّت":"طلّع النتيجة"}</button></div>`+voteStage()+`<div style="display:none">`;
   }else if(p==="result"){
     if(st.sniperPending)h+=sniperFallback();
