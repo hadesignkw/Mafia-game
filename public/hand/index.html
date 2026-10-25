@@ -101,23 +101,32 @@ function renderEntry(){
   }else if(F.step==="who"){
     body=`<p class="q">منو هند؟</p><div class="big2">${[0,1].map(i=>`<button class="btn chip ${i?"them":"us"}" data-team="${i}" style="border-radius:14px">${esc(S.names[i])}</button>`).join("")}</div><button class="btn sm" data-go="start" style="margin-top:10px">رجوع</button>`;
   }else if(F.step==="type"){
-    const l=1-F.team,dn=F.down;
-    const lab=t=>{const p=calc({...F,type:t[0]});return`<small><bdi class="n">${fmt(p[F.team])}</bdi> / <bdi class="n">${fmt(p[l])}</bdi></small>`};
     body=`<div class="qrow"><p class="q">${esc(S.names[F.team])} هند… شنو نوعه؟</p><button class="btn sm" data-go="who">رجوع</button></div>
-      <div class="types">${TYPES.map(t=>`<button class="btn" data-type="${t[0]}">${t[1]}${lab(t)}</button>`).join("")}<button class="btn zat" data-zat="1">زات<small>تخلص اللعبة</small></button></div>
-      <label class="dn"><input type="checkbox" id="dn" ${dn?"checked":""}><span>فيه نزول من ${esc(S.names[l])}</span></label>
-      ${dn?`<div class="tabs" style="margin-top:8px"><button class="chip ${F.both?"":"on"}" data-both="0">واحد نازل</button><button class="chip ${F.both?"on":""}" data-both="1">ثنينهم نازلين</button></div>
-        <label class="f"><span>${F.both?"جم بيدهم (ثنينهم مع بعض)؟":"جم بيد اللي نازل؟"}</span><input class="num" data-pts="0" type="number" inputmode="numeric" min="0" placeholder="0" value="${esc(F.pts[0]||"")}"></label>
-`:""}`;
+      <div class="types">${TYPES.map(t=>{const p=calc({...F,type:t[0],down:false});return`<button class="btn" data-type="${t[0]}">${t[1]}<small><bdi class="n">${fmt(p[F.team])}</bdi> / <bdi class="n">${fmt(p[1-F.team])}</bdi></small></button>`}).join("")}<button class="btn zat" data-zat="1">زات<small>تخلص اللعبة</small></button></div>`;
+  }else if(F.step==="down"){
+    const tl=TYPES.find(t=>t[0]===F.type)[1];
+    body=`<div class="qrow"><p class="q">${tl} · ${esc(S.names[F.team])}… فيه نزول من ${esc(S.names[1-F.team])}؟</p><button class="btn sm" data-go="type">رجوع</button></div>
+      <div class="big2"><button class="btn" data-dn="no">لا، سجّل</button><button class="btn primary" data-dn="yes">إي، فيه نزول</button></div>`;
+  }else if(F.step==="howmany"){
+    body=`<div class="qrow"><p class="q">نازل واحد ولا ثنينهم؟</p><button class="btn sm" data-go="down">رجوع</button></div>
+      <div class="big2"><button class="btn" data-both="0">واحد نازل</button><button class="btn" data-both="1">ثنينهم نازلين</button></div>`;
+  }else if(F.step==="pts"){
+    const p=calc(F);
+    body=`<div class="qrow"><p class="q">${F.both?"جم بيدهم (ثنينهم مع بعض)؟":"جم بيد اللي نازل؟"}</p><button class="btn sm" data-go="howmany">رجوع</button></div>
+      <input class="num" data-pts="0" type="number" inputmode="numeric" min="0" placeholder="0" value="${esc(F.pts[0]||"")}">
+      <div class="sum" style="margin:8px 0">${[0,1].map(i=>`<div class="${i?"them":"us"}">${esc(S.names[i])}<b>${fmt(p[i])}</b></div>`).join("")}</div>
+      <button class="btn primary" id="rec" style="width:100%">سجّل</button>`;
   }
   E.innerHTML=head+`<div class="step">${body}</div>`;
   E.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;F={step:"start"};save();renderEntry()});
   E.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{F.step=b.dataset.go;renderEntry()});
-  E.querySelectorAll("[data-team]").forEach(b=>b.onclick=()=>{F={step:"type",team:+b.dataset.team,down:false,both:false,pts:["",""]};renderEntry()});
-  const dnb=$("#dn");if(dnb)dnb.onchange=()=>{F.down=dnb.checked;renderEntry()};
-  E.querySelectorAll("[data-both]").forEach(b=>b.onclick=()=>{F.both=b.dataset.both==="1";renderEntry()});
-  E.querySelectorAll("[data-pts]").forEach(i=>i.addEventListener("input",()=>{F.pts[+i.dataset.pts]=i.value;E.querySelectorAll("[data-type]").forEach(b=>{const p=calc({...F,type:b.dataset.type});const s=b.querySelectorAll("bdi");s[0].textContent=fmt(p[F.team]);s[1].textContent=fmt(p[1-F.team])})}));
-  E.querySelectorAll("[data-type]").forEach(b=>b.onclick=()=>{if(F.down&&F.pts[0]===""){toast(F.both?"اكتب جم بيدهم":"اكتب جم بيد اللي نازل");return}const ty=TYPES.find(x=>x[0]===b.dataset.type);addRound(calc({...F,type:ty[0]}),`${ty[1]} · ${S.names[F.team]}${F.down?(F.both?" · ثنينهم نازلين":" · واحد نازل"):""}`)});
+  E.querySelectorAll("[data-team]").forEach(b=>b.onclick=()=>{F={step:"type",team:+b.dataset.team,down:false,both:false,pts:[""]};renderEntry()});
+  const tag=()=>{const tl=TYPES.find(x=>x[0]===F.type)[1];return`${tl} · ${S.names[F.team]}${F.down?(F.both?" · ثنينهم نازلين":" · واحد نازل"):""}`};
+  E.querySelectorAll("[data-type]").forEach(b=>b.onclick=()=>{F.type=b.dataset.type;F.down=false;F.step="down";renderEntry()});
+  E.querySelectorAll("[data-dn]").forEach(b=>b.onclick=()=>{if(b.dataset.dn==="no"){F.down=false;addRound(calc(F),tag());return}F.down=true;F.step="howmany";renderEntry()});
+  E.querySelectorAll("[data-both]").forEach(b=>b.onclick=()=>{F.both=b.dataset.both==="1";F.step="pts";renderEntry();const i=E.querySelector("[data-pts]");if(i)i.focus()});
+  E.querySelectorAll("[data-pts]").forEach(i=>i.addEventListener("input",()=>{F.pts[0]=i.value;const p=calc(F);E.querySelectorAll(".sum b").forEach((b,k)=>b.textContent=fmt(p[k]))}));
+  const rec=$("#rec");if(rec)rec.onclick=()=>{if(F.pts[0]===""){toast(F.both?"اكتب جم بيدهم":"اكتب جم بيد اللي نازل");return}addRound(calc(F),tag())};
   E.querySelectorAll("[data-zat]").forEach(b=>b.onclick=()=>doZat(F.team));
   E.querySelectorAll("[data-sign]").forEach(b=>b.onclick=()=>{b.textContent=b.textContent==="+"?"−":"+"});
   const madd=$("#madd");if(madd)madd.onclick=()=>{const v=[0,1].map(i=>{const x=Math.abs(parseInt($("#m"+i).value,10)||0);return E.querySelector(`[data-sign="${i}"]`).textContent==="−"?-x:x});if(!v[0]&&!v[1]){toast("اكتب النقاط أول");return}addRound(v,"يدوي")};
