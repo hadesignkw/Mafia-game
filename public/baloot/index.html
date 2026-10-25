@@ -24,7 +24,7 @@
     </div>
     <div class="row" style="margin-top:10px"><button class="btn primary" id="add">سجّل</button></div>
     <div class="row" style="margin-top:10px"><button class="btn sm" id="undo">↶ تراجع</button><button class="btn sm red" id="reset">لعبة جديدة</button></div>
-    <div class="row" style="margin-top:8px"><button class="btn sm" id="zero">صفّر الشوط والصناديق</button></div>
+    <div class="row" style="margin-top:8px"><button class="btn sm red" id="end">إنهاء القيد</button></div>
   </section>
   <section class="panel">
     <h2>الجولات</h2>
@@ -74,7 +74,14 @@ $("#add").onclick=()=>{
 };
 $("#undo").onclick=()=>{if(!S.rounds.length)return;S.rounds.pop();if(S.over)unaward();S.over=false;save();sfx("undo");render()};
 $("#reset").onclick=()=>{if(S.rounds.length&&!confirm("تبي تبدا لعبة جديدة؟ الجولات الحالية بتنمسح."))return;newGame()};
-$("#zero").onclick=()=>{if(!confirm("تصفّر الشوط والصناديق للفريقين؟"))return;S.shoot=[0,0];S.box=[0,0];S.prev=null;save();render()};
+// إنهاء القيد: يمسح كل شي (الجولات والشوط والصناديق والأسماء) بعد تأكيد، ويطلع للديوان
+$("#end").onclick=()=>{
+  const d=document.createElement("div");d.className="win";
+  d.innerHTML=`<div class="big" style="font-size:2rem">تنهي القيد؟</div><p class="muted" style="max-width:300px">بينمسح كل شي: الجولات والشوط والصناديق وأسماء الفرق، وتطلع من الصفحة.</p><div class="row" style="width:min(320px,90vw)"><button class="btn" data-x="no">لا، كمّل</button><button class="btn red" data-x="yes">إي، أنهِ القيد</button></div>`;
+  d.querySelector('[data-x="no"]').onclick=()=>d.remove();
+  d.querySelector('[data-x="yes"]').onclick=()=>{try{localStorage.removeItem(KEY)}catch{}location.href="/"};
+  document.body.append(d);
+};
 $("#hist").onclick=e=>{const b=e.target.closest("[data-del]");if(!b)return;if(!confirm("تحذف هالجولة؟"))return;S.rounds.splice(+b.dataset.del,1);if(S.over)unaward();S.over=false;save();render()};
 ["#iu","#it"].forEach(s=>$(s).addEventListener("keydown",e=>{if(e.key==="Enter")$("#add").click()}));
 function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),1600)}
