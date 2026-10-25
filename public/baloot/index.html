@@ -9,10 +9,12 @@
 <link rel="preload" href="/fonts/readex-pro-arabic-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/noir.css">
 <link rel="stylesheet" href="/score.css">
+<style>.match{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}.mt{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px;border-radius:14px;background:#0007;border:1px solid var(--line)}.mt b{font-size:.85rem;color:var(--smoke);font-weight:600}.mt span{font-size:1.25rem;font-weight:700}.mt.us span{color:var(--us)}.mt.them span{color:var(--them)}</style>
 </head>
 <body>
 <main>
   <header class="hd"><h1>قيد البلوت</h1><a class="back" href="/">→ الديوان</a></header>
+  <section class="match" id="match" aria-label="الشوط والصناديق"></section>
   <section class="board" id="board"></section>
   <section class="panel">
     <h2>الجولة <span id="rn">1</span></h2>
@@ -21,14 +23,15 @@
       <label class="f"><span id="lt">لهم</span><input class="num" id="it" type="number" inputmode="numeric" min="0" placeholder="0"></label>
     </div>
     <div class="row" style="margin-top:10px"><button class="btn primary" id="add">سجّل</button></div>
-    <div class="row" style="margin-top:10px"><button class="btn sm" id="undo">↶ تراجع</button><button class="btn sm red" id="reset">قيد جديد</button></div>
+    <div class="row" style="margin-top:10px"><button class="btn sm" id="undo">↶ تراجع</button><button class="btn sm red" id="reset">لعبة جديدة</button></div>
+    <div class="row" style="margin-top:8px"><button class="btn sm" id="zero">صفّر الشوط والصناديق</button></div>
   </section>
   <section class="panel">
     <h2>الجولات</h2>
     <ul class="hist" id="hist"></ul>
     <p class="muted small" id="empty">ما في جولات للحين.</p>
   </section>
-  <p class="muted small" style="text-align:center">القيد ينحفظ على هالتلفون. اللي يوصل 152 أول يفوز الصكة.</p>
+  <p class="muted small" style="text-align:center">القيد ينحفظ على هالتلفون. اللي يوصل 152 يفوز القيم: أول فوز شوط، والفوز الثاني وأنت عندك شوط صندوق ويلغي شوط الخصم.</p>
 </main>
 <script>
 "use strict";
@@ -36,15 +39,21 @@ const GOAL=152,KEY="diwan.baloot";
 const $=s=>document.querySelector(s);
 const load=()=>{try{return JSON.parse(localStorage.getItem(KEY))||null}catch{return null}};
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch{}};
-let S=load()||{names:["لنا","لهم"],rounds:[],wins:[0,0],over:false};
+let S=load()||{names:["لنا","لهم"],rounds:[],over:false};
+// الشوط والصندوق: الفوز الأول شوط، والفوز وأنت عندك شوط = صندوق ويلغي شوط الخصم
+S.shoot=S.shoot||[0,0];S.box=S.box||[0,0];
+function award(w){const o=1-w;S.prev={shoot:[...S.shoot],box:[...S.box]};if(S.shoot[w]){S.box[w]++;S.shoot[w]=0;S.shoot[o]=0}else S.shoot[w]=1}
+function unaward(){if(S.prev){S.shoot=S.prev.shoot;S.box=S.prev.box;S.prev=null}}
+const tally=i=>{const b=S.box[i],s=S.shoot[i],parts=[];if(b)parts.push(b===1?"صندوق":b===2?"صندوقين":`${b} صناديق`);if(s)parts.push("شوط");return parts.join(" و")};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const tot=i=>S.rounds.reduce((a,r)=>a+r[i],0);
 function sfx(type){try{const c=sfx.c||(sfx.c=new(window.AudioContext||window.webkitAudioContext)());const o=c.createOscillator(),g=c.createGain(),t=c.currentTime;o.type="triangle";o.frequency.setValueAtTime(type==="win"?520:type==="undo"?240:420,t);if(type==="win")o.frequency.exponentialRampToValueAtTime(880,t+.35);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.12,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+(type==="win"?.6:.15));o.connect(g).connect(c.destination);o.start();o.stop(t+.7)}catch{}}
 function render(bump){
   const t=[tot(0),tot(1)],lead=t[0]===t[1]?-1:t[0]>t[1]?0:1;
+  $("#match").innerHTML=[0,1].map(i=>`<div class="mt ${i?"them":"us"}"><b>${esc(S.names[i])}</b><span>${tally(i)||"—"}</span></div>`).join("");
   $("#board").innerHTML=[0,1].map(i=>`<div class="team ${i?"them":"us"} ${lead===i?"lead":""}">${lead===i?'<span class="crown">👑</span>':""}
     <input class="nm" data-i="${i}" value="${esc(S.names[i])}" maxlength="14" aria-label="اسم الفريق">
-    <div class="tot ${bump&&bump[i]?"bump":""}">${t[i]}</div><div class="sub">باقي ${Math.max(0,GOAL-t[i])} · صكات ${S.wins[i]}</div>
+    <div class="tot ${bump&&bump[i]?"bump":""}">${t[i]}</div><div class="sub">باقي ${Math.max(0,GOAL-t[i])}</div>
     <div class="bar"><i style="width:${Math.min(100,t[i]/GOAL*100)}%"></i></div></div>`).join("");
   $("#lu").textContent=S.names[0];$("#lt").textContent=S.names[1];$("#rn").textContent=S.rounds.length+1;
   $("#hist").innerHTML=S.rounds.map((r,k)=>`<li><span class="n">${k+1}</span><span class="v us">${r[0]}</span><span class="v them">${r[1]}</span><button data-del="${k}" aria-label="احذف الجولة">✕</button></li>`).reverse().join("");
@@ -53,19 +62,20 @@ function render(bump){
 }
 function checkWin(){
   const t=[tot(0),tot(1)];if(S.over||Math.max(...t)<GOAL||t[0]===t[1])return;
-  const w=t[0]>t[1]?0:1;S.wins[w]++;S.over=true;save();sfx("win");
-  const d=document.createElement("div");d.className="win";d.innerHTML=`<div class="big">${esc(S.names[w])} فازوا! 🎉</div><div class="sc">${t[0]} - ${t[1]}</div><button class="btn primary" style="min-width:200px">قيد جديد</button>`;
+  const w=t[0]>t[1]?0:1;award(w);S.over=true;save();sfx("win");render();
+  const d=document.createElement("div");d.className="win";d.innerHTML=`<div class="big">${esc(S.names[w])} فازوا! 🎉</div><div class="sc">${t[0]} - ${t[1]}</div><div class="sc" style="color:var(--brass-hi)">${esc(S.names[w])}: ${tally(w)||"—"}</div><button class="btn primary" style="min-width:200px">لعبة جديدة</button>`;
   d.querySelector("button").onclick=()=>{d.remove();newGame()};document.body.append(d);confetti();
 }
-function newGame(){S.rounds=[];S.over=false;save();render()}
+function newGame(){S.rounds=[];S.over=false;S.prev=null;save();render()}
 $("#add").onclick=()=>{
   const u=parseInt($("#iu").value,10)||0,h=parseInt($("#it").value,10)||0;
   if(!u&&!h){toast("اكتب النقاط أول");return}
   S.rounds.push([u,h]);$("#iu").value="";$("#it").value="";save();sfx("add");render([!!u,!!h]);checkWin();
 };
-$("#undo").onclick=()=>{if(!S.rounds.length)return;S.rounds.pop();S.over=false;save();sfx("undo");render()};
-$("#reset").onclick=()=>{if(S.rounds.length&&!confirm("تبي تبدا قيد جديد؟ الجولات الحالية بتنمسح."))return;newGame()};
-$("#hist").onclick=e=>{const b=e.target.closest("[data-del]");if(!b)return;if(!confirm("تحذف هالجولة؟"))return;S.rounds.splice(+b.dataset.del,1);S.over=false;save();render()};
+$("#undo").onclick=()=>{if(!S.rounds.length)return;S.rounds.pop();if(S.over)unaward();S.over=false;save();sfx("undo");render()};
+$("#reset").onclick=()=>{if(S.rounds.length&&!confirm("تبي تبدا لعبة جديدة؟ الجولات الحالية بتنمسح."))return;newGame()};
+$("#zero").onclick=()=>{if(!confirm("تصفّر الشوط والصناديق للفريقين؟"))return;S.shoot=[0,0];S.box=[0,0];S.prev=null;save();render()};
+$("#hist").onclick=e=>{const b=e.target.closest("[data-del]");if(!b)return;if(!confirm("تحذف هالجولة؟"))return;S.rounds.splice(+b.dataset.del,1);if(S.over)unaward();S.over=false;save();render()};
 ["#iu","#it"].forEach(s=>$(s).addEventListener("keydown",e=>{if(e.key==="Enter")$("#add").click()}));
 function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),1600)}
 function confetti(){if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;const c=document.createElement("canvas");c.className="conf";c.width=innerWidth;c.height=innerHeight;document.body.append(c);const x=c.getContext("2d"),cols=["#e9c46a","#7fc4ae","#efe3c8","#d06c58"];const P=Array.from({length:120},()=>({x:Math.random()*c.width,y:-Math.random()*c.height,v:2+Math.random()*3,r:3+Math.random()*4,a:Math.random()*6,col:cols[Math.random()*4|0]}));let f=0;(function d(){x.clearRect(0,0,c.width,c.height);P.forEach(p=>{p.y+=p.v;p.a+=.1;x.save();x.translate(p.x,p.y);x.rotate(p.a);x.fillStyle=p.col;x.fillRect(-p.r,-p.r/2,p.r*2,p.r);x.restore()});if(++f<240)requestAnimationFrame(d);else c.remove()})()}
