@@ -301,8 +301,8 @@ export class Room extends DurableObject {
       case "setFake":
         if (s.phase === "night0" && isM(s.roles[id]) && s.alive[id]) { s.fakeCop = id; s.night.fakeByJudge = true; this.log(`القاضي حط ${this.nm(id)} نصاب`); }
         break;
-      case "killFor": // تلفونات المافيا فيها مشكلة: القاضي يختار الفقص
-        if (s.phase === "night" && s.step === "mafia" && s.alive[id]) { s.night.kill = id; s.night.killByJudge = true; this.log(`القاضي اختار الفقص بدال المافيا: ${this.nm(id)}`); }
+      case "killFor": // تلفونات المافيا فيها مشكلة: القاضي يختار منو ينغتال
+        if (s.phase === "night" && s.step === "mafia" && s.alive[id]) { s.night.kill = id; s.night.killByJudge = true; this.log(`القاضي اختار الاغتيال بدال المافيا: ${this.nm(id)}`); }
         break;
       case "saveFor":
         if (s.phase === "night" && s.step === "doctor" && s.alive[id]) { s.night.save = id; this.log(`القاضي اختار الفزعة بدال البيطري: ${this.nm(id)}`); }
@@ -364,11 +364,11 @@ export class Room extends DurableObject {
   resolveMorning() {
     const s = this.s, k = s.night.kill, sv = s.night.save;
     let msg;
-    if (!k) { msg = "المافيا ما عرفوا يفقصون الليلة."; this.ev("nokill"); }
+    if (!k) { msg = "المافيا ما عرفوا يغتالون أحد الليلة."; this.ev("nokill"); }
     else if (k === sv) { msg = "اغتيال شامط، البيطري موجووووود 🔥"; this.log(`البيطري لحّق على ${this.nm(k)}`); this.ev("saved"); }
     else {
-      this.eliminate(k, "فقص");
-      msg = `${s.roles[k] === "sniper" ? "ودّع" : "انفقص"} ${this.nm(k)} وطلع من اللعبة. صيدة سهلة والبيطري مدوّج 😴`;
+      this.eliminate(k, "اغتيال");
+      msg = `${s.roles[k] === "sniper" ? `ودّع ${this.nm(k)}` : `تم اغتيال ${this.nm(k)}`} وطلع من اللعبة. صيدة سهلة والبيطري مدوّج 😴`;
       const sniper = s.roles[k] === "sniper";
       if (sniper) { msg += ` ${this.nm(k)} قناص، بيسحب واحد وياه.`; s.sniperPending = k; }
       this.ev("kill", { who: this.nm(k), sniper });
