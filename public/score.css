@@ -61,3 +61,29 @@ input.num:focus{outline:2px solid var(--brass);outline-offset:1px}
 .conf{position:fixed;inset:0;pointer-events:none;z-index:21}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#000c;border:1px solid var(--line);border-radius:99px;padding:10px 18px;z-index:30;font-size:.9rem;animation:fade .2s both}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* ثابت ومرتب: الصفحة ما تتحرك ولا تتكبر، والجولات بس تنزل داخل صندوقها */
+html,body{height:100%;overflow:hidden;overscroll-behavior:none;touch-action:manipulation}
+main{height:100%;height:100dvh;display:flex;flex-direction:column;padding:max(10px,env(safe-area-inset-top)) 12px max(10px,env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain}
+main>*{flex:0 0 auto}
+header.hd{margin-bottom:8px}header.hd h1{font-size:1.2rem}
+a.back{font-size:.8rem;padding:6px 12px}
+.panel{padding:10px 12px;margin-bottom:6px;border-radius:14px}
+.panel h2{font-size:.9rem;margin-bottom:8px}
+.panel.grow{flex:1 1 auto;min-height:72px;display:flex;flex-direction:column}
+.panel.grow .hist{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-inline-end:2px}
+.board{gap:8px;margin-bottom:8px}
+.team{padding:8px 8px 10px;border-radius:12px}
+.team input.nm{font-size:.95rem}
+.team .tot{font-size:clamp(1.9rem,10vw,2.4rem);margin-top:2px}
+.team .sub{font-size:.72rem}
+.bar{height:5px;margin-top:6px}
+label.f{font-size:.78rem}
+input.num{font-size:1.15rem;min-height:42px;padding:6px;border-radius:10px}
+.btn{font-size:.88rem;min-height:40px;padding:8px 12px;border-radius:11px}
+.btn.sm{min-height:34px;padding:6px 10px;font-size:.8rem}
+.chip{font-size:.85rem;min-height:36px;padding:6px 12px}
+.hist{gap:4px}.hist li{padding:5px 8px;border-radius:10px;font-size:.88rem}
+.hist li .tag{font-size:.7rem}
+.row{gap:8px}
+.win .big{font-size:clamp(1.8rem,9vw,2.4rem)}.win .sc{font-size:1rem}
