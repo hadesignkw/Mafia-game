@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b261d">
+<title>قيد الهند</title>
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="preload" href="/fonts/readex-pro-arabic-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/noir.css">
+<link rel="stylesheet" href="/score.css">
+<style>
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.step{animation:rin .3s cubic-bezier(.2,.8,.2,1) both}
+.q{font-size:1.25rem;font-weight:700;text-align:center;margin:4px 0 12px}
+.big2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.big2 .btn{min-height:64px;font-size:1.2rem}
+.types{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.types .btn{min-height:58px}
+.types .btn small{display:block;font-size:.75rem;font-weight:400;opacity:.8}
+.sum{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 12px}
+.sum div{border-radius:14px;padding:10px;text-align:center;background:#0006;border:1px solid var(--line)}
+.sum b{display:block;font-size:2rem}
+.sum .us b{color:var(--us)}.sum .them b{color:var(--them)}
+.pl{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:10px 0;border-top:1px solid #ffffff12}
+.pl .num{font-size:1.2rem;min-height:46px;margin-top:6px}
+.sign{min-width:52px;font-size:1.3rem}
+.zat{border-color:#d06c58;color:#ffd8cf}
+</style>
+</head>
+<body>
+<main>
+  <header class="hd"><h1>قيد الهند</h1><a class="back" href="/">→ الديوان</a></header>
+  <section class="board" id="board"></section>
+  <section class="panel" id="entry"></section>
+  <section class="panel">
+    <h2>الجولات</h2>
+    <ul class="hist" id="hist"></ul>
+    <p class="muted small" id="empty">ما في جولات للحين.</p>
+    <div class="row" style="margin-top:10px"><button class="btn sm" id="undo">↶ تراجع</button><button class="btn sm red" id="reset">قيد جديد</button></div>
+  </section>
+  <p class="muted small" style="text-align:center">اللعبة 9 جولات والأقل نقاط يفوز، والزات ينهيها. القيد ينحفظ على هالتلفون.</p>
+</main>
+<script>
+"use strict";
+const ROUNDS=9,KEY="diwan.hand",BASE_W=60,BASE_L=200;
+const TYPES=[["hand","هند عادي",1],["joker","جيكر",2],["color","لون",2],["jcolor","جيكر ولون",4],["jj","جيكرين",4],["jjcolor","جيكرين ولون",8]];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const load=()=>{try{return JSON.parse(localStorage.getItem(KEY))||null}catch{return null}};
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch{}};
+let S=load()||{names:["لنا","لهم"],rounds:[],over:false,zat:null,mode:"ready"};
+let F={step:"start"}; // خطوات الوضع الجاهز
+const tot=i=>S.rounds.reduce((a,r)=>a+r.p[i],0);
+const fmt=n=>n>0?"+"+n:String(n);
+function sfx(type){try{const c=sfx.c||(sfx.c=new(window.AudioContext||window.webkitAudioContext)());const o=c.createOscillator(),g=c.createGain(),t=c.currentTime;o.type="triangle";o.frequency.setValueAtTime(type==="win"?520:type==="undo"?240:420,t);if(type==="win")o.frequency.exponentialRampToValueAtTime(880,t+.35);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.12,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+(type==="win"?.6:.15));o.connect(g).connect(c.destination);o.start();o.stop(t+.7)}catch{}}
+
+/* حسبة الهند: الفايز −60×الدبلة، وكل لاعب خسران: ما نزل 200×الدبلة، نزل = ورقه ×2×الدبلة */
+function calc(f){
+  const k=TYPES.find(t=>t[0]===f.type)[2],w=f.team,l=1-w,p=[0,0];
+  p[w]=-BASE_W*k;
+  p[l]=f.down.reduce((a,d)=>a+(d.down?(parseInt(d.pts,10)||0)*2*k:BASE_L*k),0);
+  return p;
+}
+function render(bump){
+  const t=[tot(0),tot(1)],lead=t[0]===t[1]?-1:t[0]<t[1]?0:1;
+  $("#board").innerHTML=[0,1].map(i=>`<div class="team ${i?"them":"us"} ${lead===i?"lead":""}">${lead===i?'<span class="crown">👑</span>':""}
+    <input class="nm" data-i="${i}" value="${esc(S.names[i])}" maxlength="14" aria-label="اسم الفريق">
+    <div class="tot ${bump&&bump[i]?"bump":""}">${t[i]}</div><div class="sub">${lead===i?"متقدمين":"&nbsp;"}</div></div>`).join("");
+  document.querySelectorAll("input.nm").forEach(e=>e.addEventListener("change",()=>{S.names[+e.dataset.i]=e.value.trim()||(+e.dataset.i?"لهم":"لنا");save();render()}));
+  $("#hist").innerHTML=S.rounds.map((r,k)=>`<li><span class="n">${k+1}</span><span class="v us">${fmt(r.p[0])}</span><span class="v them">${fmt(r.p[1])}</span><button data-del="${k}" aria-label="احذف الجولة">✕</button>${r.tag?`<span class="tag">${esc(r.tag)}</span>`:""}</li>`).reverse().join("");
+  $("#empty").hidden=S.rounds.length>0;$("#undo").disabled=!S.rounds.length&&!S.zat;
+  renderEntry();
+}
+function renderEntry(){
+  const E=$("#entry"),n=S.rounds.length;
+  if(S.over){E.innerHTML=`<p class="q">خلصت اللعبة</p><button class="btn primary" style="width:100%" id="again">قيد جديد</button>`;$("#again").onclick=newGame;return}
+  const head=`<h2>الجولة ${n+1} من ${ROUNDS}</h2><div class="tabs"><button class="chip ${S.mode==="ready"?"on":""}" data-mode="ready">جاهز</button><button class="chip ${S.mode==="manual"?"on":""}" data-mode="manual">يدوي</button></div>`;
+  let body="";
+  if(S.mode==="manual"){
+    body=`<div class="row">${[0,1].map(i=>`<label class="f"><span>${esc(S.names[i])}</span><div class="row" style="gap:6px"><button class="btn sign" data-sign="${i}" aria-label="موجب أو سالب">+</button><input class="num" id="m${i}" type="number" inputmode="numeric" min="0" placeholder="0"></div></label>`).join("")}</div>
+      <div class="row" style="margin-top:10px"><button class="btn primary" id="madd">سجّل</button></div>`;
+  }else if(F.step==="start"){
+    body=`<div class="big2"><button class="btn primary" data-go="who">هند</button><button class="btn zat" data-go="zat">زات</button></div>`;
+  }else if(F.step==="who"||F.step==="zat"){
+    body=`<p class="q">${F.step==="zat"?"منو سوّى زات؟":"منو هند؟"}</p><div class="big2">${[0,1].map(i=>`<button class="btn chip ${i?"them":"us"}" data-team="${i}" style="border-radius:14px">${esc(S.names[i])}</button>`).join("")}</div><button class="btn sm" data-go="start" style="margin-top:10px">رجوع</button>`;
+  }else if(F.step==="type"){
+    body=`<p class="q">${esc(S.names[F.team])} هند… شنو نوعه؟</p><div class="types">${TYPES.map(t=>`<button class="btn" data-type="${t[0]}">${t[1]}<small><bdi class="n">${fmt(-BASE_W*t[2])}</bdi> / <bdi class="n">${fmt(BASE_L*2*t[2])}</bdi></small></button>`).join("")}</div><button class="btn sm" data-go="who" style="margin-top:10px">رجوع</button>`;
+  }else if(F.step==="sum"){
+    const p=calc(F),tl=TYPES.find(t=>t[0]===F.type)[1],l=1-F.team;
+    body=`<p class="q">${tl} · ${esc(S.names[F.team])}</p><div class="sum">${[0,1].map(i=>`<div class="${i?"them":"us"}">${esc(S.names[i])}<b>${fmt(p[i])}</b></div>`).join("")}</div>
+      ${F.showDown?`<p class="small muted">لاعبين ${esc(S.names[l])}: اللي ما نزل ${BASE_L*TYPES.find(t=>t[0]===F.type)[2]}، واللي نزل يكتب ورقه ويندبل.</p>${F.down.map((d,j)=>`<div class="pl"><div><b>اللاعب ${j+1}</b>${d.down?`<input class="num" data-pts="${j}" type="number" inputmode="numeric" min="0" placeholder="نقاط الورق اللي بيده" value="${esc(d.pts||"")}">`:""}</div><button class="chip ${d.down?"on":""}" data-down="${j}">${d.down?"نازل":"ما نزل"}</button></div>`).join("")}`
+        :`<button class="btn sm" id="showDown" style="width:100%;margin-bottom:10px">أحد من ${esc(S.names[l])} نازل؟</button>`}
+      <div class="row"><button class="btn sm" data-go="type">رجوع</button><button class="btn primary" id="rec">سجّل</button></div>`;
+  }
+  E.innerHTML=head+`<div class="step">${body}</div>`;
+  E.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;F={step:"start"};save();renderEntry()});
+  E.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{F.step=b.dataset.go;renderEntry()});
+  E.querySelectorAll("[data-team]").forEach(b=>b.onclick=()=>{const tm=+b.dataset.team;if(F.step==="zat"){doZat(tm);return}F={step:"type",team:tm};renderEntry()});
+  E.querySelectorAll("[data-type]").forEach(b=>b.onclick=()=>{F.type=b.dataset.type;F.step="sum";F.showDown=false;F.down=[{down:false,pts:""},{down:false,pts:""}];renderEntry()});
+  E.querySelectorAll("[data-down]").forEach(b=>b.onclick=()=>{const d=F.down[+b.dataset.down];d.down=!d.down;renderEntry()});
+  E.querySelectorAll("[data-pts]").forEach(i=>i.addEventListener("input",()=>{F.down[+i.dataset.pts].pts=i.value;const p=calc(F);E.querySelectorAll(".sum b").forEach((b,k)=>b.textContent=fmt(p[k]))}));
+  const sd=$("#showDown");if(sd)sd.onclick=()=>{F.showDown=true;renderEntry()};
+  const rec=$("#rec");if(rec)rec.onclick=()=>{const tl=TYPES.find(t=>t[0]===F.type)[1],dn=F.showDown&&F.down.some(d=>d.down);addRound(calc(F),`${tl} · ${S.names[F.team]}${dn?" · فيه نزول":""}`)};
+  E.querySelectorAll("[data-sign]").forEach(b=>b.onclick=()=>{b.textContent=b.textContent==="+"?"−":"+"});
+  const madd=$("#madd");if(madd)madd.onclick=()=>{const v=[0,1].map(i=>{const x=Math.abs(parseInt($("#m"+i).value,10)||0);return E.querySelector(`[data-sign="${i}"]`).textContent==="−"?-x:x});if(!v[0]&&!v[1]){toast("اكتب النقاط أول");return}addRound(v,"يدوي")};
+}
+function addRound(p,tag){S.rounds.push({p,tag});F={step:"start"};save();sfx("add");render([!!p[0],!!p[1]]);if(S.rounds.length>=ROUNDS)finish()}
+function doZat(tm){S.zat=tm;save();finish()}
+function finish(){
+  const t=[tot(0),tot(1)];let w,why;
+  if(S.zat!==null&&S.zat!==undefined){w=S.zat;why="زات! 🔥"}else{if(t[0]===t[1]){w=-1}else w=t[0]<t[1]?0:1;why="خلصت الـ 9 جولات"}
+  S.over=true;save();render();sfx("win");
+  const d=document.createElement("div");d.className="win";
+  d.innerHTML=`<div class="muted">${why}</div><div class="big">${w<0?"تعادل!":esc(S.names[w])+" فازوا! 🎉"}</div><div class="sc">${esc(S.names[0])} <bdi class="n">${t[0]}</bdi> · ${esc(S.names[1])} <bdi class="n">${t[1]}</bdi></div><div class="row" style="width:min(320px,90vw)"><button class="btn" data-x="close">شوف القيد</button><button class="btn primary" data-x="new">قيد جديد</button></div>`;
+  d.querySelector('[data-x="close"]').onclick=()=>d.remove();d.querySelector('[data-x="new"]').onclick=()=>{d.remove();newGame()};
+  document.body.append(d);confetti();
+}
+function newGame(){S.rounds=[];S.over=false;S.zat=null;F={step:"start"};save();render()}
+$("#undo").onclick=()=>{if(S.zat!==null&&S.zat!==undefined){S.zat=null}else if(S.rounds.length)S.rounds.pop();else return;S.over=false;F={step:"start"};save();sfx("undo");render()};
+$("#reset").onclick=()=>{if(S.rounds.length&&!confirm("تبي تبدا قيد جديد؟ الجولات الحالية بتنمسح."))return;newGame()};
+$("#hist").onclick=e=>{const b=e.target.closest("[data-del]");if(!b||!confirm("تحذف هالجولة؟"))return;S.rounds.splice(+b.dataset.del,1);S.over=false;S.zat=null;save();render()};
+function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),1600)}
+function confetti(){if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;const c=document.createElement("canvas");c.className="conf";c.width=innerWidth;c.height=innerHeight;document.body.append(c);const x=c.getContext("2d"),cols=["#e9c46a","#7fc4ae","#efe3c8","#d06c58"];const P=Array.from({length:120},()=>({x:Math.random()*c.width,y:-Math.random()*c.height,v:2+Math.random()*3,r:3+Math.random()*4,a:Math.random()*6,col:cols[Math.random()*4|0]}));let f=0;(function d(){x.clearRect(0,0,c.width,c.height);P.forEach(p=>{p.y+=p.v;p.a+=.1;x.save();x.translate(p.x,p.y);x.rotate(p.a);x.fillStyle=p.col;x.fillRect(-p.r,-p.r/2,p.r*2,p.r);x.restore()});if(++f<240)requestAnimationFrame(d);else c.remove()})()}
+render();
+</script>
+</body>
+</html>
