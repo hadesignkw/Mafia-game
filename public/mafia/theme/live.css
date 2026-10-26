@@ -55,13 +55,33 @@ body.adv-dim .pick.red{--c:var(--brass)}
 .suspect.in-judge{margin:4px 0 12px}
 @keyframes sbIn{from{width:0}}
 
-/* ===== شاشة القاضي على الآيباد: كل شي أكبر ويعبي الشاشة ===== */
-@media (min-width:740px){
+/* ===== شاشة القاضي على الآيباد ===== */
+.jmain,.jside{display:flex;flex-direction:column;gap:12px;min-width:0}
+/* عمودي: كل شي أكبر */
+@media (min-width:740px) and (orientation:portrait){
   body.judge-view .wrap{zoom:1.3}
 }
-@media (min-width:1000px){
-  body.judge-view .wrap{zoom:1.45;max-width:640px}
-}
-@media (min-width:1240px){
-  body.judge-view .wrap{zoom:1.6;max-width:680px}
+/* عرضي: لوحة صغيرة وواضحة بعمودين، بدون أشياء كبيرة يشوفها اللي جنبك */
+@media (min-width:1000px) and (orientation:landscape){
+  body.judge-view .wrap{max-width:1180px;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);column-gap:14px;row-gap:10px;align-items:start;font-size:14px}
+  body.judge-view .wrap>*{grid-column:1/-1}
+  body.judge-view .wrap>.jmain{grid-column:1}
+  body.judge-view .wrap>.jside{grid-column:2;position:sticky;top:calc(10px + env(safe-area-inset-top,0px));max-height:calc(100dvh - 20px);overflow:auto}
+  body.judge-view h1{font-size:1.4rem}
+  body.judge-view h2{font-size:1.15rem}
+  body.judge-view h3{font-size:1rem}
+  body.judge-view .panel{padding:12px 14px}
+  body.judge-view .pick{min-height:40px;padding:8px;font-size:.92rem}
+  body.judge-view .grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px}
+  body.judge-view .btn{min-height:40px;font-size:.92rem}
+  body.judge-view .script{font-size:.95rem}
+  body.judge-view .chip{font-size:.72rem}
+  body.judge-view .roles .fs{display:none}
+  body.judge-view .wrap p[style*="font-size:3rem"]{font-size:1.7rem!important}
+  body.judge-view .timer{padding:10px 14px}
+  body.judge-view .timer .ring{width:110px;height:110px}
+  body.judge-view .timer .ring .t{font-size:2.2rem}
+  body.judge-view .timer .who{font-size:1.4rem}
+  body.judge-view .timer .spav{transform:scale(.7)}
+  body.judge-view .announce{font-size:.95rem;padding:9px 12px}
 }

@@ -1719,10 +1719,9 @@ function judgeView(){
     <div class="panel"><h3>منو دخل <span class="count">${ar(n)}</span></h3>${n?seats(true):`<p class="muted">ما أحد دخل للحين.</p>`}</div>`;
     return h;
   }
-  h+=judgeControls();
-  h+=rolesBoard();
+  h+=`<div class="jmain">`+judgeControls()+`</div><div class="jside">`+rolesBoard();
   if(J.log.length)h+=`<details class="panel"><summary class="muted">شنو صار باللعبة؟</summary><ul class="notes">${J.log.slice().reverse().map(l=>`<li>${esc(l)}</li>`).join("")}</ul></details>`;
-  return h;
+  return h+`</div>`;
 }
 function rolesBoard(){
   const J=st.judge,ids=Object.keys(J.roles);
