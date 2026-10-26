@@ -2065,7 +2065,7 @@ function bestPanel(){
 }
 function overView(){
   const w=st.winner;
-  return bestPanel()+detectivePanel()+`<div class="panel"><h2 style="color:var(--${w==="town"?"town":"blood"})">${w==="town"?"فاز الشعب":"فازت المافيا"}</h2><div class="reveal">${st.players.map((p,i)=>{const r=st.reveal[p.id],t=ROLE[r.role].team;return`<div class="mini ${t} ${p.alive?"":"out"} ${p.id===st.me.id?"me":""}" style="animation-delay:${(.4+i*.12).toFixed(2)}s">${portrait(r.role,"bust")}<b>${esc(p.name)}${p.id===st.me.id?" (أنت)":""}</b><span class="chip ${t}">${ROLE[r.role].n}${r.fake?" · النصاب":""}</span></div>`}).join("")}</div><p class="muted small">انطر القاضي يبدا لعبة جديدة.</p></div>`;
+  return bestPanel()+detectivePanel()+`<div class="panel"><h2 style="color:var(--${w==="town"?"town":"blood"})">${w==="town"?"فاز الشعب":"فازت المافيا"}</h2><div class="reveal">${st.players.map((p,i)=>{const r=st.reveal[p.id],t=ROLE[r.role].team;return`<div class="mini ${t} ${p.alive?"":"out"} ${p.id===st.me.id?"me":""}" style="animation-delay:${(.4+i*.12).toFixed(2)}s">${portrait(r.role,"bust")}<b>${esc(p.name)}${p.id===st.me.id?" (أنت)":""}</b><span class="chip ${t}">${ROLE[r.role].n}${r.fake?" · النصاب":""}</span></div>`}).join("")}</div>${st.online?(st.me&&st.me.host?`<button class="btn primary" data-a="cmd" data-c="newGame">لعبة جديدة بنفس الغرفة</button>`:`<p class="muted small">انطر المضيف يبدا لعبة جديدة.</p>`):`<p class="muted small">انطر القاضي يبدا لعبة جديدة.</p>`}</div>`;
 }
 
 /* ---------- الأحداث ---------- */
