@@ -159,7 +159,7 @@ html:has(body.reception-mode){height:100%;overflow:hidden;overscroll-behavior:no
 body.reception-mode{height:100%;overflow:hidden;overscroll-behavior:none;padding:0!important}
 body.reception-mode #app{height:100vh;height:100dvh;max-width:none!important;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)!important;margin:0!important;display:flex;flex-direction:column;gap:0;overflow:hidden;box-sizing:border-box}
 body.reception-mode .rx-shell{flex:1 1 auto;min-height:0;display:flex;align-items:flex-end;justify-content:center;container-type:size;box-shadow:none!important;background:transparent!important}
-body.reception-mode .rx-stage{width:min(100cqw,calc(100cqh * 941 / 1672));height:auto;aspect-ratio:941/1672;max-width:100%;border-radius:0 0 18px 18px;touch-action:manipulation}
+body.reception-mode .rx-stage{width:min(100cqw,calc(100cqh * 941 / 2033));height:auto;aspect-ratio:941/2033;max-width:100%;border-radius:0 0 18px 18px;touch-action:manipulation}
 body.reception-mode .rx-footer{flex:none;padding:8px 12px 10px!important;gap:4px 14px;align-items:center}
 body.reception-mode .rx-footer .lnk{min-height:40px;padding:6px 4px}
 body.reception-mode .rx-error{flex:none;padding:8px 14px}

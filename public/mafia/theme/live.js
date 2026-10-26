@@ -14,7 +14,8 @@ function sprite(c){const s=document.createElement('canvas');s.width=s.height=64;
 const SP={gold:sprite('#ffd98a'),white:sprite('#ffffff'),smoke:sprite('#9aa6b2'),dsmoke:sprite('#3a2226'),green:sprite('#5dffa0'),fire:sprite('#ff9a3c'),star:sprite('#dfe9ff'),rsmoke:sprite('#c9d3dc'),dsmokeL:sprite('#f2efe8')};
 
 /* ================= Reception: smoke, steam, lanterns, fireflies ================= */
-const RX={cig:[.562,.353],cup:[.856,.554],cupW:.085,lamps:[[.085,.068],[.942,.112]]};
+// أماكن على الصورة الطويلة (941×2033): الجزء الأصلي نازل 361 بكسل تحت الامتداد
+const RX={cig:[.562,.4679],cup:[.856,.6332],cupW:.085,lamps:{night:[[.085,.2335],[.942,.2697],[.5,.092]],day:[[.085,.2335],[.942,.2697],[.112,.092],[.887,.099]]}};
 let rx=null;
 function rxMount(){
  const stage=document.querySelector('.rx-stage');
@@ -26,7 +27,7 @@ function rxMount(){
  const ctx=cv.getContext('2d');let W=0,H=0,on=true,raf=0,last=performance.now(),t=0,sa=0,ta=0,smoke=[],steam=[],motes=[],motesNight=null;
  const ro=new ResizeObserver(()=>{const r=stage.getBoundingClientRect(),d=DPR();W=r.width;H=r.height;cv.width=Math.round(W*d);cv.height=Math.round(H*d);ctx.setTransform(d,0,0,d,0,0)});ro.observe(stage);
  const night=()=>['night','dawn'].includes(document.body.dataset.receptionTime||'night');
- const seed=n=>{motes=[];motesNight=n;for(let i=0;i<(n?14:22);i++)motes.push(n?{x:rnd(.18,.82),y:rnd(.03,.2),vx:rnd(-.01,.01),vy:rnd(-.006,.006),ph:rnd(0,6.28),s:rnd(.6,1.1)}:{x:rnd(.45,.98),y:rnd(0,.45),vx:rnd(-.004,.004),vy:rnd(.002,.008),ph:rnd(0,6.28),s:rnd(.4,.9)})};
+ const seed=n=>{motes=[];motesNight=n;for(let i=0;i<(n?14:22);i++)motes.push(n?{x:rnd(.18,.82),y:rnd(.2,.34),vx:rnd(-.01,.01),vy:rnd(-.006,.006),ph:rnd(0,6.28),s:rnd(.6,1.1)}:{x:rnd(.45,.98),y:rnd(.05,.55),vx:rnd(-.004,.004),vy:rnd(.002,.008),ph:rnd(0,6.28),s:rnd(.4,.9)})};
  const arts=()=>stage.querySelectorAll('.rx-art,.rx-reaction');
  function frame(now){
   if(!on)return;raf=requestAnimationFrame(frame);
@@ -35,12 +36,12 @@ function rxMount(){
   const n=night();if(motesNight!==n)seed(n);
   const s=(1.012+.006*Math.sin(t*2*Math.PI/9)).toFixed(4);arts().forEach(a=>a.style.scale=s);cv.style.scale=s;
   ctx.clearRect(0,0,W,H);ctx.globalCompositeOperation='lighter';
-  RX.lamps.forEach(([lx,ly],i)=>{const f=.78+.12*Math.sin(t*7.3+i*4)+.07*Math.sin(t*13.1+i*8)+.05*Math.sin(t*23.7+i*12),cx=lx*W,cy=ly*H,R=W*(n?.2:.12)*f,g=ctx.createRadialGradient(cx,cy,0,cx,cy,R);
+  RX.lamps[n?"night":"day"].forEach(([lx,ly],i)=>{const f=.78+.12*Math.sin(t*7.3+i*4)+.07*Math.sin(t*13.1+i*8)+.05*Math.sin(t*23.7+i*12),cx=lx*W,cy=ly*H,R=W*(n?.2:.12)*f,g=ctx.createRadialGradient(cx,cy,0,cx,cy,R);
    g.addColorStop(0,`rgba(255,196,110,${(n?.42:.16)*f})`);g.addColorStop(.35,`rgba(255,160,70,${(n?.16:.05)*f})`);g.addColorStop(1,'rgba(255,140,60,0)');ctx.fillStyle=g;ctx.fillRect(cx-R,cy-R,R*2,R*2)});
   const cx0=RX.cig[0]*W,cy0=RX.cig[1]*H,drag=Math.max(0,Math.sin(t*2*Math.PI/6.5))**6,er=W*(.016+.012*drag),eg=ctx.createRadialGradient(cx0,cy0,0,cx0,cy0,er);
   eg.addColorStop(0,`rgba(255,120,40,${.55+.4*drag})`);eg.addColorStop(1,'rgba(255,80,20,0)');ctx.fillStyle=eg;ctx.fillRect(cx0-er,cy0-er,er*2,er*2);
   motes.forEach(m=>{m.ph+=dt;m.x+=(m.vx+.004*Math.sin(m.ph*.7))*dt;m.y+=(m.vy+.003*Math.cos(m.ph*.9))*dt;
-   if(n){if(m.x<.16||m.x>.84)m.vx*=-1;if(m.y<.02||m.y>.21)m.vy*=-1}else if(m.y>.46){m.y=0;m.x=rnd(.45,.98)}
+   if(n){if(m.x<.16||m.x>.84)m.vx*=-1;if(m.y<.19||m.y>.35)m.vy*=-1}else if(m.y>.56){m.y=.05;m.x=rnd(.45,.98)}
    const a=n?Math.max(0,Math.sin(m.ph*1.6))**2*.9:(.25+.25*Math.sin(m.ph*2))*m.s,r=W*(n?.012:.006)*m.s;ctx.globalAlpha=a;ctx.drawImage(n?SP.gold:SP.white,m.x*W-r,m.y*H-r,r*2,r*2)});
   ctx.globalAlpha=1;ctx.globalCompositeOperation=n?'screen':'source-over';
   sa+=dt;while(sa>.11){sa-=.11;smoke.push({x:0,y:0,vx:rnd(-.004,.012),vy:rnd(-.05,-.034),r:rnd(.006,.01),g:rnd(.012,.02),life:0,max:rnd(4.2,6.2),ph:rnd(0,6.28),k:rnd(1.2,2.2)})}
