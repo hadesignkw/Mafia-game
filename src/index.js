@@ -26,7 +26,11 @@ function plurality(picks) {
   const top = Object.keys(t).filter((k) => t[k] === max);
   return { winner: max && top.length === 1 ? top[0] : null, tied: top.length > 1 ? top : [] };
 }
-const ROOM_TTL = 12 * 3600e3; // الغرفة تنمسح بعد ١٢ ساعة بدون استخدام
+const ROOM_TTL = 12 * 3600e3;
+/* ---------- الأون لاين: القاضي الآلي ---------- */
+const ON = { deal: 20, police: 45, doctor: 45, mafia: 60, all: 60, tieMore: 20, pre: 8, vote: 25, result: 8, sniper: 45, grace: 60 };
+const HOST_CMDS = new Set(["settings", "start", "kick", "newGame"]);
+const CHAT_MAX = 80; // الغرفة تنمسح بعد ١٢ ساعة بدون استخدام
 
 const DEMO_NAMES = ["أحمد", "يوسف", "فهد", "ناصر", "بدر", "سالم", "مشعل", "عبدالله", "خالد", "سعود", "فيصل", "راشد", "حمد", "علي", "محمد"];
 const tok = () => crypto.randomUUID().replace(/-/g, "");
@@ -43,7 +47,7 @@ export default {
       const demo = url.pathname === "/api/demo" ? Math.min(15, Math.max(MIN_PLAYERS, parseInt(url.searchParams.get("n") || "8", 10) || 8)) : 0;
       for (let i = 0; i < 25; i++) {
         const code = String(1000 + Math.floor(Math.random() * 9000));
-        const r = await env.ROOM.get(env.ROOM.idFromName(code)).create(code, demo);
+        const r = await env.ROOM.get(env.ROOM.idFromName(code)).create(code, demo, !demo && url.searchParams.get("online") === "1");
         if (r) return json(r);
       }
       return json({ error: "ما قدرت أفتح غرفة، جرّب مرة ثانية." }, 503);
@@ -97,7 +101,7 @@ export class Room extends DurableObject {
   alive() { return !!this.s && Date.now() - (this.s.touched || 0) < ROOM_TTL; }
   async exists() { return this.alive(); }
 
-  async create(code, demo = 0) {
+  async create(code, demo = 0, online = false) {
     if (this.alive()) return null;
     const judgeToken = tok();
     this.s = {
@@ -105,6 +109,7 @@ export class Room extends DurableObject {
       settings: { ...DEF_SET }, players: {}, lobby: [], order: [], phase: "lobby", step: null, round: 0, gen: 0, canVote: false,
       alive: {}, roles: {}, fakeCop: null, notes: {}, night: blankNight(), votes: {}, voteOrder: [], voteTurn: 0,
       sniperPending: null, winner: null, announce: "", timer: null, event: null, log: [], demo: !!demo,
+      online: !!online, hostPid: null, deadline: null, chats: { mafia: [], grave: [] }, offSince: {},
     };
     const players = [];
     for (let i = 0; i < demo; i++) {
@@ -119,6 +124,12 @@ export class Room extends DurableObject {
   }
 
   async alarm() {
+    if (this.s && this.s.online && this.s.deadline && Date.now() >= this.s.deadline - 80) {
+      this.s.deadline = null;
+      try { this.tick(); } catch (e) { console.log("tick", e && e.stack); }
+      await this.save(); this.broadcast(); await this.schedule();
+      return;
+    }
     if (this.s && Date.now() - (this.s.touched || 0) < ROOM_TTL) {
       await this.ctx.storage.setAlarm((this.s.touched || Date.now()) + ROOM_TTL + 60e3);
       return;
@@ -129,6 +140,12 @@ export class Room extends DurableObject {
   }
 
   async save() { this.s.touched = Date.now(); await this.ctx.storage.put("s", this.s); }
+  // المنبه: وقت الخطوة الجاية بالأون لاين، وإلا وقت مسح الغرفة
+  async schedule() {
+    if (!this.s) return;
+    const ttl = (this.s.touched || Date.now()) + ROOM_TTL + 60e3;
+    await this.ctx.storage.setAlarm(this.s.online && this.s.deadline ? Math.min(this.s.deadline, ttl) : ttl);
+  }
 
   async fetch() {
     const pair = new WebSocketPair();
@@ -147,7 +164,7 @@ export class Room extends DurableObject {
     if (m.t === "hello") {
       if (m.token && m.token === s.judgeToken) { ws.serializeAttachment({ judge: true }); return this.broadcast(); }
       const pid = Object.keys(s.players).find((id) => s.players[id].token === m.token);
-      if (m.token && pid) { ws.serializeAttachment({ pid }); return this.broadcast(); }
+      if (m.token && pid) { ws.serializeAttachment({ pid }); if (s.offSince && s.offSince[pid]) { delete s.offSince[pid]; if (s.online && s.phase !== "lobby") this.notice(`${this.nm(pid)} رجع للعبة`); } return this.broadcast(); }
       this.send(ws, { t: "need-name", phase: s.phase });
       return;
     }
@@ -160,6 +177,7 @@ export class Room extends DurableObject {
       const pid = sid(), token = tok();
       s.players[pid] = { name, token, at: Date.now() };
       s.lobby.push(pid);
+      if (s.online && !s.hostPid) s.hostPid = pid; // أول واحد يدخل الغرفة الأون لاين هو المضيف
       ws.serializeAttachment({ pid });
       this.send(ws, { t: "joined", token });
       await this.save();
@@ -167,13 +185,25 @@ export class Room extends DurableObject {
     }
 
     if (att.judge) await this.judgeCmd(m);
+    else if (att.pid && s.online && att.pid === s.hostPid && HOST_CMDS.has(m.t)) await this.judgeCmd(m);
     else if (att.pid && s.players[att.pid]) await this.playerCmd(att.pid, m, ws);
     else return;
+    if (s.online) this.autoAdvance();
     await this.save();
     this.broadcast();
+    await this.schedule();
   }
 
-  async webSocketClose(ws) { try { ws.close(1000); } catch {} this.broadcast(ws); }
+  async webSocketClose(ws) {
+    try { ws.close(1000); } catch {}
+    const a = ws.deserializeAttachment() || {}, s = this.s;
+    if (s && s.online && a.pid && s.players[a.pid] && s.phase !== "lobby" && s.phase !== "over") {
+      const still = [...this.ctx.getWebSockets()].some((w) => w !== ws && (w.deserializeAttachment() || {}).pid === a.pid);
+      if (!still) { (s.offSince = s.offSince || {})[a.pid] = Date.now(); this.notice(`${this.nm(a.pid)} طلع من اللعبة، وممكن يغش 👀`); await this.save(); }
+    }
+    this.broadcast(ws);
+  }
+  notice(text) { for (const w of this.ctx.getWebSockets()) this.send(w, { t: "notice", text }); }
   async webSocketError(ws) { this.broadcast(ws); }
 
   send(ws, o) { try { ws.send(JSON.stringify(o)); } catch {} }
@@ -211,8 +241,12 @@ export class Room extends DurableObject {
     if ((s.phase === "vote" || s.phase === "result") && (s.voteOrder || []).length)
       pub.vote = { order: s.voteOrder, turn: s.voteTurn, votes: s.votes, cur: this.curVoter() };
     pub.adv = s.phase === "lobby" ? !!this.sets().adv : this.adv();
+    if (s.online) {
+      pub.online = true; pub.deadline = s.deadline; pub.hostId = s.hostPid;
+      if (["day", "vote", "result"].includes(s.phase)) pub.copsUp = this.aliveIds().filter((i) => s.roles[i] === "cop" || this.isFake(i));
+    }
     if (this.adv() && ["day", "vote", "result"].includes(s.phase) && s.suspect) pub.suspect = s.suspect;
-    if (s.phase === "over" && this.adv()) pub.detectives = this.detectives();
+    if (s.phase === "over" && (this.adv() || s.online)) pub.detectives = this.detectives();
     if (s.phase === "over") pub.best = this.best();
     if (s.phase === "over") pub.reveal = Object.fromEntries(s.order.map((id) => [id, { role: s.roles[id], fake: this.isFake(id) }]));
     if (a.judge) {
@@ -230,6 +264,14 @@ export class Room extends DurableObject {
     }
     const pid = a.pid, role = s.roles[pid];
     pub.me = { id: pid, name: s.players[pid]?.name, inGame: s.order.includes(pid) && s.phase !== "lobby" };
+    if (s.online && pid === s.hostPid) {
+      pub.me.host = true;
+      if (s.phase === "lobby") pub.hostJ = {
+        settings: this.sets(), cap: this.capFor(), talk: this.talkSec(),
+        mafiaNext: s.lobby.length >= MIN_PLAYERS ? this.mafiaFor(s.lobby.length) : null,
+        mafiaMax: maxMafia(Math.max(s.lobby.length, MIN_PLAYERS), this.copsFor(s.lobby.length), this.docsFor(s.lobby.length)),
+      };
+    }
     if (role && pub.me.inGame) {
       Object.assign(pub.me, { role, fake: this.isFake(pid), notes: s.notes[pid] || [] });
       if (role === "cop") Object.assign(pub.me, { queriesLeft: Math.max(0, (s.queryMax || 0) - this.qUsed(pid)), queryMax: s.queryMax || 0, queryMafia: this.qmap()[pid] ? isM(s.roles[this.qmap()[pid]]) : null });
@@ -249,6 +291,13 @@ export class Room extends DurableObject {
         guess: (n.guess || {})[pid] || null,
         fguess: (n.fguess || {})[pid] || null,
       };
+      if (s.online && pub.me.inGame) {
+        const ch = s.chats || {}, dead = !s.alive[pid];
+        pub.me.chat = {};
+        if (isM(role) || dead) pub.me.chat.mafia = { msgs: (ch.mafia || []).slice(-CHAT_MAX), write: isM(role) && !dead && (s.phase === "night" || s.phase === "night0") };
+        if (dead) pub.me.chat.grave = { msgs: (ch.grave || []).slice(-CHAT_MAX), write: s.phase !== "over" };
+        if (!this.adv() && (s.phase === "night" || s.phase === "night0") && !dead) pub.me.canGuess = true;
+      }
       if (this.adv() && (s.phase === "night" || s.phase === "night0")) {
         pub.me.todo = this.todo(pid);
         pub.me.nightTop = { guess: this.top(n.guess), fguess: this.top(n.fguess) };
@@ -302,12 +351,12 @@ export class Room extends DurableObject {
   // أكثر واحد مختار بخريطة تخمينات
   top(map) { const t = {}; for (const [a, b] of Object.entries(map || {})) if (this.s.alive[a] && this.s.alive[b]) t[b] = (t[b] || 0) + 1; const ids = Object.keys(t); if (!ids.length) return null; ids.sort((a, b) => t[b] - t[a]); return { id: ids[0], n: t[ids[0]] }; }
   // نقاط المحقق: تخمين صح على مافيا أو النصاب، للشعب بس، وما تبين إلا بنهاية اللعبة
-  scoreStep() {
+  scoreNight() {
     const s = this.s, n = s.night;
-    if (!this.adv()) return;
+    if (!this.adv() && !s.online) return;
     const pts = (s.dpts = s.dpts || {});
-    if (s.step === "police" || s.step === "all") for (const [a, b] of Object.entries(n.guess || {})) if (!isM(s.roles[a]) && isM(s.roles[b])) pts[a] = (pts[a] || 0) + 1;
-    if (s.phase === "night0" && s.step === "mafia") for (const [a, b] of Object.entries(n.fguess || {})) if (!isM(s.roles[a]) && this.isFake(b)) pts[a] = (pts[a] || 0) + 1;
+    for (const [a, b] of Object.entries(n.guess || {})) if (!isM(s.roles[a]) && isM(s.roles[b])) pts[a] = (pts[a] || 0) + 1;
+    if (s.phase === "night0") for (const [a, b] of Object.entries(n.fguess || {})) if (!isM(s.roles[a]) && this.isFake(b)) pts[a] = (pts[a] || 0) + 1;
   }
   // خريطة شك الشعب للصبح: نسبة بس، بدون منو خمّن منو
   suspectMap() {
@@ -340,7 +389,8 @@ export class Room extends DurableObject {
     s.votes[v] = t;
     s.voteTurn++;
     this.curVoter();
-    s.announce = this.curVoter() ? `دور ${this.nm(this.curVoter())} يصوّت.` : "الكل صوّت. القاضي بيطلّع النتيجة.";
+    if (s.online) { if (this.curVoter()) this.setDl(ON.vote); else s.deadline = Date.now() + 1500; }
+    s.announce = this.curVoter() ? `دور ${this.nm(this.curVoter())} يصوّت.` : s.online ? "الكل صوّت، النتيجة طالعة." : "الكل صوّت. القاضي بيطلّع النتيجة.";
   }
   log(t) { this.s.log.push(t); if (this.s.log.length > 120) this.s.log.shift(); }
   ev(type, extra = {}) { this.s.event = { id: sid(), at: Date.now(), type, ...extra }; }
@@ -418,7 +468,7 @@ export class Room extends DurableObject {
         break;
       case "snipeFor": if (s.sniperPending && s.alive[id] && id !== s.sniperPending) this.resolveSnipe(s.sniperPending, id); break;
       case "newGame":
-        Object.assign(s, { phase: "lobby", step: null, round: 0, timer: null, sniperPending: null, winner: null, announce: "", event: null, order: [], alive: {}, roles: {}, fakeCop: null, fakesDone: [], notes: {}, votes: {}, voteOrder: [], voteTurn: 0, night: blankNight(), advOn: false, dpts: {}, suspect: null });
+        Object.assign(s, { phase: "lobby", step: null, round: 0, timer: null, sniperPending: null, winner: null, announce: "", event: null, order: [], alive: {}, roles: {}, fakeCop: null, fakesDone: [], notes: {}, votes: {}, voteOrder: [], voteTurn: 0, night: blankNight(), advOn: false, dpts: {}, suspect: null, deadline: null, talkQ: [], chats: { mafia: [], grave: [] }, offSince: {} });
         break;
     }
   }
@@ -443,24 +493,26 @@ export class Room extends DurableObject {
       announce: "كل واحد يقلب كرته ويشوف دوره.",
     });
     this.ev("deal");
+    if (s.online) { s.chats = { mafia: [], grave: [] }; s.offSince = {}; s.talkQ = []; this.setDl(ON.deal); }
     this.log(`بدت اللعبة: ${n} لاعبين، ${m} مافيا${c > 1 ? `، ${c} شرطة` : ""}${d > 1 ? `، ${d} بياطرة` : ""}`);
   }
 
-  next() {
+  next(force = false) {
     const s = this.s;
     if (s.phase !== "night0" && s.phase !== "night") return;
-    if (!this.stepDone()) return;
+    if (!force && !this.stepDone()) return;
     const steps = this.stepsFor(s.phase);
     const i = steps.indexOf(s.step);
-    this.scoreStep();
-    if (i < steps.length - 1) { s.step = steps[i + 1]; return; }
+    if (i < steps.length - 1) { s.step = steps[i + 1]; if (s.online) this.setDl(ON[s.step]); return; }
+    this.scoreNight();
     if (s.phase === "night0") {
       // نخبر المافيا إذا القاضي عيّن النصاب عنهم
       for (const f of this.judgeFakes()) for (const mm of this.aliveIds().filter((i) => isM(s.roles[i])))
-        this.note(mm, mm === f ? "القاضي اختار عنكم: أنت صرت النصاب" : `القاضي اختار عنكم: صار ${this.nm(f)} النصاب`);
+        this.note(mm, `${s.online ? "اللعبة اختارت عنكم" : "القاضي اختار عنكم"}: ${mm === f ? "أنت صرت النصاب" : `صار ${this.nm(f)} النصاب`}`);
       if (this.adv()) this.suspectMap();
       Object.assign(s, { phase: "day", step: null, round: 1, canVote: false, talked: {}, announce: "الصبح. الشرطة يرفعون إيدهم." });
       this.ev("dawn");
+      if (s.online) this.dayStart();
       return;
     }
     if (this.adv()) this.suspectMap();
@@ -472,8 +524,9 @@ export class Room extends DurableObject {
     const s = this.s;
     if (s.sniperPending) return;
     if (!(s.phase === "result" || (s.phase === "day" && !s.canVote))) return;
-    Object.assign(s, { phase: "night", step: this.stepsFor("night")[0], suspect: null, timer: null, votes: {}, voteOrder: [], voteTurn: 0, night: blankNight(), announce: "الليل بدا. كل واحد يتابع تلفونه." });
+    Object.assign(s, { phase: "night", step: this.stepsFor("night")[0], suspect: null, timer: null, talkQ: [], votes: {}, voteOrder: [], voteTurn: 0, night: blankNight(), announce: "الليل بدا. كل واحد يتابع تلفونه." });
     this.ev("dusk");
+    if (s.online) this.setDl(ON[s.step]);
   }
 
   eliminate(id, why) { this.s.alive[id] = false; this.log(`${this.nm(id)} طلع (${why}) ← ${ROLE_N[this.s.roles[id]]}`); }
@@ -492,6 +545,7 @@ export class Room extends DurableObject {
     }
     Object.assign(s, { phase: "day", step: null, round: s.round + 1, canVote: true, talked: {}, announce: msg, timer: null });
     if (!s.sniperPending) this.checkWin();
+    if (s.online && s.phase === "day") this.dayStart();
   }
 
   closeVote() {
@@ -514,6 +568,7 @@ export class Room extends DurableObject {
     s.announce = msg;
     s.phase = "result";
     if (!s.sniperPending) this.checkWin();
+    if (s.online && s.phase === "result") this.setDl(s.sniperPending ? ON.sniper : ON.result);
   }
 
   resolveSnipe(sn, t) {
@@ -524,6 +579,8 @@ export class Room extends DurableObject {
     s.announce = (s.announce || "") + ` القناص سحب ${this.nm(t)} وياه.`;
     this.ev("snipe", { who: this.nm(t) });
     this.checkWin();
+    if (s.online && s.phase === "day" && !s.timer) this.setDl(ON.pre);
+    if (s.online && s.phase === "result") this.setDl(ON.result);
   }
 
   // أفضل لاعبين من الشعب: الأكثر تصويت صح على المافيا، وإذا تعادلوا الأقل غلط
@@ -545,7 +602,7 @@ export class Room extends DurableObject {
     let w = null;
     if (m === 0) w = "town"; else if (m >= t) w = "mafia";
     if (!w) return;
-    Object.assign(s, { phase: "over", winner: w, timer: null, step: null });
+    Object.assign(s, { phase: "over", winner: w, timer: null, step: null, deadline: null });
     s.announce = w === "town" ? "الشعب فاز! صادوا كل المافيا." : "المافيا فازت! صاروا قد الشعب.";
     const prev = s.event;
     this.ev("win", { winner: w, after: prev && prev.type !== "win" ? prev : null });
@@ -571,6 +628,109 @@ export class Room extends DurableObject {
     s.fakesDone = [...done, s.fakeCop]; s.fakeCop = null; s.night.fake = {}; s.night.fakeByJudge = false;
   }
 
+  /* =========== القاضي الآلي (الأون لاين) =========== */
+  // ONLINE_SPEED: للتجربة المحلية بس (يسرّع الأوقات)، وبالموقع ما ينحط
+  spd() { const v = this.env && +this.env.ONLINE_SPEED; return v > 0 ? v : 1; }
+  setDl(sec) { this.s.deadline = Date.now() + sec * 1000 * this.spd(); }
+  chat(pid, m) {
+    const s = this.s, text = String(m.text || "").trim().slice(0, 300);
+    if (!s.online || !text || !s.order.includes(pid)) return;
+    const dead = !s.alive[pid], ch = (s.chats = s.chats || { mafia: [], grave: [] });
+    const msg = { id: sid(), pid, name: this.nm(pid), text, at: Date.now() };
+    if (m.ch === "mafia" && isM(s.roles[pid]) && !dead && (s.phase === "night" || s.phase === "night0")) { ch.mafia.push(msg); if (ch.mafia.length > CHAT_MAX) ch.mafia.shift(); }
+    if (m.ch === "grave" && dead && s.phase !== "over") { ch.grave.push(msg); if (ch.grave.length > CHAT_MAX) ch.grave.shift(); }
+  }
+  // اللاعب اللي فاصل ومحتاجينه: ننطره لين تكمل دقيقة من فصلته
+  graceFor(ids) {
+    const s = this.s, on = this.onlineSet(), off = s.offSince || {};
+    let until = 0;
+    for (const i of ids) if (!on.has(i) && off[i]) until = Math.max(until, off[i] + ON.grace * 1000 * this.spd());
+    return until > Date.now() ? until : 0;
+  }
+  pendingActors() {
+    const s = this.s, n = s.night, al = this.aliveIds(), out = [];
+    const step = s.step;
+    const has = (k) => step === k || step === "all";
+    if (has("police")) al.filter((i) => s.roles[i] === "cop" && !this.qmap()[i] && this.qUsed(i) < (s.queryMax || 0)).forEach((i) => out.push(i));
+    if (has("doctor")) al.filter((i) => s.roles[i] === "doctor" && !this.smap()[i]).forEach((i) => out.push(i));
+    if (has("mafia") && !(s.phase === "night0" ? this.stepDone() : n.kill)) al.filter((i) => isM(s.roles[i])).forEach((i) => out.push(i));
+    return out;
+  }
+  // يتقدم بروحه أول ما الكل يخلص (عشان محد ينطر)
+  autoAdvance() {
+    const s = this.s;
+    if ((s.phase === "night" || s.phase === "night0") && this.stepDone() && (!this.adv() || this.aliveIds().every((i) => !this.todo(i).length))) { s.deadline = Date.now() + 1500; }
+    if (s.phase === "vote" && !this.curVoter() && s.deadline > Date.now() + 1500) s.deadline = Date.now() + 1500;
+    if (s.phase === "result" && s.sniperPending === null && s.event && s.event.type === "snipe") { /* handled in resolveSnipe */ }
+  }
+  dayStart() {
+    const s = this.s, al = this.aliveIds();
+    const sh = (a) => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+    const cops = sh(al.filter((i) => s.roles[i] === "cop" || this.isFake(i)));
+    s.talkQ = [...cops, ...sh(al.filter((i) => !cops.includes(i)))];
+    s.timer = null;
+    if (cops.length) s.announce = `${s.announce ? s.announce + " " : ""}الشرطة يتكلمون أول: ${cops.map((i) => this.nm(i)).join("، ")}.`;
+    this.setDl(s.sniperPending ? ON.sniper : ON.pre);
+  }
+  startVoteAuto() {
+    const s = this.s, o = this.aliveIds();
+    for (let i = o.length - 1; i > 0; i--) { const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1); [o[i], o[j]] = [o[j], o[i]]; }
+    s.votes = {}; s.voteOrder = o; s.voteTurn = 0; s.phase = "vote"; s.timer = null;
+    s.announce = `التصويت بالدور. أول واحد: ${this.nm(o[0])}.`;
+    this.setDl(ON.vote);
+  }
+  tick() {
+    const s = this.s;
+    if (!s.online) return;
+    switch (s.phase) {
+      case "deal":
+        Object.assign(s, { phase: "night0", step: "police", announce: "الليلة الأولى بدت." }); this.ev("dusk"); this.setDl(ON.police); return;
+      case "night0": case "night": {
+        const wait = this.graceFor(this.pendingActors());
+        if (wait) { s.deadline = wait; return; }
+        const n = s.night;
+        if (this.isStep("mafia") && s.phase === "night") {
+          const r = plurality(this.aliveIds().filter((i) => isM(s.roles[i])).map((i) => n.sugg[i]));
+          if (!n.kill && r.tied.length > 1) { s.announce = "المافيا تعادلوا، لازم يتفقون."; this.setDl(ON.tieMore); return; }
+        }
+        if (s.phase === "night0" && s.step === "mafia" && !this.stepDone()) {
+          const mafia = this.aliveIds().filter((i) => isM(s.roles[i]));
+          const r = plurality(mafia.map((i) => (n.fake || {})[i]));
+          if (r.tied.length > 1) { this.setDl(ON.tieMore); return; }
+          // ما اختاروا: اللعبة تختار النصاب (لازم يكون فيه نصاب)
+          for (let guard = 0; !this.stepDone() && guard < 12; guard++) {
+            const left = mafia.filter((i) => !(s.fakesDone || []).includes(i));
+            if (!left.length) break;
+            s.fakeCop = guard === 0 && r.winner && left.includes(r.winner) ? r.winner : left[crypto.getRandomValues(new Uint32Array(1))[0] % left.length];
+            s.night.fakeByJudge = true; this.lockFake();
+          }
+        }
+        this.next(true); return;
+      }
+      case "day": {
+        if (s.sniperPending) { this.log(`القناص ${this.nm(s.sniperPending)} ما اختار`); s.sniperPending = null; this.checkWin(); if (s.phase !== "day") return; }
+        s.timer = null;
+        const q = (s.talkQ = (s.talkQ || []).filter((i) => s.alive[i]));
+        if (q.length) {
+          const id = q.shift(), dur = this.talkSec();
+          s.timer = { pid: id, name: this.nm(id), endsAt: Date.now() + dur * 1000 * this.spd(), dur: dur * this.spd(), id: sid() };
+          (s.talked = s.talked || {})[id] = true; s.announce = "";
+          s.deadline = s.timer.endsAt; return;
+        }
+        if (s.canVote) this.startVoteAuto(); else this.goNight();
+        return;
+      }
+      case "vote": {
+        const cur = this.curVoter();
+        if (cur) { if (this.graceFor([cur])) { s.deadline = this.graceFor([cur]); return; } s.voteTurn++; const nx = this.curVoter(); s.announce = nx ? `دور ${this.nm(nx)} يصوّت.` : "الكل صوّت."; if (nx) { this.setDl(ON.vote); return; } }
+        this.closeVote(); return;
+      }
+      case "result":
+        if (s.sniperPending) { this.log(`القناص ${this.nm(s.sniperPending)} ما اختار`); s.sniperPending = null; this.checkWin(); if (s.phase !== "result") return; }
+        this.goNight(); return;
+    }
+  }
+
   // هل الخطوة الحالية خلصت؟ ما نروح للي بعدها إلا لما يختارون
   stepDone() {
     const s = this.s, n = s.night, al = this.aliveIds();
@@ -592,9 +752,11 @@ export class Room extends DurableObject {
   async playerCmd(pid, m, ws) {
     const s = this.s;
     if (m.t === "leave") {
-      if (s.phase === "lobby") { s.lobby = s.lobby.filter((x) => x !== pid); delete s.players[pid]; ws.serializeAttachment({}); }
+      if (s.phase === "lobby") { s.lobby = s.lobby.filter((x) => x !== pid); delete s.players[pid]; ws.serializeAttachment({}); if (s.online && s.hostPid === pid) s.hostPid = s.lobby[0] || null; }
       return;
     }
+    if (m.t === "chat") return this.chat(pid, m);
+    if (m.t === "away") { if (s.online && m.v && s.phase !== "lobby" && s.phase !== "over" && s.order.includes(pid)) this.notice(`${this.nm(pid)} طلع من اللعبة، وممكن يغش 👀`); return; }
     if (m.t !== "act" || m.gen !== s.gen) return;
     const role = s.roles[pid], alive = s.alive[pid], t = m.id, tA = s.alive[t], n = s.night;
     switch (m.k) {
@@ -625,6 +787,10 @@ export class Room extends DurableObject {
         break;
       case "guess": // تخمين: منو تشك إنه مافيا
         if (this.adv() && alive && tA && t !== pid && ((s.phase === "night" && s.step === "all") || (s.phase === "night0" && s.step === "police"))) (n.guess = n.guess || {})[pid] = t;
+        else if (!this.adv() && s.online && alive && tA && t !== pid && (s.phase === "night" || s.phase === "night0")) (n.guess = n.guess || {})[pid] = t;
+        break;
+      case "done": // اللي يتكلم خلص قبل وقته
+        if (s.online && s.phase === "day" && s.timer && s.timer.pid === pid) { s.timer = null; s.deadline = Date.now(); }
         break;
       case "fguess": // الليلة الأولى: منو تتوقع النصاب
         if (this.adv() && alive && tA && t !== pid && !isM(role) && s.phase === "night0" && s.step === "mafia") (n.fguess = n.fguess || {})[pid] = t;
