@@ -8,6 +8,8 @@ const ICE=[{urls:"stun:stun.cloudflare.com:3478"}];
 let V=null;            // جلسة الصوت الحالية
 let selfMute=false;
 let bar=null;
+const MIC_ON=`<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4M8 22h8"/></svg>`;
+const MIC_OFF=`<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 9.3V5a3 3 0 0 0-5.7-1.3M9 9v2a3 3 0 0 0 5.1 2.1M5 10v1a7 7 0 0 0 11.9 5M19 10v1c0 .9-.2 1.8-.5 2.6M12 18v4M8 22h8M3 3l18 18"/></svg>`;
 
 async function api(op,body={}){
   const s=G('sess');if(!s||!s.token)throw new Error("ما فيه جلسة");
@@ -113,7 +115,7 @@ function paint(){
     const open=(v.talk||v.mafia)&&!selfMute;
     const hear=(v.hear||[]).map(id=>E(nm(id))).join("، ");
     const what=v.mafia?"مكالمة المافيا":v.talk?(st.phase==="lobby"||st.phase==="over"?"الكل يسمعك":"دورك، الكل يسمعك"):"مكتوم، مو دورك";
-    html=`<span class="vb-mic ${open?"on":""}" aria-hidden="true"></span><span class="vb-st"><b>${selfMute?"كتمت نفسك":what}</b>${hear?`<small>تسمع: ${hear}</small>`:""}${V.status&&V.status!=="الصوت شغال"?`<small>${E(V.status)}</small>`:""}</span>${(v.talk||v.mafia)?`<button class="vb-btn" data-v="mute">${selfMute?"افتح المايك":"اكتم"}</button>`:""}`;
+    html=`<span class="vb-mic ${open?"on":""}" aria-hidden="true"></span><span class="vb-st"><b>${selfMute?"كتمت نفسك":what}</b>${hear?`<small>تسمع: ${hear}</small>`:""}${V.status&&V.status!=="الصوت شغال"?`<small>${E(V.status)}</small>`:""}</span>${(v.talk||v.mafia)?`<button class="vb-mute ${selfMute?"off":""}" data-v="mute" aria-pressed="${selfMute}" aria-label="${selfMute?"افتح المايك":"اكتم المايك"}">${selfMute?MIC_OFF:MIC_ON}</button>`:""}`;
   }
   if(bar._h!==html){bar._h=html;bar.innerHTML=html}
 }

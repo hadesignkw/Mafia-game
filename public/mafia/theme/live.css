@@ -124,3 +124,8 @@ body:has(#voiceBar:not([hidden])) .wrap{padding-bottom:calc(110px + env(safe-are
 /* جاهز */
 .ready-btn{min-width:180px;min-height:52px;font-size:1.1rem}
 .seat .st.rdy{color:var(--town,#6fd3a4);font-weight:700}
+#voiceBar .vb-mute{width:48px;height:48px;flex:none;display:grid;place-items:center;border-radius:50%;border:1px solid #4fd18b88;background:#1b3a2c;color:#bff3d6;cursor:pointer}
+#voiceBar .vb-mute.off{border-color:#e08a8a88;background:#3a1b1f;color:#ffc9c9}
+#voiceBar .vb-mute:focus-visible{outline:2px solid #fff;outline-offset:2px}
+/* زر المؤثرات يطلع فوق شريط الصوت بدال ما يتغطى */
+body:has(#voiceBar:not([hidden])) .rx-game-sound{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
