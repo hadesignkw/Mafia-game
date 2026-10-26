@@ -57,6 +57,12 @@ export default {
       if (!/^\d{4}$/.test(code)) return json({ ok: false });
       return json({ ok: await env.ROOM.get(env.ROOM.idFromName(code)).exists() });
     }
+    if (url.pathname === "/api/rtc" && req.method === "POST") {
+      // الصوت بالأون لاين: الغرفة تتأكد منو يسمع منو، وبعدين تكلم كلاودفلير
+      const code = url.searchParams.get("code") || "";
+      if (!/^\d{4}$/.test(code)) return json({ error: "bad code" }, 400);
+      return env.ROOM.get(env.ROOM.idFromName(code)).fetch(req);
+    }
     if (url.pathname === "/api/ws") {
       const code = url.searchParams.get("code") || "";
       if (!/^\d{4}$/.test(code)) return new Response("bad code", { status: 400 });
@@ -127,7 +133,7 @@ export class Room extends DurableObject {
     if (this.s && this.s.online && this.s.deadline && Date.now() >= this.s.deadline - 80) {
       this.s.deadline = null;
       try { this.tick(); } catch (e) { console.log("tick", e && e.stack); }
-      await this.save(); this.broadcast(); await this.schedule();
+      await this.save(); this.broadcast(); await this.schedule(); this.rtcEnforce();
       return;
     }
     if (this.s && Date.now() - (this.s.touched || 0) < ROOM_TTL) {
@@ -147,7 +153,8 @@ export class Room extends DurableObject {
     await this.ctx.storage.setAlarm(this.s.online && this.s.deadline ? Math.min(this.s.deadline, ttl) : ttl);
   }
 
-  async fetch() {
+  async fetch(req) {
+    if (req && new URL(req.url).pathname === "/api/rtc") return this.rtc(req);
     const pair = new WebSocketPair();
     this.ctx.acceptWebSocket(pair[1]);
     pair[1].serializeAttachment({});
@@ -192,6 +199,7 @@ export class Room extends DurableObject {
     await this.save();
     this.broadcast();
     await this.schedule();
+    if (s.online) this.rtcEnforce();
   }
 
   async webSocketClose(ws) {
@@ -271,6 +279,10 @@ export class Room extends DurableObject {
         mafiaNext: s.lobby.length >= MIN_PLAYERS ? this.mafiaFor(s.lobby.length) : null,
         mafiaMax: maxMafia(Math.max(s.lobby.length, MIN_PLAYERS), this.copsFor(s.lobby.length), this.docsFor(s.lobby.length)),
       };
+    }
+    if (s.online && s.players[pid]) {
+      const allow = this.rtcAllowed(pid);
+      pub.me.voice = { on: !!this.rtcCfg(), talk: this.rtcCanTalk(pid), mafia: this.rtcCanMafia(pid), hear: allow.map((k) => k.split(":")[0]), key: allow.join(",") };
     }
     if (role && pub.me.inGame) {
       Object.assign(pub.me, { role, fake: this.isFake(pid), notes: s.notes[pid] || [] });
@@ -626,6 +638,117 @@ export class Room extends DurableObject {
     if (!s.fakeCop || done.length + 1 >= (s.fakeNeed || 1)) return;
     if (s.night.fakeByJudge) s.fakesJudge = [...(s.fakesJudge || []), s.fakeCop];
     s.fakesDone = [...done, s.fakeCop]; s.fakeCop = null; s.night.fake = {}; s.night.fakeByJudge = false;
+  }
+
+  /* =========== الصوت (كلاودفلير Realtime) =========== */
+  rtcCfg() { const e = this.env || {}; return e.REALTIME_APP_ID && e.REALTIME_APP_TOKEN ? { id: e.REALTIME_APP_ID, token: e.REALTIME_APP_TOKEN } : null; }
+  // يتكلم بالمايك العام: قبل اللعبة وبعدها الكل، ووسط اللعبة بس صاحب الدور
+  rtcCanTalk(pid) {
+    const s = this.s;
+    if (!s.online) return false;
+    if (s.phase === "lobby" || s.phase === "over") return true;
+    return s.phase === "day" && !!s.timer && s.timer.pid === pid && !!s.alive[pid];
+  }
+  // مكالمة المافيا: بالليل بس، للمافيا الأحياء
+  rtcCanMafia(pid) { const s = this.s; return !!s.online && (s.phase === "night" || s.phase === "night0") && isM(s.roles[pid]) && !!s.alive[pid]; }
+  // منو يسمع منو: "pid:talk" أو "pid:mafia"
+  rtcAllowed(pid) {
+    const s = this.s, rtc = s.rtc || {}, out = [];
+    if (!s.online || !s.players[pid]) return out;
+    const has = (p, n) => rtc[p] && rtc[p].prod && (rtc[p].pub || []).includes(n);
+    const ids = s.phase === "lobby" ? s.lobby : s.order;
+    if (s.phase === "lobby" || s.phase === "over") { for (const p of ids) if (p !== pid && has(p, "talk")) out.push(p + ":talk"); return out; }
+    if (s.phase === "day" && s.timer && s.timer.pid !== pid && has(s.timer.pid, "talk")) out.push(s.timer.pid + ":talk");
+    if (s.phase === "night" || s.phase === "night0") {
+      const dead = !s.alive[pid], meM = isM(s.roles[pid]) && !dead;
+      if (meM || (dead && s.order.includes(pid))) for (const p of this.aliveIds()) if (p !== pid && isM(s.roles[p]) && has(p, "mafia")) out.push(p + ":mafia");
+    }
+    return out;
+  }
+  async sfu(path, method, body) {
+    const c = this.rtcCfg();
+    if (this.env && this.env.RTC_FAKE) { // للتجربة المحلية بس: ردود وهمية بدال كلاودفلير
+      if (path.endsWith("/sessions/new")) return { sessionId: sid() + sid() };
+      if (path.endsWith("/tracks/new")) return { requiresImmediateRenegotiation: !!(body.tracks || []).find((x) => x.location === "remote"), sessionDescription: { type: "offer", sdp: "fake" }, tracks: (body.tracks || []).map((x) => ({ ...x, mid: x.mid || String(Math.floor(Math.random() * 1e6)) })) };
+      return { tracks: [], sessionDescription: { type: "answer", sdp: "fake" } };
+    }
+    const r = await fetch(`https://rtc.live.cloudflare.com/v1/apps/${encodeURIComponent(c.id)}${path}`, {
+      method, headers: { Authorization: `Bearer ${c.token}`, "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined,
+    });
+    let j = {}; try { j = await r.json(); } catch {}
+    if (!r.ok || j.errorCode) throw new Error(`sfu ${r.status} ${j.errorCode || ""} ${j.errorDescription || ""}`.trim());
+    return j;
+  }
+  // يسكر اللي ما يحق له يسمعه (يصير بعد كل تغيير بالحالة، حتى لو التلفون ما طلب)
+  async rtcPrune(pid) {
+    const s = this.s, me = (s.rtc || {})[pid];
+    if (!me || !me.cons || !(me.subs || []).length) return false;
+    const allow = new Set(this.rtcAllowed(pid)), drop = me.subs.filter((x) => !allow.has(x.key) || (s.rtc[x.key.split(":")[0]] || {}).prod !== x.prod);
+    if (!drop.length) return false;
+    try { await this.sfu(`/sessions/${me.cons}/tracks/close`, "PUT", { force: true, tracks: drop.map((x) => ({ mid: x.mid })) }); } catch (e) { console.log("prune", e.message); }
+    me.subs = me.subs.filter((x) => !drop.includes(x));
+    return true;
+  }
+  rtcEnforce() {
+    if (!this.rtcCfg() || !this.s || !this.s.rtc) return;
+    const run = (async () => { let ch = false; for (const pid of Object.keys(this.s.rtc)) ch = (await this.rtcPrune(pid)) || ch; if (ch) await this.save(); })();
+    this.ctx.waitUntil ? this.ctx.waitUntil(run) : run.catch(() => {});
+  }
+  async rtc(req) {
+    const s = this.s;
+    if (!s || !this.alive()) return json({ error: "gone" }, 410);
+    if (!s.online) return json({ error: "not online" }, 400);
+    if (!this.rtcCfg()) return json({ error: "voice off" }, 503);
+    let m; try { m = await req.json(); } catch { return json({ error: "bad json" }, 400); }
+    const pid = Object.keys(s.players).find((id) => s.players[id].token === m.token);
+    if (!pid) return json({ error: "who" }, 403);
+    const rtc = (s.rtc = s.rtc || {}), me = (rtc[pid] = rtc[pid] || {});
+    try {
+      if (m.op === "producer") {
+        // تلفون اللاعب يرسل المايك: مسارين (العام والمافيا)، والتشغيل والكتم من التلفون نفسه
+        const names = (m.tracks || []).map((x) => x.name).filter((n) => n === "talk" || n === "mafia");
+        const sess = await this.sfu("/sessions/new", "POST");
+        const r = await this.sfu(`/sessions/${sess.sessionId}/tracks/new`, "POST", {
+          sessionDescription: m.offer, tracks: (m.tracks || []).filter((x) => names.includes(x.name)).map((x) => ({ location: "local", mid: x.mid, trackName: x.name })),
+        });
+        me.prod = sess.sessionId; me.pub = names;
+        await this.save(); this.broadcast();
+        return json({ answer: r.sessionDescription });
+      }
+      if (m.op === "consumer") {
+        const sess = await this.sfu("/sessions/new", "POST");
+        me.cons = sess.sessionId; me.subs = [];
+        await this.save();
+        return json({ ok: true });
+      }
+      if (m.op === "sync") {
+        if (!me.cons) return json({ error: "no consumer" }, 409);
+        await this.rtcPrune(pid);
+        const have = new Set((me.subs || []).map((x) => x.key));
+        const add = this.rtcAllowed(pid).filter((k) => !have.has(k));
+        let offer = null;
+        if (add.length) {
+          const r = await this.sfu(`/sessions/${me.cons}/tracks/new`, "POST", {
+            tracks: add.map((k) => { const [p, n] = k.split(":"); return { location: "remote", sessionId: rtc[p].prod, trackName: n }; }),
+          });
+          const byName = {};
+          (r.tracks || []).forEach((x, i) => { if (x.mid && !x.errorCode) byName[i] = x.mid; });
+          add.forEach((k, i) => { if (byName[i]) me.subs.push({ key: k, mid: byName[i], prod: rtc[k.split(":")[0]].prod }); });
+          if (r.requiresImmediateRenegotiation) offer = r.sessionDescription;
+        }
+        await this.save();
+        return json({ offer, subs: (me.subs || []).map((x) => ({ key: x.key, mid: x.mid })) });
+      }
+      if (m.op === "answer") {
+        if (!me.cons) return json({ error: "no consumer" }, 409);
+        await this.sfu(`/sessions/${me.cons}/renegotiate`, "PUT", { sessionDescription: m.answer });
+        return json({ ok: true });
+      }
+      return json({ error: "op" }, 400);
+    } catch (e) {
+      console.log("rtc", m.op, e.message);
+      return json({ error: e.message }, 502);
+    }
   }
 
   /* =========== القاضي الآلي (الأون لاين) =========== */

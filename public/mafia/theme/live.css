@@ -108,3 +108,15 @@ body.adv-dim .pick.red{--c:var(--brass)}
 .chat-mafia{border-color:color-mix(in srgb,var(--blood) 45%,transparent)}
 .chatf{display:flex;gap:8px}
 .chatf input{flex:1;min-width:0;font-size:16px}
+
+/* ===== شريط الصوت (أون لاين) ===== */
+#voiceBar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:70;width:min(520px,calc(100% - 24px));display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:16px;background:#0c1118f2;border:1px solid #9fb4c840;box-shadow:0 10px 30px #0008;color:#eef3f8;font:500 .9rem/1.4 var(--body,system-ui)}
+#voiceBar[hidden]{display:none}
+#voiceBar .vb-st{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+#voiceBar .vb-st small{color:#a7b4c2;font-size:.78rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#voiceBar .vb-go{border:0;border-radius:12px;padding:10px 14px;min-height:44px;background:linear-gradient(#e9cf98,#b98d4c);color:#2a1c0c;font:700 .95rem var(--body,system-ui);cursor:pointer;white-space:nowrap}
+#voiceBar .vb-btn{border:1px solid #9fb4c855;border-radius:12px;padding:8px 12px;min-height:40px;background:transparent;color:#eef3f8;font:600 .85rem var(--body,system-ui);cursor:pointer;white-space:nowrap}
+#voiceBar .vb-mic{width:14px;height:14px;border-radius:50%;background:#5b6573;flex:none}
+#voiceBar .vb-mic.on{background:#4fd18b;box-shadow:0 0 0 0 #4fd18b88;animation:vbPulse 1.4s infinite}
+@keyframes vbPulse{70%{box-shadow:0 0 0 10px #4fd18b00}100%{box-shadow:0 0 0 0 #4fd18b00}}
+body:has(#voiceBar:not([hidden])) .wrap{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
