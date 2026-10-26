@@ -120,3 +120,7 @@ body.adv-dim .pick.red{--c:var(--brass)}
 #voiceBar .vb-mic.on{background:#4fd18b;box-shadow:0 0 0 0 #4fd18b88;animation:vbPulse 1.4s infinite}
 @keyframes vbPulse{70%{box-shadow:0 0 0 10px #4fd18b00}100%{box-shadow:0 0 0 0 #4fd18b00}}
 body:has(#voiceBar:not([hidden])) .wrap{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
+
+/* جاهز */
+.ready-btn{min-width:180px;min-height:52px;font-size:1.1rem}
+.seat .st.rdy{color:var(--town,#6fd3a4);font-weight:700}

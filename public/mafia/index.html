@@ -1664,7 +1664,7 @@ function seats(judge){
     const me=st.me&&p.id===st.me.id,c=seatColor(p.name);
     return`<div class="seat ${p.online?"":"off"} ${me?"me":""} ${rowCls((judge?"j":"p")+p.id)}" style="--c:${c}">
       <span class="av">${esc([...p.name][0]||"؟")}<i class="on" title="${p.online?"موجود":"طلع من الموقع"}"></i></span>
-      <span class="sn">${esc(p.name)}</span><span class="st">${me?"أنت":p.online?"موجود":"طلع"}</span>
+      <span class="sn">${esc(p.name)}</span><span class="st ${st.ready&&st.ready[p.id]?"rdy":""}">${!p.online?"طلع":st.ready&&!demo?(st.ready[p.id]?"جاهز ✓":"مو جاهز"):me?"أنت":"موجود"}</span>
       ${judge&&!me?`<button class="kick" data-a="cmd" data-c="kick" data-id="${p.id}" aria-label="شيل ${esc(p.name)}">×</button>`:""}</div>`}).join("")}</div>`;
 }
 const dot=p=>`<span class="dot ${p.online?"on":""}" title="${p.online?"موجود":"طلع من الموقع"}"></span>`;
@@ -1786,7 +1786,7 @@ function judgeView(){
     h+=`<div class="panel"><h3>اللاعبين يدخلون برقم الغرفة</h3><p style="font-family:var(--display);font-size:3rem;text-align:center;letter-spacing:.2em;color:var(--brass);margin:0">${ar(st.code)}</p>
     <p class="muted small">${ar(n)}${J.settings&&J.settings.mode==="custom"?` من ${ar(J.cap||30)}`:""} لاعب دخل${J.mafiaNext?` · المافيا بتكون ${ar(J.mafiaNext)}`:` · تحتاج ${ar(st.minPlayers-n)} بعد`}</p>
     <button class="btn share" data-a="share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v14"/></svg>ارسل رابط الغرفة</button>
-    ${(()=>{const c=J.settings||{},need=c.mode==="custom"?Math.max(st.minPlayers,(c.mafia||1)+(c.cops||1)+(c.docs||1)+1):st.minPlayers;return`<button class="btn primary" data-a="cmd" data-c="start" ${n<need?"disabled":""}>وزّع الكروت</button>${c.mode==="custom"&&n>=st.minPlayers&&n<need?`<p class="muted small">الأدوار تبي ${ar(need)} لاعب، نقّص الأعداد أو انطر يدخلون.</p>`:""}`})()}</div>
+    ${(()=>{const c=J.settings||{},need=c.mode==="custom"?Math.max(st.minPlayers,(c.mafia||1)+(c.cops||1)+(c.docs||1)+1):st.minPlayers;const R=st.ready||{},notR=demo?[]:st.players.filter(p=>!R[p.id]),allR=n>=need&&!notR.length;return`${n>=need&&notR.length?`<p class="small adv-miss">ننطر يجهزون: ${notR.map(p=>`<b>${esc(p.name)}</b>${p.online?"":" (طالع)"}`).join("، ")}</p><p class="muted small">اللي طفى تلفونه أو طلع تقدر تشيله بـ × جنب اسمه تحت.</p>`:""}<button class="btn primary" data-a="cmd" data-c="start" ${allR?"":"disabled"}>${allR?"ابدا، الكل جاهز":n<need?"وزّع الكروت":"ننطر الكل يجهز"}</button>${c.mode==="custom"&&n>=st.minPlayers&&n<need?`<p class="muted small">الأدوار تبي ${ar(need)} لاعب، نقّص الأعداد أو انطر يدخلون.</p>`:""}`})()}</div>
     <button class="btn gd-open" data-a="guide"><b>؟</b> دليل القاضي: شلون تمشّي اللعبة</button>
     ${settingsPanel()}
     <div class="panel"><h3>منو دخل <span class="count">${ar(n)}</span></h3>${n?seats(true):`<p class="muted">ما أحد دخل للحين.</p>`}</div>`;
@@ -1910,7 +1910,8 @@ function playerView(){
   const me=st.me;let h=header();
   if(st.phase==="lobby"&&st.online)return h+onlineLobby();
   if(st.phase==="lobby"){
-    return h+`<div class="panel nightbox"><div class="moon"></div><h2>ننطر القاضي يبدا</h2><p class="muted">${ar(st.players.length)} لاعب بالغرفة · أقل شي ${ar(st.minPlayers)}</p></div>
+    const rd=!!(st.ready&&st.ready[me.id]);
+    return h+`<div class="panel nightbox"><div class="moon"></div><h2>${rd?"جاهز ✓ ننطر الباقين":"دوس جاهز"}</h2><p class="muted">${ar(st.players.length)} لاعب بالغرفة · أقل شي ${ar(st.minPlayers)}. القاضي ما يقدر يبدا لين الكل يجهز.</p><button class="btn ${rd?"":"primary"} ready-btn" data-a="ready" data-v="${rd?0:1}">${rd?"مو جاهز":"جاهز ✓"}</button></div>
     <div class="panel"><h3>منو دخل <span class="count">${ar(st.players.length)}</span></h3>${seats(false)}</div>`;
   }
   if(!me.inGame)return h+`<div class="panel"><p>اللعبة بدت وأنت مو فيها. انطر لين تخلص وتبدا وحدة جديدة.</p></div>`;
@@ -2090,6 +2091,7 @@ document.addEventListener("click",e=>{
     else{rolesOpen=true;rolesJust=true;render();rolesJust=false}}
   else if(a==="advHelp"){advHelpOpen=!advHelpOpen;render()}
   else if(a==="onlineToggle"){onlineCreate=!onlineCreate;render()}
+  else if(a==="ready"){send({t:"ready",v:b.dataset.v==="1"})}
   else if(a==="act"){const k=b.dataset.k;if((k==="query"||k==="vote")&&st.me.sel[k])return;send({t:"act",k,id,gen:st.gen});buzz(25)}
 });
 /* تموّج خفيف عند الضغط على أي زر */

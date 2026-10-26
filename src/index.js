@@ -249,6 +249,7 @@ export class Room extends DurableObject {
     if ((s.phase === "vote" || s.phase === "result") && (s.voteOrder || []).length)
       pub.vote = { order: s.voteOrder, turn: s.voteTurn, votes: s.votes, cur: this.curVoter() };
     pub.adv = s.phase === "lobby" ? !!this.sets().adv : this.adv();
+    if (s.phase === "lobby" && !s.online) pub.ready = s.ready || {};
     if (s.online) {
       pub.online = true; pub.deadline = s.deadline; pub.hostId = s.hostPid;
       if (["day", "vote", "result"].includes(s.phase)) pub.copsUp = this.aliveIds().filter((i) => s.roles[i] === "cop" || this.isFake(i));
@@ -414,7 +415,7 @@ export class Room extends DurableObject {
     switch (m.t) {
       case "kick":
         if (s.phase === "lobby" && s.players[id]) {
-          s.lobby = s.lobby.filter((x) => x !== id); delete s.players[id];
+          s.lobby = s.lobby.filter((x) => x !== id); delete s.players[id]; if (s.ready) delete s.ready[id];
           for (const w of this.ctx.getWebSockets()) {
             const a = w.deserializeAttachment();
             if (a && a.pid === id) { this.send(w, { t: "kicked" }); w.serializeAttachment({}); }
@@ -489,6 +490,8 @@ export class Room extends DurableObject {
     const s = this.s;
     const ids = s.lobby.filter((id) => s.players[id]);
     if (s.phase !== "lobby" || ids.length < MIN_PLAYERS) return;
+    // بغرفة القاضي: ما تبدا لين الكل يدوس جاهز (التجربة ما تحتاج)
+    if (!s.online && !s.demo && !ids.every((id) => (s.ready || {})[id])) return;
     const sh = [...ids];
     for (let i = sh.length - 1; i > 0; i--) { const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1); [sh[i], sh[j]] = [sh[j], sh[i]]; }
     const n = ids.length, cu = this.sets().mode === "custom", roles = {};
@@ -504,6 +507,7 @@ export class Room extends DurableObject {
       fakeCop: null, fakesDone: [], fakesJudge: [], fakeNeed: Math.min(c, m), advOn: !!this.sets().adv, dpts: {}, suspect: null, notes: {}, votes: {}, voteOrder: [], voteTurn: 0, voteHist: [], night: blankNight(), log: [], queryMax: m, queriesUsed: {},
       announce: "كل واحد يقلب كرته ويشوف دوره.",
     });
+    s.ready = {};
     this.ev("deal");
     if (s.online) { s.chats = { mafia: [], grave: [] }; s.offSince = {}; s.talkQ = []; this.setDl(ON.deal); }
     this.log(`بدت اللعبة: ${n} لاعبين، ${m} مافيا${c > 1 ? `، ${c} شرطة` : ""}${d > 1 ? `، ${d} بياطرة` : ""}`);
@@ -874,10 +878,11 @@ export class Room extends DurableObject {
   async playerCmd(pid, m, ws) {
     const s = this.s;
     if (m.t === "leave") {
-      if (s.phase === "lobby") { s.lobby = s.lobby.filter((x) => x !== pid); delete s.players[pid]; ws.serializeAttachment({}); if (s.online && s.hostPid === pid) s.hostPid = s.lobby[0] || null; }
+      if (s.phase === "lobby") { s.lobby = s.lobby.filter((x) => x !== pid); delete s.players[pid]; if (s.ready) delete s.ready[pid]; ws.serializeAttachment({}); if (s.online && s.hostPid === pid) s.hostPid = s.lobby[0] || null; }
       return;
     }
     if (m.t === "chat") return this.chat(pid, m);
+    if (m.t === "ready") { if (s.phase === "lobby" && !s.online && s.lobby.includes(pid)) (s.ready = s.ready || {})[pid] = !!m.v; return; }
     if (m.t === "away") { if (s.online && m.v && s.phase !== "lobby" && s.phase !== "over" && s.order.includes(pid)) this.notice(`${this.nm(pid)} طلع من اللعبة، وممكن يغش 👀`); return; }
     if (m.t !== "act" || m.gen !== s.gen) return;
     const role = s.roles[pid], alive = s.alive[pid], t = m.id, tA = s.alive[t], n = s.night;
