@@ -488,6 +488,7 @@ export class Room extends DurableObject {
         break;
       case "snipeFor": if (s.sniperPending && s.alive[id] && id !== s.sniperPending) this.resolveSnipe(s.sniperPending, id); break;
       case "newGame":
+        if (s.online && s.phase !== "lobby" && s.phase !== "over") this.notice("المضيف لغى اللعبة ورجعتوا للانتظار. اللي يبي يدخل يقدر يدخل الحين.");
         Object.assign(s, { phase: "lobby", step: null, round: 0, timer: null, sniperPending: null, winner: null, announce: "", event: null, order: [], alive: {}, roles: {}, fakeCop: null, fakesDone: [], notes: {}, votes: {}, voteOrder: [], voteTurn: 0, night: blankNight(), advOn: false, dpts: {}, suspect: null, deadline: null, talkQ: [], chats: { mafia: [], grave: [] }, offSince: {} });
         break;
     }

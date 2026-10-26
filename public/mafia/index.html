@@ -1626,7 +1626,7 @@ const aliveIds=()=>st.players.filter(p=>p.alive).map(p=>p.id);
 function header(){
   const me=st.me;
   return demoBar()+phaseScene()+`<div class="top"><div><h2>${st.judge?"القاضي":esc(me&&me.name||"")}</h2><span class="chip b">${PHASE_N[st.phase]||""}${st.round&&st.phase!=="lobby"&&st.phase!=="over"?" · الجولة "+ar(st.round):""}</span></div>
-  <div class="row" style="align-items:center">${st.phase==="lobby"?`<span class="code">${ar(st.code)}</span>`:""}${st.judge?`<button class="btn sm ghost gd-btn" data-a="guide" aria-label="دليل القاضي"><b>؟</b> دليل القاضي</button>`:""}<button class="btn sm ghost" data-a="leave">اطلع</button></div></div>
+  <div class="row" style="align-items:center">${st.phase==="lobby"?`<span class="code">${ar(st.code)}</span>`:""}${st.judge?`<button class="btn sm ghost gd-btn" data-a="guide" aria-label="دليل القاضي"><b>؟</b> دليل القاضي</button>`:""}${st.online&&st.me&&st.me.host&&!["lobby","over"].includes(st.phase)?`<button class="btn sm ghost" data-a="cancelGame">لغِ اللعبة</button>`:""}<button class="btn sm ghost" data-a="leave">اطلع</button></div></div>
   ${(()=>{const mine=st.me&&st.timer&&st.timer.pid===st.me.id;
     const tf=st.timer&&st.timer.id!==lastTimerId;if(st.timer)lastTimerId=st.timer.id;
     return`<div class="timer ${tf?"fresh":""}" id="timer" data-keep="timer|${st.timer?st.timer.id:"-"}|${mine?1:0}|${st.timer?esc(st.timer.name):""}" hidden><span class="lab">${mine?"جا دورك":"يسولف الحين"}</span>${st.timer?`<div class="spav" style="--c:${mine?"var(--brass)":seatColor(st.timer.name||"")}"><i></i><i></i><i></i><span>${esc([...(st.timer.name||"")][0]||"؟")}</span></div>`:""}<div class="who">${mine?"دورك!":st.timer?esc(st.timer.name):""}</div><div class="ring"><svg viewBox="0 0 62 62"><circle class="bgc" cx="31" cy="31" r="26"/><circle class="fgc" cx="31" cy="31" r="26" stroke-dasharray="163.36" stroke-dashoffset="0"/></svg><div class="t">40</div></div><div class="over">${mine?"بس بس لا تكثر":"بس بس لا يكثر"}</div></div>`})()}
@@ -2097,6 +2097,7 @@ document.addEventListener("click",e=>{
     else{rolesOpen=true;rolesJust=true;render();rolesJust=false}}
   else if(a==="advHelp"){advHelpOpen=!advHelpOpen;render()}
   else if(a==="onlineToggle"){onlineCreate=!onlineCreate;render()}
+  else if(a==="cancelGame"){if(confirm("تلغي اللعبة وترجع الكل للانتظار؟ اللي يبي يدخل يقدر يدخل بعدها."))send({t:"newGame"})}
   else if(a==="ready"){send({t:"ready",v:b.dataset.v==="1"})}
   else if(a==="act"){const k=b.dataset.k;if((k==="query"||k==="vote")&&st.me.sel[k])return;send({t:"act",k,id,gen:st.gen});buzz(25)}
 });
