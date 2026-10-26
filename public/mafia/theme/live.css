@@ -167,3 +167,8 @@ body.reception-mode .demoset{flex:none;margin:0 12px 8px;padding:8px 10px!import
 body.reception-mode .demoset p,body.reception-mode .demoset label{display:none}
 body.reception-mode .demoset select{flex:1 1 auto;min-width:0;height:42px!important;min-height:0!important;padding:0 10px!important;font-size:14px!important;margin:0!important}
 body.reception-mode .demoset .btn{flex:0 0 auto;width:auto!important;height:42px;min-height:0!important;padding:0 16px!important;margin:0!important;font-size:14px!important;white-space:nowrap}
+/* الشريط فوق الصورة بالتلفونات الطويلة: امتداد ناعم للديوانية (نفس الصورة مكبرة ومغبشة) */
+body.reception-mode .rx-shell{position:relative;isolation:isolate;overflow:hidden}
+body.reception-mode .rx-shell::before{content:"";position:absolute;inset:-40px;z-index:-1;background:url(/mafia/art/reception-night.webp) center top/cover no-repeat;filter:blur(18px) brightness(.55) saturate(1.1);transform:scale(1.08)}
+body.reception-mode:is([data-reception-time=day],[data-reception-time=sunrise],[data-reception-time=sunset]) .rx-shell::before{background-image:url(/mafia/art/reception-day.webp)}
+body.reception-mode .rx-stage{box-shadow:0 -18px 40px #0006}
