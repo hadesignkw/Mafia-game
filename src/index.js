@@ -686,8 +686,7 @@ export class Room extends DurableObject {
       case "deal":
         Object.assign(s, { phase: "night0", step: "police", announce: "الليلة الأولى بدت." }); this.ev("dusk"); this.setDl(ON.police); return;
       case "night0": case "night": {
-        const wait = this.graceFor(this.pendingActors());
-        if (wait) { s.deadline = wait; return; }
+        // بالليل ما ننطر أحد يفصل: لو وقفنا عشانه، الكل بيعرف إن عنده دور
         const n = s.night;
         if (this.isStep("mafia") && s.phase === "night") {
           const r = plurality(this.aliveIds().filter((i) => isM(s.roles[i])).map((i) => n.sugg[i]));
