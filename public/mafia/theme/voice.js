@@ -23,8 +23,14 @@ function watch(id,track){
 setInterval(()=>{
   const st=G('st');if(!st||!V||!V.subs){document.querySelectorAll(".spk").forEach(e=>e.classList.remove("spk"));return}
   const speaking=new Set();
+  // اللي نسمعهم: مستوى الصوت من الاتصال نفسه (بدون ما نلمس الصوت)
+  if(V.cons)for(const tr of V.cons.getTransceivers()){
+    if(!tr.mid||!V.subs.has(tr.mid))continue;
+    let lvl=0;try{for(const s of tr.receiver.getSynchronizationSources())lvl=Math.max(lvl,s.audioLevel||0)}catch{}
+    const k=V.subs.get(tr.mid)||"",pid=k.split(":")[0];if(pid&&lvl>.02)speaking.add(pid);
+  }
   meters.forEach((m,id)=>{
-    if(id!=="self"&&id!=="selfM"&&!V.subs.has(id)){meters.delete(id);return}
+    if(id!=="self"&&id!=="selfM"){meters.delete(id);return}
     if(m.track.readyState==="ended"||((id==="self"||id==="selfM")&&!m.track.enabled)){m.hold=0;return}
     m.an.getByteTimeDomainData(m.buf);let s=0;for(const v of m.buf){const d=(v-128)/128;s+=d*d}
     const rms=Math.sqrt(s/m.buf.length);if(rms>.035)m.hold=6;else if(m.hold>0)m.hold--;
@@ -44,7 +50,9 @@ const E=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">
 
 async function start(){
   if(V)return;
-  V={status:"يتصل…",audios:new Map(),subs:new Map(),key:null,busy:null,dead:false};
+  V={status:"يتصل…",audios:new Map(),subs:new Map(),key:null,busy:null,dead:false,pool:[]};
+  // آيفون ما يشغّل صوت إلا من عناصر انفتحت بضغطة: نجهز كم واحد الحين وقت الضغطة
+  for(let i=0;i<12;i++){const a=newAudio();try{a.srcObject=new MediaStream();a.play().catch(()=>{})}catch{}V.pool.push(a)}
   paint();
   try{
     const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
@@ -62,7 +70,7 @@ async function start(){
     await api("live");
     // المستقبل
     const cons=new RTCPeerConnection({bundlePolicy:"max-bundle",iceServers:ICE});
-    cons.addEventListener("track",e=>{const mid=e.transceiver.mid;if(!mid)return;let a=V.audios.get(mid);if(!a){a=document.createElement("audio");a.autoplay=true;a.setAttribute("playsinline","");a.dataset.mid=mid;document.body.appendChild(a);V.audios.set(mid,a)}a.srcObject=new MediaStream([e.track]);a.play().catch(()=>{});watch(mid,e.track)});
+    cons.addEventListener("track",e=>{const mid=e.transceiver.mid;if(!mid)return;let a=V.audios.get(mid);if(!a){a=V.pool.pop()||newAudio();a.dataset.mid=mid;V.audios.set(mid,a)}a.srcObject=new MediaStream([e.track]);playIt(a)});
     for(const pc of [prod,cons])pc.addEventListener("connectionstatechange",()=>{if(pc.connectionState==="failed"&&V&&!V.dead){V.status="انقطع الصوت، يرجع يتصل…";paint();restart()}});
     await api("consumer");
     Object.assign(V,{prod,cons,status:"الصوت شغال"});
@@ -74,11 +82,13 @@ async function start(){
     stop();V={status:msg,failed:true,audios:new Map()};paint();
   }
 }
+function newAudio(){const a=document.createElement("audio");a.autoplay=true;a.setAttribute("playsinline","");document.body.appendChild(a);return a}
+function playIt(a){const p=a.play();if(p&&p.catch)p.catch(()=>{if(V){V.needTap=true;paint()}})}
 function stop(){
   if(!V)return;V.dead=true;try{const s=G('send');s&&s({t:"vstate",on:false,mute:false})}catch{}
   try{V.stream&&V.stream.getTracks().forEach(t=>t.stop());V.mafia&&V.mafia.stop()}catch{}
   try{V.prod&&V.prod.close()}catch{}try{V.cons&&V.cons.close()}catch{}
-  (V.audios||new Map()).forEach(a=>a.remove());
+  (V.audios||new Map()).forEach(a=>a.remove());(V.pool||[]).forEach(a=>a.remove());
   V=null;paint();
 }
 let restarting=false;
@@ -125,7 +135,7 @@ function paint(){
   if(!show){if(bar)bar.hidden=true;return}
   if(!bar){
     bar=document.createElement("div");bar.id="voiceBar";bar.setAttribute("role","status");
-    bar.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.v==="start")start();if(b.dataset.v==="mute"){selfMute=!selfMute;tell();tick()}if(b.dataset.v==="retry")restart()});
+    bar.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.v==="start")start();if(b.dataset.v==="mute"){selfMute=!selfMute;tell();tick()}if(b.dataset.v==="retry")restart();if(b.dataset.v==="tap"&&V){V.needTap=false;V.audios.forEach(a=>playIt(a));paint()}});
     document.body.appendChild(bar);
   }
   bar.hidden=false;
@@ -133,6 +143,7 @@ function paint(){
   let html;
   if(!v.on)html=`<span class="vb-st">الصوت مو مفعّل بالسيرفر</span>`;
   else if(!V)html=`<button class="vb-go" data-v="start">🎙️ شغّل الصوت</button><span class="vb-st">لازم تشغله عشان تسمع وتتكلم</span>`;
+  else if(V.needTap)html=`<button class="vb-go" data-v="tap">🔊 دوس عشان تسمعهم</button><span class="vb-st">التلفون وقف الصوت، دوسة وحدة وترجع</span>`;
   else if(V.failed)html=`<span class="vb-st">${E(V.status)}</span><button class="vb-btn" data-v="retry">جرّب مرة ثانية</button>`;
   else{
     const open=(v.talk||v.mafia)&&!selfMute;
