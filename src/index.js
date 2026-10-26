@@ -195,6 +195,7 @@ export class Room extends DurableObject {
     else if (att.pid && s.online && att.pid === s.hostPid && HOST_CMDS.has(m.t)) await this.judgeCmd(m);
     else if (att.pid && s.players[att.pid]) await this.playerCmd(att.pid, m, ws);
     else return;
+    if (!this.s) return; // الغرفة تسكّرت
     if (s.online) this.autoAdvance();
     await this.save();
     this.broadcast();
@@ -210,6 +211,11 @@ export class Room extends DurableObject {
       if (!still) { (s.offSince = s.offSince || {})[a.pid] = Date.now(); this.notice(`${this.nm(a.pid)} طلع من اللعبة، وممكن يغش 👀`); await this.save(); }
     }
     this.broadcast(ws);
+  }
+  async closeRoom(text) {
+    for (const w of this.ctx.getWebSockets()) { this.send(w, { t: "gone", text }); try { w.close(1000, "closed"); } catch {} }
+    this.s = null;
+    await this.ctx.storage.deleteAll();
   }
   notice(text) { for (const w of this.ctx.getWebSockets()) this.send(w, { t: "notice", text }); }
   async webSocketError(ws) { this.broadcast(ws); }
@@ -878,7 +884,9 @@ export class Room extends DurableObject {
   async playerCmd(pid, m, ws) {
     const s = this.s;
     if (m.t === "leave") {
-      if (s.phase === "lobby") { s.lobby = s.lobby.filter((x) => x !== pid); delete s.players[pid]; if (s.ready) delete s.ready[pid]; ws.serializeAttachment({}); if (s.online && s.hostPid === pid) s.hostPid = s.lobby[0] || null; }
+      // المضيف طلع نهائي: الغرفة تسكر والكل يرجع للاستقبال
+      if (s.online && pid === s.hostPid) { await this.closeRoom("المضيف طلع، والغرفة تسكّرت."); return; }
+      if (s.phase === "lobby") { s.lobby = s.lobby.filter((x) => x !== pid); delete s.players[pid]; if (s.ready) delete s.ready[pid]; ws.serializeAttachment({}); }
       return;
     }
     if (m.t === "chat") return this.chat(pid, m);

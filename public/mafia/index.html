@@ -1089,7 +1089,7 @@ function onMsg(m){
   if(m.t==="error"){toast(m.text);return}
   if(m.t==="notice"){toast(m.text);return}
   if(m.t==="kicked"){endSession("القاضي شالك من الغرفة.");return}
-  if(m.t==="gone"){endSession("الغرفة خلصت.");return}
+  if(m.t==="gone"){endSession(m.text||"الغرفة خلصت.");return}
   if(m.t==="state"){
     offset=m.now-Date.now();
     const prev=st;st=m;view="game";
@@ -1215,7 +1215,10 @@ async function joinCode(c){
   sess={code:c,token:old||null,judge:false};lsSet("mafia.sess",sess);busy=false;firstState=true;connect();
 }
 function submitName(n){n=String(n||"").trim();if(!n)return toast("اكتب اسمك");lsSet("mafia.name",n);send({t:"join",name:n})}
-function leave(){if(demo)return endDemo("");if(st&&st.me&&st.phase==="lobby")send({t:"leave"});endSession("")}
+function leave(){if(demo)return endDemo("");
+  // المضيف بالأون لاين: إذا طلع، الغرفة تسكر على الكل
+  if(st&&st.online&&st.me&&st.me.host){if(!confirm("إذا طلعت، الغرفة تسكر والكل يرجع للاستقبال. أكيد؟"))return;send({t:"leave"});endSession("");return}
+  if(st&&st.me&&st.phase==="lobby")send({t:"leave"});endSession("")}
 
 /* مطر الزقاق */
 let rainStop=null;
