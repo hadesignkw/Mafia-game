@@ -1662,12 +1662,15 @@ function voteStage(opts={}){
 /* اللاعبين بالانتظار: كرت لكل واحد بأول حرف من اسمه */
 const SEAT_C=["#b8cadd","#c9443b","#6fae93","#8f9aa0","#b5835a","#9b6fb0"];
 const seatColor=n=>SEAT_C[[...n].reduce((a,ch)=>a+ch.charCodeAt(0),0)%SEAT_C.length];
+// أيقونة المايك على صورة اللاعب: تتحرك لما يسولف، ومشطوبة إذا كاتم
+const MIC_SVG=`<span class="micv" aria-hidden="true"><svg class="m-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4"/></svg><svg class="m-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 9.3V5a3 3 0 0 0-5.7-1.3M9 9v2a3 3 0 0 0 5.1 2.1M5 10v1a7 7 0 0 0 11.9 5M12 18v4M3 3l18 18"/></svg><i class="wv"><b></b><b></b><b></b></i></span>`;
 function seats(judge){
   return`<div class="seats">${st.players.map(p=>{
     const me=st.me&&p.id===st.me.id,c=seatColor(p.name);
-    return`<div class="seat ${p.online?"":"off"} ${me?"me":""} ${rowCls((judge?"j":"p")+p.id)}" style="--c:${c}">
-      <span class="av">${esc([...p.name][0]||"؟")}<i class="on" title="${p.online?"موجود":"طلع من الموقع"}"></i></span>
-      <span class="sn">${esc(p.name)}</span><span class="st ${st.ready&&st.ready[p.id]?"rdy":""}">${!p.online?"طلع":st.ready&&!demo?(st.ready[p.id]?"جاهز ✓":"مو جاهز"):me?"أنت":"موجود"}</span>
+    const muted=st.online&&p.mic&&p.mic.on&&p.mic.mute;
+    return`<div class="seat ${p.online?"":"off"} ${me?"me":""} ${muted?"muted":""} ${rowCls((judge?"j":"p")+p.id)}" data-pid="${p.id}" style="--c:${c}">
+      <span class="av"><b class="lt">${esc([...p.name][0]||"؟")}</b>${st.online?MIC_SVG:""}<i class="on" title="${p.online?"موجود":"طلع من الموقع"}"></i></span>
+      <span class="sn">${esc(p.name)}</span><span class="st ${st.ready&&st.ready[p.id]?"rdy":""}">${muted?"مكتوم · ":""}${!p.online?"طلع":st.ready&&!demo?(st.ready[p.id]?"جاهز ✓":"مو جاهز"):me?"أنت":"موجود"}</span>
       ${judge&&!me?`<button class="kick" data-a="cmd" data-c="kick" data-id="${p.id}" aria-label="شيل ${esc(p.name)}">×</button>`:""}</div>`}).join("")}</div>`;
 }
 const dot=p=>`<span class="dot ${p.online?"on":""}" title="${p.online?"موجود":"طلع من الموقع"}"></span>`;
@@ -1953,7 +1956,7 @@ function teamPicks(){
 }
 function aliveList(){
   return`<div class="panel"><h3>اللاعبين</h3><div class="list">${st.players.map(p=>{const sp=st.timer&&st.timer.pid===p.id,done=st.talked&&st.talked[p.id]&&!sp;
-    return`<div class="li ${p.alive?"":"out"} ${sp?"speak":""} ${done?"said":""}">${dot(p)}<span class="nm">${esc(p.name)}${p.id===st.me.id?" (أنت)":""}</span>${sp?`<span class="chip b">يتكلم</span>`:done?`<span class="chip t">✓ سولف</span>`:""}</div>`}).join("")}</div></div>`;
+    return`<div class="li ${p.alive?"":"out"} ${sp?"speak":""} ${done?"said":""} ${st.online&&p.mic&&p.mic.on&&p.mic.mute?"muted":""}" data-pid="${p.id}">${dot(p)}${st.online?MIC_SVG:""}<span class="nm">${esc(p.name)}${p.id===st.me.id?" (أنت)":""}</span>${sp?`<span class="chip b">يتكلم</span>`:done?`<span class="chip t">✓ سولف</span>`:""}</div>`}).join("")}</div></div>`;
 }
 function actionView(){
   const p=st.phase,me=st.me,role=me.role,al=aliveIds(),others=al.filter(i=>i!==me.id);

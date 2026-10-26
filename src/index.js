@@ -250,6 +250,7 @@ export class Room extends DurableObject {
       timer: s.timer, event: s.event, minPlayers: MIN_PLAYERS, stepDone: s.phase === "night" || s.phase === "night0" ? this.stepDone() : true, talked: s.phase === "day" ? s.talked || {} : {},
       players: ids.filter((id) => s.players[id]).map((id) => ({
         id, name: s.players[id].name, alive: s.phase === "lobby" ? true : !!s.alive[id], online: on.has(id),
+        ...(s.online && (s.vst || {})[id] ? { mic: s.vst[id] } : {}),
       })),
     };
     if ((s.phase === "vote" || s.phase === "result") && (s.voteOrder || []).length)
@@ -896,6 +897,7 @@ export class Room extends DurableObject {
       return;
     }
     if (m.t === "chat") return this.chat(pid, m);
+    if (m.t === "vstate") { if (s.online) (s.vst = s.vst || {})[pid] = { on: !!m.on, mute: !!m.mute }; return; }
     if (m.t === "ready") { if (s.phase === "lobby" && !s.online && s.lobby.includes(pid)) (s.ready = s.ready || {})[pid] = !!m.v; return; }
     if (m.t === "away") { if (s.online && m.v && s.phase !== "lobby" && s.phase !== "over" && s.order.includes(pid)) this.notice(`${this.nm(pid)} طلع من اللعبة، وممكن يغش 👀`); return; }
     if (m.t !== "act" || m.gen !== s.gen) return;

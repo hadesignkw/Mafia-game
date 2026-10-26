@@ -129,3 +129,27 @@ body:has(#voiceBar:not([hidden])) .wrap{padding-bottom:calc(110px + env(safe-are
 #voiceBar .vb-mute:focus-visible{outline:2px solid #fff;outline-offset:2px}
 /* زر المؤثرات يطلع فوق شريط الصوت بدال ما يتغطى */
 body:has(#voiceBar:not([hidden])) .rx-game-sound{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
+
+/* أيقونة المايك على صورة اللاعب */
+.micv{display:none}
+.seat .av{position:relative}
+.seat .av .micv{position:absolute;inset:0;display:none;place-items:center;border-radius:inherit;background:inherit}
+.seat .av .micv svg{width:55%;height:55%}
+.seat .av .micv .m-off,.seat .av .micv .wv{display:none}
+.seat.spk .av .micv{display:grid}
+.seat.spk .av .lt{visibility:hidden}
+.seat.spk .av{box-shadow:0 0 0 3px #4fd18b,0 0 18px #4fd18b88;animation:micPulse 1s ease-in-out infinite}
+@keyframes micPulse{50%{transform:scale(1.06)}}
+.seat.muted:not(.spk) .av .micv{display:grid;color:#ffc9c9;background:#3a1b1f}
+.seat.muted:not(.spk) .av .micv .m-on{display:none}
+.seat.muted:not(.spk) .av .micv .m-off{display:block}
+.seat.muted:not(.spk) .av .lt{visibility:hidden}
+/* قائمة اللاعبين وسط اللعبة */
+.li .micv{width:18px;height:18px;flex:none;color:#4fd18b}
+.li .micv svg{width:18px;height:18px}
+.li .micv .m-off{display:none}
+.li.spk .micv{display:inline-block;animation:micPulse 1s ease-in-out infinite}
+.li.muted:not(.spk) .micv{display:inline-block;color:#ff9b9b}
+.li.muted:not(.spk) .micv .m-on{display:none}
+.li.muted:not(.spk) .micv .m-off{display:block}
+@media(prefers-reduced-motion:reduce){.seat.spk .av,.li.spk .micv{animation:none}}
