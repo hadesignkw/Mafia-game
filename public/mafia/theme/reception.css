@@ -1,0 +1,36 @@
+/* Farm reception: scoped to the entrance, independent of game phases. */
+body.reception-mode{background:#211a13;--rx-wood:#241b15;--rx-ink:#fff2dc;--rx-edge:#d2b38188}
+body.reception-mode[data-reception-time=day]{background:#e5d4b9;--rx-wood:#f3e7d2;--rx-ink:#3d2b1b;--rx-edge:#a88550aa}
+.reception-mode .rx-shell,.reception-mode .rx-stage{background:var(--rx-wood)}
+.reception-mode .rx-topbar a,.reception-mode .rx-audio{background:var(--rx-wood);color:var(--rx-ink);border-color:var(--rx-edge);backdrop-filter:none;-webkit-backdrop-filter:none}
+.reception-mode .rx-footer,.reception-mode .rx-help{background:var(--rx-wood);color:var(--rx-ink)}
+.reception-mode .rx-footer .lnk{color:var(--rx-ink);text-decoration-color:var(--rx-edge)}
+.reception-mode .rx-live{background:var(--rx-wood);color:var(--rx-ink);border-color:var(--rx-edge)}
+.reception-mode .rx-light{background:radial-gradient(ellipse at 84% 7%,#ffd58b30,transparent 30%)}
+.reception-mode .rx-fog,.reception-mode .rx-smoke{display:none}
+.reception-mode .rx-vignette{box-shadow:inset 0 0 40px #40220725}
+.reception-mode .rx-code:focus-within{outline-color:#805c2e}
+.reception-mode .rx-submit:focus-visible{outline-color:#805c2e!important}
+/* A real accessible form replaces the old painted paper and stamp. */
+.reception-mode .rx-form{inset:65% 12% 5%;background:linear-gradient(135deg,#654229,#2e2118);border:2px solid #bd945c;border-radius:18px;box-shadow:0 10px 28px #0007,inset 0 0 0 5px #332015,inset 0 0 0 6px #b68b4d70;overflow:hidden}
+.reception-mode .rx-form::after{content:'';position:absolute;inset:0 0 auto;height:7px;background:repeating-linear-gradient(45deg,#7b2927 0 10px,#e3c493 10px 14px,#282119 14px 24px,#e3c493 24px 28px);pointer-events:none}
+.reception-mode .rx-room-title{position:absolute;top:8%;inset-inline:5%;text-align:center;font:600 clamp(19px,6vw,34px)/1.5 var(--body);color:#fff0d6}
+.reception-mode .rx-room-hint{position:absolute;top:27%;inset-inline:4%;text-align:center;font:400 clamp(9px,2.8vw,16px)/1.5 var(--body);color:#e2cba6}
+.reception-mode .rx-code{left:10%;top:41%;width:80%;height:24%;transform:none;outline-offset:3px}
+.reception-mode .rx-digits span{display:grid;place-items:center;width:21%;height:100%;border:1px solid #b68b4d;border-radius:9px;background:#f4e7cd;box-shadow:inset 0 2px 5px #79532626;color:#352415;font:600 clamp(22px,7vw,42px)/1 var(--body)}
+.reception-mode .rx-submit{left:10%;top:73%;width:80%;height:19%;transform:none;border-radius:10px;background:linear-gradient(#ebca8e,#b98b49)!important;border:1px solid #f0d5a5!important;box-shadow:0 3px 10px #0003!important;color:#332312!important;font:600 clamp(14px,4vw,22px)/1 var(--body)!important}
+.reception-mode .rx-ledger{display:none}
+.reception-mode .rx-digits span.rx-active:empty::after{border-color:#805c2e}
+@media(min-width:650px){.reception-mode .rx-shell{box-shadow:0 8px 70px #241b153d}}
+
+/* Five static lighting stages. No continuous reception animation. */
+body.reception-mode{--rx-scene-filter:none;--rx-scene-glow:transparent}
+body.reception-mode[data-reception-time=dawn]{--rx-scene-filter:brightness(.84) saturate(.65);--rx-scene-glow:#a0a6d41c;background:#292938}
+body.reception-mode[data-reception-time=sunrise]{--rx-scene-filter:brightness(.92) sepia(.24) saturate(1.12);--rx-scene-glow:#ffbf7424;background:#57402e;--rx-wood:#493423;--rx-ink:#fff0d6}
+body.reception-mode[data-reception-time=sunset]{--rx-scene-filter:brightness(.68) sepia(.38) saturate(1.3);--rx-scene-glow:#ff8b3428;background:#3b261c;--rx-wood:#38261c;--rx-ink:#fff0d6}
+.reception-mode .rx-art,.reception-mode .rx-reaction{filter:var(--rx-scene-filter)}
+.reception-mode .rx-light{background:var(--rx-scene-glow);opacity:1;mix-blend-mode:screen;pointer-events:none}
+.reception-mode .rx-fog,.reception-mode .rx-smoke,.reception-mode .rx-ember,.reception-mode .rx-canvas{display:none!important}
+
+/* Wrong-code message stays readable on every lighting stage. */
+.reception-mode .rx-shell[data-state=wrong] .rx-live{background:#5a1d1df2;border-color:#e08a8a;color:#fff1ee}
