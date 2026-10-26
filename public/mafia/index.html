@@ -1407,6 +1407,7 @@ function screenKey(){if(view!=="game"||!st)return view+(st?"":"-wait");return[de
 const rowCls=id=>{if(seenRows.has(id))return"";seenRows.add(id);return"new"};
 function render(){
   document.body.dataset.phase=phaseAttr();
+  document.body.classList.toggle("judge-view",!!(st&&view==="game"&&st.judge));
   document.body.classList.toggle("adv-dim",!!(st&&view==="game"&&st.adv&&!st.judge&&(st.phase==="night"||st.phase==="night0")));
   if(receptionAudio)receptionAudio.setAmb(phaseAmb());
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content",phaseAttr()==="day"?"#f2ede3":"#040405");
