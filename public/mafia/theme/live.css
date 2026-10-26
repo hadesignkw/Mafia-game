@@ -172,3 +172,8 @@ body.reception-mode .rx-shell{position:relative;isolation:isolate;overflow:hidde
 body.reception-mode .rx-shell::before{content:"";position:absolute;inset:-40px;z-index:-1;background:url(/mafia/art/reception-night.webp) center top/cover no-repeat;filter:blur(18px) brightness(.55) saturate(1.1);transform:scale(1.08)}
 body.reception-mode:is([data-reception-time=day],[data-reception-time=sunrise],[data-reception-time=sunset]) .rx-shell::before{background-image:url(/mafia/art/reception-day.webp)}
 body.reception-mode .rx-stage{box-shadow:0 -18px 40px #0006}
+#voiceBar .vb-go.vb-pulse{animation:vbGo 1.2s ease-in-out infinite}
+@keyframes vbGo{50%{box-shadow:0 0 0 8px #e9cf9833}}
+.hostp summary{cursor:pointer;min-height:40px;display:flex;align-items:center}
+.hostp .li .btn{margin-inline-start:auto}
+.spect h2{margin:0 0 4px}

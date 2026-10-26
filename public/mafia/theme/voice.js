@@ -74,6 +74,7 @@ async function start(){
     for(const pc of [prod,cons])pc.addEventListener("connectionstatechange",()=>{if(pc.connectionState==="failed"&&V&&!V.dead){V.status="انقطع الصوت، يرجع يتصل…";paint();restart()}});
     await api("consumer");
     Object.assign(V,{prod,cons,status:"الصوت شغال"});
+    try{localStorage.setItem("mafia.voiceOn."+(G('sess')||{}).code,"1")}catch{}
     watch("self",talk);watch("selfM",mafia);
     tell();
     tick();
@@ -142,7 +143,12 @@ function paint(){
   const v=st.me.voice||{},nm=G('nm')||(id=>id);
   let html;
   if(!v.on)html=`<span class="vb-st">الصوت مو مفعّل بالسيرفر</span>`;
-  else if(!V)html=`<button class="vb-go" data-v="start">🎙️ شغّل الصوت</button><span class="vb-st">لازم تشغله عشان تسمع وتتكلم</span>`;
+  else if(!V){
+    let was=false;try{was=localStorage.getItem("mafia.voiceOn."+(G('sess')||{}).code)==="1"}catch{}
+    html=was&&st.phase!=="lobby"
+      ?`<button class="vb-go vb-pulse" data-v="start">🎙️ رجّع الصوت</button><span class="vb-st"><b>رجعت للعبة</b><small>دوس عشان ترجع تسمع وتتكلم</small></span>`
+      :`<button class="vb-go" data-v="start">🎙️ شغّل الصوت</button><span class="vb-st">${(st.me.spectator)?"شغّله عشان تسمع النقاش":"لازم تشغله عشان تسمع وتتكلم"}</span>`;
+  }
   else if(V.needTap)html=`<button class="vb-go" data-v="tap">🔊 دوس عشان تسمعهم</button><span class="vb-st">التلفون وقف الصوت، دوسة وحدة وترجع</span>`;
   else if(V.failed)html=`<span class="vb-st">${E(V.status)}</span><button class="vb-btn" data-v="retry">جرّب مرة ثانية</button>`;
   else{

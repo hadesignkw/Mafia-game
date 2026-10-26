@@ -1088,7 +1088,7 @@ function onMsg(m){
   if(m.t==="joined"){sess.token=m.token;lsSet("mafia.sess",sess);return}
   if(m.t==="error"){toast(m.text);return}
   if(m.t==="notice"){toast(m.text);return}
-  if(m.t==="kicked"){endSession("القاضي شالك من الغرفة.");return}
+  if(m.t==="kicked"){endSession(st&&st.online?"المضيف طلّعك من الغرفة.":"القاضي شالك من الغرفة.");return}
   if(m.t==="gone"){endSession(m.text||"الغرفة خلصت.");return}
   if(m.t==="state"){
     offset=m.now-Date.now();
@@ -1335,7 +1335,7 @@ function playNext(){
   const e=fxQ.shift();const fx=$("#fx");
   if(isSticky(e.type)&&fxClosed(e.id))return playNext();
   fxBusy=true;curFx=e;sceneSound(e);
-  const night=e.type==="dusk", isMe=st&&st.me;
+  const night=e.type==="dusk", isMe=st&&st.me&&st.me.inGame;
   let cls="",html="",dur=3200;
   const tap=`<div class="tap">دوس عشان تكمل</div>`;
   if(e.type==="answer"){const bad=/مافيا/.test(e.text);cls="fx-answer "+(bad?"fx-answer-m":"fx-answer-t");dur=10000;
@@ -1561,6 +1561,13 @@ function legacyHomeView(){
     <button class="btn" data-a="demo" ${busy?"disabled":""}>ابدا التجربة</button></div>`:""}`;
 }
 /* =========== الأون لاين =========== */
+// المضيف: يطرد أحد وسط اللعبة (مقفولة، يفتحها إذا احتاج)
+let hostOpen=false;
+function hostPanel(){
+  if(!(st.online&&st.me&&st.me.host&&!["lobby","over"].includes(st.phase)))return"";
+  const ps=st.players.filter(p=>p.id!==st.me.id);
+  return`<details class="panel hostp" ${hostOpen?"open":""}><summary class="muted" data-a="hostToggle">إدارة المضيف</summary><p class="muted small">تطرد واحد يطلع من اللعبة على طول، وما يقدر يرجع لها.</p><div class="list">${ps.map(p=>`<div class="li ${p.alive?"":"out"}"><span class="nm">${esc(p.name)}</span><button class="btn sm danger" data-a="kickMid" data-id="${p.id}">طرد</button></div>`).join("")}</div>${(st.watchers||[]).length?`<p class="muted small">يتفرجون: ${st.watchers.map(esc).join("، ")}</p>`:""}</details>`;
+}
 function onlineLobby(){
   const host=st.me&&st.me.host,n=st.players.length;
   const hostName=nm(st.hostId);
@@ -1580,8 +1587,8 @@ function chatPanels(){
   const box=(ch,title,sub,d)=>{if(!d)return"";const msgs=d.msgs||[];
     return`<div class="panel chat chat-${ch}"><h3>${title}</h3><p class="muted small">${sub}</p><div class="chat-log" id="chatLog-${ch}">${msgs.length?msgs.map(m=>`<div class="cm ${m.pid===st.me.id?"me":""}"><b>${esc(m.pid===st.me.id?"أنت":m.name)}</b><span>${esc(m.text)}</span></div>`).join(""):`<p class="muted small">ما فيه رسايل للحين.</p>`}</div>
     ${d.write?`<form class="chatf" data-ch="${ch}"><input id="chatIn-${ch}" maxlength="300" autocomplete="off" placeholder="اكتب رسالة" value="${esc(chatDraft[ch]||"")}"><button class="btn sm primary">ارسل</button></form>`:""}</div>`};
-  const dead=!isAlive(st.me.id);
-  return box("mafia","شات المافيا",dead?"تقرا بس، ما تقدر تكتب.":"بينكم وبس. تكتبون فيه بالليل.",c.mafia)+box("grave","المقبرة","الطالعين بس يشوفونه.",c.grave);
+  const dead=st.me.spectator?false:!isAlive(st.me.id);
+  return box("town","شات الكل",c.town&&c.town.write?"للي ما يقدر يتكلم بالمايك. الكل يشوفه.":"الأحياء يكتبون فيه بالنهار، والكل يشوفه.",c.town)+box("mafia","شات المافيا",dead?"تقرا بس، ما تقدر تكتب.":"بينكم وبس. تكتبون فيه بالليل.",c.mafia)+box("grave","المقبرة","الطالعين بس يشوفونه.",c.grave);
 }
 document.addEventListener("input",e=>{const f=e.target.closest&&e.target.closest(".chatf");if(f)chatDraft[f.dataset.ch]=e.target.value});
 document.addEventListener("submit",e=>{const f=e.target.closest&&e.target.closest(".chatf");if(!f)return;e.preventDefault();const ch=f.dataset.ch,i=f.querySelector("input"),v=(i.value||"").trim();if(!v)return;send({t:"chat",ch,text:v});chatDraft[ch]="";i.value="";i.focus()});
@@ -1626,7 +1633,7 @@ const aliveIds=()=>st.players.filter(p=>p.alive).map(p=>p.id);
 function header(){
   const me=st.me;
   return demoBar()+phaseScene()+`<div class="top"><div><h2>${st.judge?"القاضي":esc(me&&me.name||"")}</h2><span class="chip b">${PHASE_N[st.phase]||""}${st.round&&st.phase!=="lobby"&&st.phase!=="over"?" · الجولة "+ar(st.round):""}</span></div>
-  <div class="row" style="align-items:center">${st.phase==="lobby"?`<span class="code">${ar(st.code)}</span>`:""}${st.judge?`<button class="btn sm ghost gd-btn" data-a="guide" aria-label="دليل القاضي"><b>؟</b> دليل القاضي</button>`:""}${st.online&&st.me&&st.me.host&&!["lobby","over"].includes(st.phase)?`<button class="btn sm ghost" data-a="cancelGame">لغِ اللعبة</button>`:""}<button class="btn sm ghost" data-a="leave">اطلع</button></div></div>
+  <div class="row" style="align-items:center">${st.phase==="lobby"?`<span class="code">${ar(st.code)}</span>`:""}${st.judge||st.online?`<button class="btn sm ghost gd-btn" data-a="guide" aria-label="${st.online?"شلون نلعب أون لاين":"دليل القاضي"}"><b>؟</b> ${st.online?"الدليل":"دليل القاضي"}</button>`:""}${st.online&&st.me&&st.me.host&&!["lobby","over"].includes(st.phase)?`<button class="btn sm ghost" data-a="cancelGame">لغِ اللعبة</button>`:""}<button class="btn sm ghost" data-a="leave">اطلع</button></div></div>
   ${(()=>{const mine=st.me&&st.timer&&st.timer.pid===st.me.id;
     const tf=st.timer&&st.timer.id!==lastTimerId;if(st.timer)lastTimerId=st.timer.id;
     return`<div class="timer ${tf?"fresh":""}" id="timer" data-keep="timer|${st.timer?st.timer.id:"-"}|${mine?1:0}|${st.timer?esc(st.timer.name):""}" hidden><span class="lab">${mine?"جا دورك":"يسولف الحين"}</span>${st.timer?`<div class="spav" style="--c:${mine?"var(--brass)":seatColor(st.timer.name||"")}"><i></i><i></i><i></i><span>${esc([...(st.timer.name||"")][0]||"؟")}</span></div>`:""}<div class="who">${mine?"دورك!":st.timer?esc(st.timer.name):""}</div><div class="ring"><svg viewBox="0 0 62 62"><circle class="bgc" cx="31" cy="31" r="26"/><circle class="fgc" cx="31" cy="31" r="26" stroke-dasharray="163.36" stroke-dashoffset="0"/></svg><div class="t">40</div></div><div class="over">${mine?"بس بس لا تكثر":"بس بس لا يكثر"}</div></div>`})()}
@@ -1746,15 +1753,56 @@ const GUIDE=[
   "هالدليل تلقاه فوق بأي وقت من زر <b>؟ دليل القاضي</b>."]}
 ];
 const GUIDE_AT={lobby:"lobby",deal:"deal",night0:"night0",day:"day",vote:"vote",result:"vote",night:"night",over:"over"};
+/* --- دليل الأون لاين: للاعبين، ما فيه قاضي واللعبة تمشي بروحها --- */
+const OGUIDE=[
+ {k:"lobby",t:"قبل لا تبدون",items:[
+  "اللي يفتح الغرفة هو <b>المضيف</b>: يرسل الرابط للربع، ويعدّل الإعدادات، ويوزع الكروت. يلعب مثل الباقين وما يشوف الأدوار.",
+  "أقل شي 6 لاعبين.",
+  "البسوا <b>سماعات</b> عشان ما يصير صدى.",
+  "كل واحد يدوس <b>🎙️ شغّل الصوت</b> تحت، ويسمح للمايك.",
+  "خل شاشتك شغالة طول اللعبة. إذا طلعت من الصفحة يطلع للكل إنك طلعت."],
+  tip:"إذا سكّرت الصفحة ورجعت، ترجع لنفس مكانك باللعبة، بس لازم تدوس «شغّل الصوت» مرة ثانية."},
+ {k:"deal",t:"الأدوار",items:[
+  "كل واحد يقلب كرته ويشوف دوره بروحه.",
+  "بعد شوي تبدا الليلة الأولى بروحها."]},
+ {k:"night0",t:"الليلة الأولى",items:[
+  "<b>الشريف</b> يفتش أول، وبعدين <b>المافيا</b> يختارون <b>النصاب</b> بينهم.",
+  "اللي ما عنده شي يسويه يخمن «منو تشك إنه مافيا؟». التخمين سري، وكل تخمين صح يجيب نقطة محقق.",
+  "المافيا عندهم <b>مكالمة وشات</b> بينهم بالليل بس.",
+  "كل خطوة لها وقت. اللي ما يختار تروح عليه."]},
+ {k:"night",t:"الليل",items:[
+  "<b>المافيا</b> يختارون منو يغتالون (دقيقة)، وإذا تعادلوا الوقت يتمدد لين يتفقون.",
+  "<b>البيطري</b> يفزع لواحد، و<b>الشريف</b> يفتش (45 ثانية لكل خطوة).",
+  "الباقين يخمنون «منو تشك فيه؟».",
+  "اللي يفصل بالليل ما ننطره، تروح عليه خطوته."]},
+ {k:"day",t:"النهار والكلام",items:[
+  "الصبح ينعلن منو انغتال أو إن البيطري لحّق.",
+  "<b>الشرطة</b> (الشريف والنصاب) يتكلمون أول، بعدين الباقين واحد واحد.",
+  "المايك يفتح بس لصاحب الدور، والكل يسمعه. خلصت قبل وقتك؟ دوس <b>«خلصت كلامي»</b>.",
+  "اللي ما يقدر يتكلم بالمايك يكتب بـ<b>شات الكل</b> بالنهار.",
+  "أول نهار بدون تصويت."]},
+ {k:"vote",t:"التصويت",items:[
+  "بالدور والترتيب عشوائي، والكل يشوف منو صوّت على منو.",
+  "اللي ما يصوّت بوقته يروح عليه صوته. واللي فاصل ننطره دقيقة.",
+  "التعادل ما ينحسب، وتروحون لليل."]},
+ {k:"grave",t:"المقبرة والمتفرجين",items:[
+  "اللي يطلع من اللعبة يروح <b>المقبرة</b>: يسولف ويا الطالعين بالكتابة، ويسمع المافيا بالليل ويقرا شاتهم، بس ما يقدر يتكلم وياهم.",
+  "اللي يدخل واللعبة شغالة يصير <b>متفرج</b>: يشوف اللي يشوفه الكل بس، ما يعرف الأدوار ولا يسمع المافيا، ويدخل اللعبة الجاية."]},
+ {k:"over",t:"المضيف ونهاية اللعبة",items:[
+  "المضيف يقدر <b>يلغي اللعبة</b> ويرجع الكل للانتظار، أو <b>يطرد</b> أحد وسط اللعبة.",
+  "إذا المضيف دس «اطلع»، الغرفة تسكر والكل يرجع للاستقبال.",
+  "بالنهاية الكل يشوف الأدوار، ويطلع «أحسن محقق». المضيف يدوس «لعبة جديدة»."]}
+];
 function openGuide(){
   let g=document.getElementById("guide");
-  const cur=st&&st.sniperPending?"sniper":(st&&st.adv&&(st.phase==="night"||st.phase==="night0"))?"adv":GUIDE_AT[st&&st.phase]||"lobby";
-  if(!g){g=document.createElement("div");g.id="guide";g.className="gd";g.setAttribute("role","dialog");g.setAttribute("aria-modal","true");g.setAttribute("aria-label","دليل القاضي");document.body.append(g);
+  const ON=!!(st&&st.online),LIST=ON?OGUIDE:GUIDE;
+  const cur=ON?((st.me&&(st.me.spectator||(st.me.inGame&&!isAlive(st.me.id))))?"grave":({result:"vote"})[st.phase]||st.phase):st&&st.sniperPending?"sniper":(st&&st.adv&&(st.phase==="night"||st.phase==="night0"))?"adv":GUIDE_AT[st&&st.phase]||"lobby";
+  if(!g){g=document.createElement("div");g.id="guide";g.className="gd";g.setAttribute("role","dialog");g.setAttribute("aria-modal","true");document.body.append(g);
     g.addEventListener("click",e=>{if(e.target===g||e.target.closest(".gd-x"))closeGuide()});
     document.addEventListener("keydown",e=>{if(e.key==="Escape")closeGuide()});}
-  g.innerHTML=`<div class="gd-sh"><div class="gd-hd"><h2>دليل القاضي</h2><button class="gd-x">سكّر</button></div><div class="gd-bd">
-  <p class="lead">أنت اللي تمشّي اللعبة: تفتح الغرفة، تقول للكل متى يسكرون عيونهم ومتى يفتحونها، وتدوس الأزرار عشان اللعبة تتقدم. كل خطوة هني بالترتيب، والخطوة اللي أنت فيها الحين مفتوحة.</p>
-  ${GUIDE.map((x,i)=>`<details class="gd-s ${x.k===cur?"cur":""}" ${x.k===cur?"open":""}><summary><span class="n">${ar(i+1)}</span>${x.t}${x.k===cur?`<span class="now">أنت هني</span>`:""}</summary><ol>${x.items.map(t=>`<li>${t}</li>`).join("")}</ol>${x.tip?`<p class="tip">${x.tip}</p>`:""}</details>`).join("")}
+  g.innerHTML=`<div class="gd-sh"><div class="gd-hd"><h2>${ON?"شلون نلعب أون لاين":"دليل القاضي"}</h2><button class="gd-x">سكّر</button></div><div class="gd-bd">
+  <p class="lead">${ON?"ما فيه قاضي: اللعبة تمشي بروحها بأوقات، وكل واحد يتابع تلفونه. الخطوة اللي أنتوا فيها الحين مفتوحة.":"أنت اللي تمشّي اللعبة: تفتح الغرفة، تقول للكل متى يسكرون عيونهم ومتى يفتحونها، وتدوس الأزرار عشان اللعبة تتقدم. كل خطوة هني بالترتيب، والخطوة اللي أنت فيها الحين مفتوحة."}</p>
+  ${LIST.map((x,i)=>`<details class="gd-s ${x.k===cur?"cur":""}" ${x.k===cur?"open":""}><summary><span class="n">${ar(i+1)}</span>${x.t}${x.k===cur?`<span class="now">أنت هني</span>`:""}</summary><ol>${x.items.map(t=>`<li>${t}</li>`).join("")}</ol>${x.tip?`<p class="tip">${x.tip}</p>`:""}</details>`).join("")}
   </div></div>`;
   requestAnimationFrame(()=>{g.classList.add("open");const c=g.querySelector(".gd-s.cur");if(c)c.scrollIntoView({block:"start"})});
 }
@@ -1920,12 +1968,13 @@ function playerView(){
     return h+`<div class="panel nightbox"><div class="moon"></div><h2>${rd?"جاهز ✓ ننطر الباقين":"دوس جاهز"}</h2><p class="muted">${ar(st.players.length)} لاعب بالغرفة · أقل شي ${ar(st.minPlayers)}. القاضي ما يقدر يبدا لين الكل يجهز.</p><button class="btn ${rd?"":"primary"} ready-btn" data-a="ready" data-v="${rd?0:1}">${rd?"مو جاهز":"جاهز ✓"}</button></div>
     <div class="panel"><h3>منو دخل <span class="count">${ar(st.players.length)}</span></h3>${seats(false)}</div>`;
   }
+  if(!me.inGame&&me.spectator)return h+`<div class="panel spect"><h2>👀 تتفرج</h2><p class="muted small">تشوف اللي يشوفه الكل بس: ما تعرف الأدوار ولا تسمع المافيا. تدخل اللعبة الجاية لما يبدونها.</p></div>`+(st.phase==="over"?overView():(st.vote?voteStage():"")+aliveList()+chatPanels());
   if(!me.inGame)return h+`<div class="panel"><p>اللعبة بدت وأنت مو فيها. انطر لين تخلص وتبدا وحدة جديدة.</p></div>`;
   if(st.phase==="over")return h+overView();
   const alive=P(me.id).alive;
   if(st.phase==="deal")return h+cardView()+`<div class="panel nightbox"><div class="moon"></div><h2>احفظ دورك</h2><p class="muted">أول ما يبدا القاضي اللعبة الكرت ينشال.</p></div>`;
   if(!alive&&st.sniperPending!==me.id)return h+`<div class="panel"><h2>طلعت من اللعبة</h2><p class="muted">${st.online?"صرت بالمقبرة: تسولف ويا الطالعين، وتقرا شات المافيا بس ما تكتب فيه.":"لا تتكلم ولا تأشر، تابع لين تخلص."}</p></div>`+chatPanels()+(st.vote?voteStage():"")+aliveList();
-  return h+actionView()+chatPanels();
+  return h+actionView()+chatPanels()+hostPanel();
 }
 function cardView(){
   if(st.phase!=="deal")return "";
@@ -2097,6 +2146,8 @@ document.addEventListener("click",e=>{
     else{rolesOpen=true;rolesJust=true;render();rolesJust=false}}
   else if(a==="advHelp"){advHelpOpen=!advHelpOpen;render()}
   else if(a==="onlineToggle"){onlineCreate=!onlineCreate;render()}
+  else if(a==="hostToggle"){hostOpen=!hostOpen}
+  else if(a==="kickMid"){if(confirm(`تطرد ${nm(id)} من اللعبة؟ ما يقدر يرجع لها.`))send({t:"kick",id})}
   else if(a==="cancelGame"){if(confirm("تلغي اللعبة وترجع الكل للانتظار؟ اللي يبي يدخل يقدر يدخل بعدها."))send({t:"newGame"})}
   else if(a==="ready"){send({t:"ready",v:b.dataset.v==="1"})}
   else if(a==="act"){const k=b.dataset.k;if((k==="query"||k==="vote")&&st.me.sel[k])return;send({t:"act",k,id,gen:st.gen});buzz(25)}
