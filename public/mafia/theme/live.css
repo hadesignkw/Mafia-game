@@ -81,3 +81,14 @@ body.adv-dim .pick.red{--c:var(--brass)}
   body.judge-view .timer .spav{transform:scale(.7)}
   body.judge-view .announce{font-size:.95rem;padding:9px 12px}
 }
+
+/* الآيباد طولي: رسالة "لف الآيباد" للقاضي */
+#rotateHint{display:none}
+@media (min-width:740px) and (orientation:portrait) and (pointer:coarse){
+  body.judge-view #rotateHint{display:flex;position:fixed;inset:0;z-index:200;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#06090e;color:#e9d7ae;text-align:center;padding:24px;font-family:var(--body)}
+  body.judge-view #rotateHint b{font-size:2rem;font-weight:700}
+  body.judge-view #rotateHint span{font-size:1.05rem;color:#b9c4d0}
+  body.judge-view #rotateHint .rh-pad{width:72px;height:94px;animation:rhTurn 2.4s cubic-bezier(.5,0,.3,1) infinite}
+  body.judge-view{overflow:hidden}
+}
+@keyframes rhTurn{0%,20%{transform:rotate(0)}55%,80%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
