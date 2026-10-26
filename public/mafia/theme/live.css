@@ -1,0 +1,26 @@
+/* Live layer: canvases for reception smoke, farm ambience and event particles. Visual only. */
+.rx-livefx{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;z-index:1}
+.reception-mode .rx-art,.reception-mode .rx-reaction,.rx-livefx{transform-origin:50% 40%}
+#liveFarm{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;pointer-events:none;z-index:-1}
+#liveFx{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;pointer-events:none;z-index:60}
+body.reception-mode #liveFarm{display:none}
+
+/* Card reveal: one look for every role, so nobody nearby can read a role from colour or motion. */
+.flip{--accent:var(--brass)!important}
+.flip .face.front .rfx{background:radial-gradient(circle at 50% 40%,rgb(255 217 138 / .7),rgb(255 190 90 / .25) 35%,transparent 62%)!important;animation:none!important;opacity:0}
+.flip.open:not(.still) .face.front .rfx{animation:liveRfx 1.2s .45s ease-out both!important}
+@keyframes liveRfx{0%{opacity:0;transform:scale(.6)}35%{opacity:1}100%{opacity:0;transform:scale(1.25)}}
+.flip .art .tm{background:#d9b87826!important;color:var(--brass-hi,#e7cf9a)!important;border-color:#d9b87866!important}
+.flip:not(.open) .face.back{animation:liveLeak 3.2s ease-in-out infinite}
+@keyframes liveLeak{0%,100%{box-shadow:0 0 0 0 #ffd98a00}50%{box-shadow:0 0 22px 2px #ffd98a55}}
+
+/* Timer fuse: last ten seconds */
+.timer.live-hot .fgc{stroke:#ff9a3c}
+.timer.live-hot.live-crit .fgc{stroke:#ff5a3c}
+.timer.live-hot .ring .t{color:#ffb070;text-shadow:0 0 18px #ff6a2a88}
+
+/* Lobby: a lantern lights on each new player */
+.seat.live-lit .av{animation:liveLamp 2.4s ease-in-out infinite;box-shadow:0 0 0 2px #ffcf7a99,0 0 18px 2px #ffb04a66}
+@keyframes liveLamp{0%,100%{box-shadow:0 0 0 2px #ffcf7a99,0 0 18px 2px #ffb04a66}40%{box-shadow:0 0 0 2px #ffcf7a77,0 0 12px 1px #ffb04a44}60%{box-shadow:0 0 0 2px #ffcf7aaa,0 0 22px 3px #ffb04a77}}
+
+@media(prefers-reduced-motion:reduce){.rx-livefx,#liveFarm,#liveFx{display:none}.seat.live-lit .av,.flip:not(.open) .face.back{animation:none}}

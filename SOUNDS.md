@@ -79,3 +79,4 @@ Everything was fetched with `git clone --depth 1` on 2026-10-25. The commits use
   - rafaelmardojai/blanket: birds.ogg (CC0) is 3 MB.
   - sinaida-space/infinite-voidsong: CC0 BigSoundBank birds, but the repo content is CC BY-NC-ND.
   - The Loppansson Godot mirrors of Kenney packs no longer exist.
+| sniper.mp3 | ANIM + LAV | sfx/gun_shot_1.mp3 + 25-CC0-bang-sfx/cannon_01.ogg | gun_shot_1: Freesound #484036 "Rifle Gun Shot 02.wav" by MATRIXXX_; cannon_01: rubberduck, OpenGameArt "25 CC0 bang / firework sfx" | CC0: ANIM README + catalog.json `"license": "CC0"`; LAV repo-root LICENSE "CC0 1.0 Universal". Layered (rifle pitched down + low-passed cannon), compressed and limited for the assassination shot. |
