@@ -665,7 +665,7 @@ export class Room extends DurableObject {
   rtcAllowed(pid) {
     const s = this.s, rtc = s.rtc || {}, out = [];
     if (!s.online || !s.players[pid]) return out;
-    const has = (p, n) => rtc[p] && rtc[p].prod && (rtc[p].pub || []).includes(n);
+    const has = (p, n) => rtc[p] && rtc[p].prod && rtc[p].live && (rtc[p].pub || []).includes(n);
     const ids = s.phase === "lobby" ? s.lobby : s.order;
     if (s.phase === "lobby" || s.phase === "over") { for (const p of ids) if (p !== pid && has(p, "talk")) out.push(p + ":talk"); return out; }
     if (s.phase === "day" && s.timer && s.timer.pid !== pid && has(s.timer.pid, "talk")) out.push(s.timer.pid + ":talk");
@@ -721,9 +721,15 @@ export class Room extends DurableObject {
         const r = await this.sfu(`/sessions/${sess.sessionId}/tracks/new`, "POST", {
           sessionDescription: m.offer, tracks: (m.tracks || []).filter((x) => names.includes(x.name)).map((x) => ({ location: "local", mid: x.mid, trackName: x.name })),
         });
-        me.prod = sess.sessionId; me.pub = names;
-        await this.save(); this.broadcast();
+        me.prod = sess.sessionId; me.pub = names; me.live = false; // يصير متاح للسماع بعد ما يتصل فعلاً
+        await this.save();
         return json({ answer: r.sessionDescription });
+      }
+      if (m.op === "live") {
+        if (!me.prod) return json({ error: "no producer" }, 409);
+        me.live = true;
+        await this.save(); this.broadcast();
+        return json({ ok: true });
       }
       if (m.op === "consumer") {
         const sess = await this.sfu("/sessions/new", "POST");

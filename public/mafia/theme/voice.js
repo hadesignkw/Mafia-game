@@ -34,6 +34,9 @@ async function start(){
     const offer=await prod.createOffer();await prod.setLocalDescription(offer);
     const pr=await api("producer",{offer:desc(prod.localDescription),tracks:[{mid:tT.mid,name:"talk"},{mid:tM.mid,name:"mafia"}]});
     await prod.setRemoteDescription(pr.answer);
+    // ما نقول للسيرفر "اسمعوني" إلا بعد ما المايك يتصل فعلاً بكلاودفلير
+    await new Promise((ok,no)=>{if(prod.connectionState==="connected")return ok();const to=setTimeout(()=>no(new Error("المايك ما اتصل")),15000);prod.addEventListener("connectionstatechange",()=>{if(prod.connectionState==="connected"){clearTimeout(to);ok()}else if(prod.connectionState==="failed"){clearTimeout(to);no(new Error("المايك ما اتصل"))}})});
+    await api("live");
     // المستقبل
     const cons=new RTCPeerConnection({bundlePolicy:"max-bundle",iceServers:ICE});
     cons.addEventListener("track",e=>{const mid=e.transceiver.mid;if(!mid)return;let a=V.audios.get(mid);if(!a){a=document.createElement("audio");a.autoplay=true;a.setAttribute("playsinline","");a.dataset.mid=mid;document.body.appendChild(a);V.audios.set(mid,a)}a.srcObject=new MediaStream([e.track]);a.play().catch(()=>{})});
@@ -69,8 +72,9 @@ async function sync(){
       const keep=new Set((r.subs||[]).map(x=>x.mid));V.subs=new Map((r.subs||[]).map(x=>[x.mid,x.key]));
       V.audios.forEach((a,mid)=>{if(!keep.has(mid)){a.srcObject=null;a.remove();V.audios.delete(mid)}});
     }while(V&&V.again&&!V.dead);
-  }catch(e){if(V){V.status="مشكلة بالصوت: "+e.message;paint()}}
-  if(V)V.busy=false;
+    if(V){V.status="الصوت شغال";V.fails=0}
+  }catch(e){if(V){V.fails=(V.fails||0)+1;V.status=V.fails>3?"مشكلة بالصوت: "+e.message:"يتصل…";paint()}}
+  if(V){V.busy=false;V.lastSync=Date.now()}
 }
 
 function tick(){
@@ -82,6 +86,8 @@ function tick(){
     V.talk.enabled=!!v.talk&&!selfMute;
     V.mafia.enabled=!!v.mafia&&!selfMute;
     if(v.key!==V.key){V.key=v.key;sync()}
+    // إذا فيه أحد المفروض نسمعه وما وصلنا صوته، نعيد المحاولة كل شوي
+    else if(!V.busy&&(V.subs?V.subs.size:0)<(v.hear||[]).length&&Date.now()-(V.lastSync||0)>2500)sync();
   }
   paint();
 }
