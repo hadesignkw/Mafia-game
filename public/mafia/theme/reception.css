@@ -34,3 +34,8 @@ body.reception-mode[data-reception-time=sunset]{--rx-scene-filter:brightness(.68
 
 /* Wrong-code message stays readable on every lighting stage. */
 .reception-mode .rx-shell[data-state=wrong] .rx-live{background:#5a1d1df2;border-color:#e08a8a;color:#fff1ee}
+/* أول مرة: سطر يوضح منو يكتب الرقم ومنو يفتح غرفة، وزر «افتح غرفة» واضح */
+.rx-footer .rx-who{flex-basis:100%;margin:0;text-align:center;font:500 12.5px/1.5 var(--body);color:var(--rx-ink);opacity:.9}
+.rx-footer .rx-who b{font-weight:700}
+.rx-footer .rx-open{border:1px solid var(--rx-edge);border-radius:12px;padding:8px 20px;min-height:40px;background:linear-gradient(#e9cf98,#b98d4c);color:#2a1c0c;font:700 14px var(--body);cursor:pointer;box-shadow:0 2px 0 #0004}
+.rx-footer .rx-open:active{transform:translateY(1px)}

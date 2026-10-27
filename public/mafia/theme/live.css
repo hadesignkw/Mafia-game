@@ -206,3 +206,7 @@ body.calm :is(.noir .smoke,.noir .grain,#liveGlow,.lamp .rig,.moon,.star,.zz b,.
 body.calm .face.back::after,body.calm button.flip:not(.open)::after,body.calm .seat.live-lit .av::after,body.calm .mate:not(.with)::after,
 body.calm .rx-scene::before,body.calm .rx-event-scene::after{animation-play-state:paused!important}
 body.calm :is(.ch .eyes,.ch .ceyes){animation:none!important} /* العيون ما تتجمد وهي مسكّرة */
+/* زر المؤثرات داخل الشريط اللي فوق */
+.rx-game-sound.in-top{position:static;width:36px;height:36px;opacity:1;flex:none;background:transparent;border:1px solid var(--line);color:inherit;box-shadow:none}
+.rx-game-sound.in-top svg{width:18px;height:18px}
+body[data-phase=day] .rx-game-sound.in-top{background:transparent;color:#302a21;border-color:var(--line)}

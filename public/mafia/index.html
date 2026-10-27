@@ -895,6 +895,7 @@ body[data-phase=day] .vcard,body[data-phase=day] .mini{background:rgba(255,250,2
 #fx.fx-dusk .star{display:none}
 body:not(.reception-mode) .announce{background:var(--panel);border:1px solid var(--line);border-inline-start:4px solid var(--brass);border-radius:14px;padding:12px 14px;font-weight:600;box-shadow:0 8px 24px #0003}
 body[data-phase=day]:not(.reception-mode) .announce{background:rgba(255,250,239,.94);color:#1f2226}
+.pl-extra{justify-content:center;gap:8px;margin-top:12px;flex-wrap:wrap}.pl-extra .btn{display:inline-flex;align-items:center;gap:6px}
 .proxy{border:2px solid var(--blood);border-radius:16px;padding:12px;margin-bottom:14px;background:color-mix(in srgb,var(--blood) 10%,transparent);animation:annIn .45s cubic-bezier(.2,.8,.2,1) both}
 .proxy-h{display:flex;flex-direction:column;align-items:center;gap:2px;margin-bottom:10px;text-align:center}
 .proxy-h b{font-size:1.7rem;line-height:1.2}
@@ -1113,7 +1114,9 @@ function onMsg(m){
     handleEvent(prev);
     voteFx(prev);
     if(st.me&&st.me.notes){const n=st.me.notes.length;
-      if(notesSeen!==null&&n>notesSeen&&!/^الليلة/.test(st.me.notes[n-1])){fxQ.push({id:"a"+Date.now(),type:"answer",text:st.me.notes[n-1]});cardOpen=false;playNext()}
+      if(notesSeen!==null&&n>notesSeen&&!/^الليلة/.test(st.me.notes[n-1])){const t=st.me.notes[n-1];
+        // اختيار النصاب بدال المافيا له شاشته (مو شاشة جواب التفتيش اللي تكتب «شعب»)
+        fxQ.push({id:"a"+Date.now(),type:/اخت(ار|ارت) عنكم/.test(t)?"fakepick":"answer",text:t});cardOpen=false;playNext()}
       notesSeen=n}
     render();
   }
@@ -1401,7 +1404,9 @@ function playNext(){
   const night=e.type==="dusk", isMe=st&&st.me&&st.me.inGame;
   let cls="",html="",dur=3200;
   const tap=`<div class="tap">دوس عشان تكمل</div>`;
-  if(e.type==="answer"){const bad=/مافيا/.test(e.text);cls="fx-answer "+(bad?"fx-answer-m":"fx-answer-t");dur=10000;
+  if(e.type==="fakepick"){const mine=/أنت صرت النصاب/.test(e.text);cls="fx-answer fx-answer-m";dur=8000;
+    html=`<div class="big">${mine?"أنت النصاب 🤪":"تعيّن النصاب"}</div><div class="sub">${esc(ar(e.text))}</div><div class="bar"><i></i></div><div class="muted small">${mine?(st&&st.online?"بالنهار تتكلم أول مع الشريف، سوّ نفسك الشريف":"إذا قال القاضي الشرطة يرفعون إيدهم، ارفع إيدك وسوّ نفسك الشريف"):"ربعك صار النصاب، ساعدوه يقنع الشعب"}</div>`}
+  else if(e.type==="answer"){const bad=/مافيا/.test(e.text);cls="fx-answer "+(bad?"fx-answer-m":"fx-answer-t");dur=10000;
     html=`<div class="big">${bad?"مافيا!":"شعب"}</div><div class="sub">${esc(ar(e.text))}</div><div class="bar"><i></i></div><div class="muted small">احفظها، ما بترجع تطلع لك</div>`;buzz(bad?[60,40,60]:40)}
   else if(e.type==="doors"){cls="fx-doors";dur=1700;html=`<div class="dr l"><i></i></div><div class="dr r"><i></i></div><div class="big">سكّرنا الباب</div><div class="sub">محد يطلع ولا يدخل</div>`}
   else if(e.type==="deal"){cls="fx-deal";dur=2400;html=`<div class="fan">${[-30,-15,0,15,30].map((r,i)=>`<i style="transform:rotate(${r}deg);animation-delay:${i*.06}s"></i>`).join("")}</div><div class="big">توزعت الكروت</div><div class="sub">${isMe?"اقلب كرتك وغطّ الشاشة عن اللي جنبك":"كل واحد يشوف دوره بتلفونه"}</div>`;dealAnim=true;buzz(60)}
@@ -1547,7 +1552,7 @@ function createView(){return`<div><h1>غرفة جديدة</h1>${billing()?`<p cl
     <p class="muted small">${onlineCreate?"كل واحد يلعب من تلفونه وهو بمكانه، والقاضي آلي.":"تجتمعون بمكان واحد، وأنت القاضي من تلفونك."}</p>
     <button class="btn primary" data-a="create" ${busy?"disabled":""}>${busy?"نفتح الغرفة…":onlineCreate?"افتح غرفة أون لاين":"افتح غرفة للقاضي"}</button></div>
   <button class="btn ghost" data-a="acctBack">رجوع</button>`}
-function homeView(){if(billing())return homeViewPaid();return rxDemo(receptionMarkup())+`${homeErr?`<p class="rx-error" role="alert">${esc(homeErr)}</p>`:""}<div class="rx-footer"><button class="lnk" data-a="createOpen">افتح غرفة</button><button class="lnk" data-a="demoOpen" aria-expanded="${demoOpen}">جرّب اللعبة</button>${billing()?`<button class="lnk" data-a="acctOpen">${acctMe?`حسابي · ${ar(acctMe.credits)} ${acctMe.credits===1?"لعبة":"ألعاب"}`:"تسجيل الدخول"}</button>`:""}</div>`}
+function homeView(){if(billing())return homeViewPaid();return rxDemo(receptionMarkup())+`${homeErr?`<p class="rx-error" role="alert">${esc(homeErr)}</p>`:""}<div class="rx-footer"><p class="rx-who">عندك رقم من القاضي؟ اكتبه فوق وادخل. <b>أنت القاضي؟</b></p><button class="rx-open" data-a="createOpen">افتح غرفة</button><button class="lnk" data-a="demoOpen" aria-expanded="${demoOpen}">جرّب اللعبة</button>${billing()?`<button class="lnk" data-a="acctOpen">${acctMe?`حسابي · ${ar(acctMe.credits)} ${acctMe.credits===1?"لعبة":"ألعاب"}`:"تسجيل الدخول"}</button>`:""}</div>`}
 function syncReception(){
  const home=view==='home';document.body.classList.toggle('reception-mode',home);
  const root=document.querySelector('.rx-shell');
@@ -1555,6 +1560,10 @@ function syncReception(){
  if(root&&!reception){receptionAudio??=new ReceptionAudio();reception=new HomeReception(root,{audio:receptionAudio,onInput:v=>{nb.prev=v},onSubmit:()=>{}});reception.setValue(nb.prev,false);if(doorState)reception.state(doorState)}
  if(!home&&receptionAudio){if(!gameAudioButton){gameAudioButton=document.createElement('button');gameAudioButton.className='rx-game-sound';gameAudioButton.type='button';const sndIco=()=>{const on=receptionAudio.enabled;gameAudioButton.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/>'+(on?'<path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>':'<path d="M17 9l5 6M22 9l-5 6"/>')+'</svg>';const l=on?'كتم المؤثرات':'تشغيل المؤثرات';gameAudioButton.setAttribute('aria-label',l);gameAudioButton.title=l;gameAudioButton.setAttribute('aria-pressed',String(on))};sndIco();gameAudioButton.addEventListener('click',async()=>{if(receptionAudio.enabled){receptionAudio.mute()}else await receptionAudio.start();sndIco()});document.body.appendChild(gameAudioButton)}}
  if(home&&gameAudioButton){gameAudioButton.remove();gameAudioButton=null}
+ // باللعبة: الزر يقعد بالشريط اللي فوق جنب «اطلع» عشان ما يغطي أي شي. بباقي الشاشات يظل عايم تحت
+ if(gameAudioButton){const slot=document.querySelector('.top .row'),leaveB=slot&&slot.querySelector('[data-a=leave]');
+  if(slot){if(gameAudioButton.parentNode!==slot)slot.insertBefore(gameAudioButton,leaveB||null);gameAudioButton.classList.add('in-top')}
+  else{if(gameAudioButton.parentNode!==document.body)document.body.appendChild(gameAudioButton);gameAudioButton.classList.remove('in-top')}}
 }
 function phaseScene(){return '';}
 function sceneSound(e){
@@ -1723,7 +1732,7 @@ const aliveIds=()=>st.players.filter(p=>p.alive).map(p=>p.id);
 function header(){
   const me=st.me;
   return demoBar()+phaseScene()+`<div class="top"><div><h2>${st.judge?"القاضي":esc(me&&me.name||"")}</h2><span class="chip b">${PHASE_N[st.phase]||""}${st.round&&st.phase!=="lobby"&&st.phase!=="over"?" · الجولة "+ar(st.round):""}</span></div>
-  <div class="row" style="align-items:center">${st.phase==="lobby"?`<span class="code">${ar(st.code)}</span>`:""}${st.judge||st.online?`<button class="btn sm ghost gd-btn" data-a="guide" aria-label="${st.online?"شلون نلعب أون لاين":"دليل القاضي"}"><b>؟</b> ${st.online?"الدليل":"دليل القاضي"}</button>`:""}${st.online&&st.me&&st.me.host&&!["lobby","over"].includes(st.phase)?`<button class="btn sm ghost" data-a="cancelGame">لغِ اللعبة</button>`:""}<button class="btn sm ghost" data-a="leave">اطلع</button></div></div>
+  <div class="row" style="align-items:center">${st.phase==="lobby"?`<span class="code">${ar(st.code)}</span>`:""}<button class="btn sm ghost gd-btn" data-a="guide" aria-label="${st.online?"شلون نلعب أون لاين":st.judge?"دليل القاضي":"شلون نلعب"}"><b>؟</b> ${st.online?"الدليل":st.judge?"دليل القاضي":"شلون نلعب"}</button>${st.online&&st.me&&st.me.host&&!["lobby","over"].includes(st.phase)?`<button class="btn sm ghost" data-a="cancelGame">لغِ اللعبة</button>`:""}<button class="btn sm ghost" data-a="leave">اطلع</button></div></div>
   ${(()=>{const mine=st.me&&st.timer&&st.timer.pid===st.me.id;
     const tf=st.timer&&st.timer.id!==lastTimerId;if(st.timer)lastTimerId=st.timer.id;
     return`<div class="timer ${tf?"fresh":""}" id="timer" data-keep="timer|${st.timer?st.timer.id:"-"}|${mine?1:0}|${st.timer?esc(st.timer.name):""}" hidden><span class="lab">${mine?"جا دورك":"يسولف الحين"}</span>${st.timer?`<div class="spav" style="--c:${mine?"var(--brass)":seatColor(st.timer.name||"")}"><i></i><i></i><i></i><span>${esc([...(st.timer.name||"")][0]||"؟")}</span></div>`:""}<div class="who">${mine?"دورك!":st.timer?esc(st.timer.name):""}</div><div class="ring"><svg viewBox="0 0 62 62"><circle class="bgc" cx="31" cy="31" r="26"/><circle class="fgc" cx="31" cy="31" r="26" stroke-dasharray="163.36" stroke-dashoffset="0"/></svg><div class="t">40</div></div><div class="over">${mine?"بس بس لا تكثر":"بس بس لا يكثر"}</div></div>`})()}
@@ -1842,9 +1851,55 @@ const GUIDE=[
   "النقطة اللي جنب الاسم تبين إذا اللاعب موجود أو طلع من الموقع. إذا طلع يرجع يفتح الرابط من نفس تلفونه.",
   "هالدليل تلقاه فوق بأي وقت من زر <b>؟ دليل القاضي</b>."]}
 ];
+/* --- دليل اللاعب (غرفة فيها قاضي): للي يلعب أول مرة --- */
+const PGUIDE=[
+ {k:"roles",t:"الأدوار وشلون تفوز",items:[
+  "<b>الشعب يفوز</b> إذا صادوا كل المافيا بالتصويت. <b>المافيا يفوزون</b> إذا صار عددهم قد الشعب.",
+  "<b>المافيا</b> 🕶️: يعرفون بعض. كل ليلة يختارون واحد يغتالونه، والأغلبية تمشي.",
+  "<b>النصاب</b> 🤪: واحد من المافيا يسوي نفسه الشريف، ويتكلم أول بالنهار عشان يلخبط الشعب.",
+  "<b>الشريف</b> 👮: كل ليلة يفتش واحد ويعرف إذا مافيا ولا لا. تفتيشاته محدودة (بعدد المافيا).",
+  "<b>البيطري</b> 🩺: كل ليلة يفزع لواحد. إذا المافيا اختاروا نفس الشخص، ما يموت.",
+  "<b>القناص</b> 🎯: من الشعب. إذا طلع بالتصويت أو اغتالوه، يسحب واحد وياه.",
+  "<b>الفداوي</b>: من الشعب، ما عنده شي بالليل. سلاحه كلامه وتصويته."],
+  tip:"دورك سر: لا تخلي أحد يشوف شاشتك، ولا تقول دورك. بنهاية اللعبة تنكشف أدوار الكل."},
+ {k:"lobby",t:"قبل لا تبدون",items:[
+  "دوس <b>جاهز</b> لما تكون مستعد. القاضي يبدا لما الكل يجهز.",
+  "تبي تجيب أحد؟ دوس <b>«ارسل الرقم للربع»</b>.",
+  "أقل شي 6 لاعبين."]},
+ {k:"deal",t:"الكروت",items:[
+  "دوس على كرتك عشان تقلبه، وغطّ الشاشة عن اللي جنبك.",
+  "احفظ دورك: أول ما يبدا القاضي اللعبة الكرت ينشال وما يرجع."]},
+ {k:"night0",t:"الليلة الأولى",items:[
+  "القاضي يقول للكل يسكرون عيونهم.",
+  "<b>الشريف</b> يفتش من تلفونه، وبعدين <b>المافيا</b> يتعرفون على بعض ويختارون <b>النصاب</b>.",
+  "إذا مو دورك تطلع لك «غمّض عيونك». انطر لين يصحيك القاضي."]},
+ {k:"day",t:"النهار والكلام",items:[
+  "الصبح ينعلن منو انغتال، أو إن البيطري لحّق عليه.",
+  "<b>الشرطة</b> (الشريف والنصاب) يرفعون إيدهم ويتكلمون أول، بعدين الباقين واحد واحد.",
+  "كل واحد له وقت على العداد. لما يطلع لك <b>«دورك!»</b> تكلم ودافع عن نفسك أو اتهم أحد.",
+  "أول نهار بدون تصويت."]},
+ {k:"vote",t:"التصويت",items:[
+  "بالدور والترتيب عشوائي. لما يجي دورك تختار واحد من تلفونك، والكل يشوف صوتك.",
+  "اللي يجيب أكثر أصوات يطلع من اللعبة. التعادل ما ينحسب."]},
+ {k:"night",t:"الليالي اللي بعدها",items:[
+  "<b>المافيا</b> يغتالون، و<b>البيطري</b> يفزع، و<b>الشريف</b> يفتش. الباقين يسكرون عيونهم.",
+  "اللي طلع من اللعبة يظل يتفرج، بس لا يساعد أحد."]},
+ {k:"over",t:"نهاية اللعبة",items:[
+  "تنكشف أدوار الكل، وتشوفون منو فاز.",
+  "القاضي يقدر يبدا لعبة جديدة بنفس الغرفة."]}
+];
 const GUIDE_AT={lobby:"lobby",deal:"deal",night0:"night0",day:"day",vote:"vote",result:"vote",night:"night",over:"over"};
 /* --- دليل الأون لاين: للاعبين، ما فيه قاضي واللعبة تمشي بروحها --- */
 const OGUIDE=[
+ {k:"roles",t:"الأدوار وشلون تفوز",items:[
+  "<b>الشعب يفوز</b> إذا صادوا كل المافيا بالتصويت. <b>المافيا يفوزون</b> إذا صار عددهم قد الشعب.",
+  "<b>المافيا</b> 🕶️: يعرفون بعض. كل ليلة يختارون واحد يغتالونه، والأغلبية تمشي، وإذا تعادلوا يعيدون لين يتفقون.",
+  "<b>النصاب</b> 🤪: واحد من المافيا يسوي نفسه الشريف، ويتكلم أول بالنهار عشان يلخبط الشعب.",
+  "<b>الشريف</b> 👮: كل ليلة يفتش واحد ويعرف إذا مافيا ولا لا. تفتيشاته محدودة (بعدد المافيا).",
+  "<b>البيطري</b> 🩺: كل ليلة يفزع لواحد. إذا المافيا اختاروا نفس الشخص، ما يموت.",
+  "<b>القناص</b> 🎯: من الشعب. إذا طلع بالتصويت أو اغتالوه، يسحب واحد وياه.",
+  "<b>الفداوي</b>: من الشعب، ما عنده شي بالليل. سلاحه كلامه وتصويته."],
+  tip:"دورك سر: لا تخلي أحد يشوف شاشتك، ولا تقول دورك. بنهاية اللعبة تنكشف أدوار الكل."},
  {k:"lobby",t:"قبل لا تبدون",items:[
   "اللي يفتح الغرفة هو <b>المضيف</b>: يرسل الرابط للربع، ويعدّل الإعدادات، ويوزع الكروت. يلعب مثل الباقين وما يشوف الأدوار.",
   "أقل شي 6 لاعبين.",
@@ -1885,13 +1940,13 @@ const OGUIDE=[
 ];
 function openGuide(){
   let g=document.getElementById("guide");
-  const ON=!!(st&&st.online),LIST=ON?OGUIDE:GUIDE;
-  const cur=ON?((st.me&&(st.me.spectator||(st.me.inGame&&!isAlive(st.me.id))))?"grave":({result:"vote"})[st.phase]||st.phase):st&&st.sniperPending?"sniper":(st&&st.adv&&(st.phase==="night"||st.phase==="night0"))?"adv":GUIDE_AT[st&&st.phase]||"lobby";
+  const ON=!!(st&&st.online),PL=!ON&&!(st&&st.judge),LIST=ON?OGUIDE:PL?PGUIDE:GUIDE;
+  const cur=PL?(({result:"vote"})[st&&st.phase]||GUIDE_AT[st&&st.phase]||"roles"):ON?((st.me&&(st.me.spectator||(st.me.inGame&&!isAlive(st.me.id))))?"grave":({result:"vote"})[st.phase]||st.phase):st&&st.sniperPending?"sniper":(st&&st.adv&&(st.phase==="night"||st.phase==="night0"))?"adv":GUIDE_AT[st&&st.phase]||"lobby";
   if(!g){g=document.createElement("div");g.id="guide";g.className="gd";g.setAttribute("role","dialog");g.setAttribute("aria-modal","true");document.body.append(g);
     g.addEventListener("click",e=>{if(e.target===g||e.target.closest(".gd-x"))closeGuide()});
     document.addEventListener("keydown",e=>{if(e.key==="Escape")closeGuide()});}
-  g.innerHTML=`<div class="gd-sh"><div class="gd-hd"><h2>${ON?"شلون نلعب أون لاين":"دليل القاضي"}</h2><button class="gd-x">سكّر</button></div><div class="gd-bd">
-  <p class="lead">${ON?"ما فيه قاضي: اللعبة تمشي بروحها بأوقات، وكل واحد يتابع تلفونه. الخطوة اللي أنتوا فيها الحين مفتوحة.":"أنت اللي تمشّي اللعبة: تفتح الغرفة، تقول للكل متى يسكرون عيونهم ومتى يفتحونها، وتدوس الأزرار عشان اللعبة تتقدم. كل خطوة هني بالترتيب، والخطوة اللي أنت فيها الحين مفتوحة."}</p>
+  g.innerHTML=`<div class="gd-sh"><div class="gd-hd"><h2>${ON?"شلون نلعب أون لاين":PL?"شلون نلعب":"دليل القاضي"}</h2><button class="gd-x">سكّر</button></div><div class="gd-bd">
+  <p class="lead">${PL?"تلعبون مع بعض بمكان واحد، والقاضي يمشّي اللعبة. اقرا الأدوار أول، والخطوة اللي أنتوا فيها الحين مفتوحة.":ON?"ما فيه قاضي: اللعبة تمشي بروحها بأوقات، وكل واحد يتابع تلفونه. الخطوة اللي أنتوا فيها الحين مفتوحة.":"أنت اللي تمشّي اللعبة: تفتح الغرفة، تقول للكل متى يسكرون عيونهم ومتى يفتحونها، وتدوس الأزرار عشان اللعبة تتقدم. كل خطوة هني بالترتيب، والخطوة اللي أنت فيها الحين مفتوحة."}</p>
   ${LIST.map((x,i)=>`<details class="gd-s ${x.k===cur?"cur":""}" ${x.k===cur?"open":""}><summary><span class="n">${ar(i+1)}</span>${x.t}${x.k===cur?`<span class="now">أنت هني</span>`:""}</summary><ol>${x.items.map(t=>`<li>${t}</li>`).join("")}</ol>${x.tip?`<p class="tip">${x.tip}</p>`:""}</details>`).join("")}
   </div></div>`;
   requestAnimationFrame(()=>{g.classList.add("open");const c=g.querySelector(".gd-s.cur");if(c)c.scrollIntoView({block:"start"})});
@@ -2058,7 +2113,9 @@ function playerView(){
   if(st.phase==="lobby"&&st.online)return h+onlineLobby();
   if(st.phase==="lobby"){
     const rd=!!(st.ready&&st.ready[me.id]);
-    return h+`<div class="panel nightbox"><div class="moon"></div><h2>${rd?"جاهز ✓ ننطر الباقين":"دوس جاهز"}</h2><p class="muted">${ar(st.players.length)} لاعب بالغرفة · أقل شي ${ar(st.minPlayers)}. القاضي ما يقدر يبدا لين الكل يجهز.</p><button class="btn ${rd?"":"primary"} ready-btn" data-a="ready" data-v="${rd?0:1}">${rd?"مو جاهز":"جاهز ✓"}</button></div>
+    return h+`<div class="panel nightbox"><div class="moon"></div><h2>${rd?"جاهز ✓ ننطر الباقين":"دوس جاهز"}</h2><p class="muted">${ar(st.players.length)} لاعب بالغرفة · أقل شي ${ar(st.minPlayers)}. القاضي ما يقدر يبدا لين الكل يجهز.</p><button class="btn ${rd?"":"primary"} ready-btn" data-a="ready" data-v="${rd?0:1}">${rd?"مو جاهز":"جاهز ✓"}</button>
+      <div class="row pl-extra"><button class="btn sm ghost" data-a="share"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v14"/></svg> ارسل الرقم للربع</button><button class="btn sm ghost" data-a="guide"><b>؟</b> شلون نلعب</button></div>
+      <p class="muted small">أول مرة تلعب؟ دوس «شلون نلعب» وتعرف الأدوار في دقيقة.</p></div>
     <div class="panel"><h3>منو دخل <span class="count">${ar(st.players.length)}</span></h3>${seats(false)}</div>`;
   }
   if(!me.inGame&&me.spectator)return h+`<div class="panel spect"><h2>👀 تتفرج</h2><p class="muted small">تشوف اللي يشوفه الكل بس: ما تعرف الأدوار ولا تسمع المافيا. تدخل اللعبة الجاية لما يبدونها.</p></div>`+(st.phase==="over"?overView():(st.vote?voteStage():"")+aliveList()+chatPanels());
