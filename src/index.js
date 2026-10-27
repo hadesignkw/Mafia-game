@@ -60,7 +60,9 @@ async function acctApi(req, env, url) {
   let body = {};
   if (req.method === "POST") {
     if (Number(req.headers.get("content-length") || 0) > 4096) return json({ error: "طلب كبير واجد." }, 413);
-    try { const b = await req.json(); body = b && typeof b === "object" && !Array.isArray(b) ? b : {}; } catch {}
+    let t = ""; try { t = await req.text(); } catch {}
+    if (t.length > 4096) return json({ error: "طلب كبير واجد." }, 413);
+    try { const b = JSON.parse(t); body = b && typeof b === "object" && !Array.isArray(b) ? b : {}; } catch {}
   }
   const out = (r) => json(r, r && r.error ? 400 : 200);
   const str = (v, max) => (typeof v === "string" ? v : "").slice(0, max);
@@ -251,6 +253,8 @@ export class Room extends DurableObject {
 
   async save() { this.s.touched = Date.now(); await this.ctx.storage.put("s", this.s); }
   // المنبه: وقت الخطوة الجاية بالأون لاين، وإلا وقت مسح الغرفة
+  // متفرج ما لقى مكان باللعبة الجاية: نعلمه ونفصله
+  dropFull(id) { for (const w of this.ctx.getWebSockets()) if ((w.deserializeAttachment() || {}).pid === id) { this.send(w, { t: "gone", text: "العدد اكتمل باللعبة الجديدة، ما لقينا لك مكان." }); w.serializeAttachment({}); } }
   hostOn() { const h = this.s && this.s.hostPid; return !!h && this.ctx.getWebSockets().some((w) => w !== this.closing && (w.deserializeAttachment() || {}).pid === h); }
   async schedule() {
     if (!this.s) return;
@@ -638,7 +642,7 @@ export class Room extends DurableObject {
       case "newGame":
         if (s.online && s.phase !== "lobby" && s.phase !== "over") this.notice("المضيف لغى اللعبة ورجعتوا للانتظار. اللي يبي يدخل يقدر يدخل الحين.");
         // المتفرجين يدخلون اللعبة الجاية، والمطرودين يطلعون نهائي
-        for (const id of s.spect || []) if (s.players[id] && !s.lobby.includes(id)) { if (s.lobby.length < this.capFor()) s.lobby.push(id); else delete s.players[id]; }
+        for (const id of s.spect || []) if (s.players[id] && !s.lobby.includes(id)) { if (s.lobby.length < this.capFor()) s.lobby.push(id); else { this.dropFull(id); delete s.players[id]; } }
         s.spect = [];
         for (const id of Object.keys(s.players)) if (s.players[id].kicked) { s.lobby = s.lobby.filter((x) => x !== id); delete s.players[id]; }
         Object.assign(s, { phase: "lobby", step: null, round: 0, timer: null, sniperPending: null, winner: null, announce: "", event: null, order: [], alive: {}, roles: {}, fakeCop: null, fakesDone: [], notes: {}, votes: {}, voteOrder: [], voteTurn: 0, night: blankNight(), advOn: false, dpts: {}, suspect: null, deadline: null, talkQ: [], chats: { mafia: [], grave: [], town: [] }, offSince: {} });
