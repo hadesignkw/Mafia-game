@@ -1,6 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { Parl } from "./parl.js";
-import { Acct, PACKS } from "./acct.js";
+import { Acct, PACKS, hashPass, sha, same, rand, cleanEmail, okEmail, cleanName } from "./acct.js";
 export { Parl, Acct };
 
 /* =========== قوانين اللعبة =========== */
@@ -49,13 +49,34 @@ const PAY_PROVIDER = null;
 async function acctApi(req, env, url) {
   if (url.pathname === "/api/acct/config") return json({ billing: billingOn(env), packs: PACKS, pay: !!PAY_PROVIDER });
   if (!billingOn(env)) return json({ error: "not found" }, 404);
-  const A = acctStub(env), tk = bearer(req);
+  const A = acctStub(env), tk = bearer(req), ip = req.headers.get("cf-connecting-ip") || "local";
   let body = {};
-  if (req.method === "POST") { try { body = await req.json(); } catch {} }
+  if (req.method === "POST") {
+    if (Number(req.headers.get("content-length") || 0) > 4096) return json({ error: "طلب كبير واجد." }, 413);
+    try { const b = await req.json(); body = b && typeof b === "object" && !Array.isArray(b) ? b : {}; } catch {}
+  }
   const out = (r) => json(r, r && r.error ? 400 : 200);
+  const str = (v, max) => (typeof v === "string" ? v : "").slice(0, max);
   switch (url.pathname) {
-    case "/api/acct/signup": return req.method === "POST" ? out(await A.signup(body.email, body.password, body.name)) : json({ error: "POST" }, 405);
-    case "/api/acct/login": return req.method === "POST" ? out(await A.login(body.email, body.password)) : json({ error: "POST" }, 405);
+    case "/api/acct/signup": {
+      if (req.method !== "POST") return json({ error: "POST" }, 405);
+      const email = cleanEmail(str(body.email, 200)), name = cleanName(str(body.name, 100)), pass = str(body.password, 1000);
+      if (!name) return out({ error: "اكتب اسمك." });
+      if (!okEmail(email)) return out({ error: "اكتب إيميل صحيح." });
+      if (pass.length < 6) return out({ error: "كلمة السر لازم ٦ حروف أو أكثر." });
+      if (pass.length > 200) return out({ error: "كلمة السر طويلة واجد." });
+      const c = await A.signupCheck(email, ip);
+      if (c.error) return out(c);
+      const salt = rand(16);
+      return out(await A.signupSave(email, name, salt, await hashPass(pass, salt), ip));
+    }
+    case "/api/acct/login": {
+      if (req.method !== "POST") return json({ error: "POST" }, 405);
+      const email = cleanEmail(str(body.email, 200)), pass = str(body.password, 200);
+      const st = await A.loginStart(email, ip);
+      if (st.error) return out(st);
+      return out(await A.loginFinish(email, await hashPass(pass, st.salt), ip));
+    }
     case "/api/acct/logout": return json(await A.logout(tk));
     case "/api/acct/me": { const r = await A.me(tk); return json(r, r.error ? 401 : 200); }
     case "/api/acct/history": { const r = await A.history(tk); return json(r, r.error ? 401 : 200); }
@@ -69,10 +90,11 @@ async function acctApi(req, env, url) {
   }
   // إضافة رصيد يدوي (تجربة أو تعويض): يشتغل بس إذا فيه مفتاح ADMIN_KEY سري بكلاودفلير
   if (url.pathname === "/api/acct/admin/grant" && req.method === "POST") {
-    if (!env.ADMIN_KEY || bearer(req) !== env.ADMIN_KEY) return json({ error: "not found" }, 404);
-    const n = parseInt(body.games, 10);
+    if (!env.ADMIN_KEY || !same(await sha(bearer(req)), await sha(env.ADMIN_KEY))) return json({ error: "not found" }, 404);
+    const n = parseInt(body.games, 10), ref = str(body.ref, 100);
     if (!(n >= -100 && n <= 100) || !n) return json({ error: "عدد غلط" }, 400);
-    return json(await A.grant(String(body.email || "").trim().toLowerCase(), n, "admin", body.ref ? String(body.ref) : null));
+    if (!ref) return json({ error: "لازم ref عشان ما تنضاف مرتين" }, 400);
+    return out(await A.grant(cleanEmail(str(body.email, 200)), n, "admin", "admin:" + ref));
   }
   // رد البوابة بعد الدفع: نتأكد من البوابة نفسها قبل لا نضيف الرصيد (ما نصدق الرابط بروحه)
   if (url.pathname === "/api/pay/callback") return json({ error: "الدفع مو متاح للحين." }, 501);
@@ -227,6 +249,8 @@ export class Room extends DurableObject {
       return;
     }
     if (m.t === "join") {
+      if (s.demo) return this.err(ws, "هذي غرفة تجربة، ما ينفع أحد يدخلها.");
+      if (att.pid && s.players[att.pid]) return; // هالجهاز داخل من قبل
       const name = String(m.name || "").trim().replace(/\s+/g, " ").slice(0, 24);
       if (!name) return this.err(ws, "اكتب اسمك.");
       const spect = s.online && s.phase !== "lobby"; // الأون لاين: اللي يدخل واللعبة شغالة يتفرج لين الجولة الجاية
@@ -237,7 +261,8 @@ export class Room extends DurableObject {
       s.players[pid] = { name, token, at: Date.now() };
       if (spect) { (s.spect = s.spect || []).push(pid); ws.serializeAttachment({ pid }); this.send(ws, { t: "joined", token }); this.notice(`${name} دخل يتفرج 👀`); await this.save(); return this.broadcast(); }
       s.lobby.push(pid);
-      if (s.online && !s.hostPid) s.hostPid = pid; // أول واحد يدخل الغرفة الأون لاين هو المضيف
+      // المضيف بالأون لاين: بس اللي فتح الغرفة (معاه مفتاحها)، مو أي أحد يدخل أول
+      if (s.online && !s.hostPid && typeof m.host === "string" && m.host === s.judgeToken) s.hostPid = pid;
       ws.serializeAttachment({ pid });
       this.send(ws, { t: "joined", token });
       await this.save();
@@ -476,6 +501,7 @@ export class Room extends DurableObject {
     const s = this.s, id = m.id;
     switch (m.t) {
       case "kick":
+        if (s.demo) break; // التجربة: لاعبينها ثابتين
         if (s.online && s.phase !== "lobby" && s.players[id] && id !== s.hostPid) {
           // المضيف طرد واحد وسط اللعبة: يطلع من اللعبة ويتسكر عليه
           if ((s.spect || []).includes(id)) { s.spect = s.spect.filter((x) => x !== id); delete s.players[id]; }
@@ -577,23 +603,28 @@ export class Room extends DurableObject {
   }
   async paidStart() {
     const s = this.s;
-    if (!s.acct || s.demo || !billingOn(this.env)) return this.start();
+    if (s.demo || !billingOn(this.env)) return this.start(); // التجربة مجانية، والحسابات مطفية = مجاني
+    const toHost = (text) => { for (const w of this.ctx.getWebSockets()) { const a = w.deserializeAttachment() || {}; if (a.judge || (a.pid && a.pid === s.hostPid)) this.err(w, text); } };
+    // غرفة انفتحت قبل تفعيل الحسابات: ما لها صاحب، فلازم غرفة جديدة
+    if (!s.acct) { if (this.canStart()) toHost("هالغرفة انفتحت قبل الحسابات. افتح غرفة جديدة من حسابك."); return; }
     if (this.starting) return; // طلب بدء ثاني وهو للحين يخصم
-    if (!this.canStart()) return this.start();
+    if (!this.canStart()) return;
     this.starting = true;
+    const A = acctStub(this.env), ref = `${s.code}:${s.createdAt}:${s.gen + 1}`, gen0 = s.gen;
     try {
-      const r = await acctStub(this.env).consume(s.acct, `${s.code}:${s.createdAt}:${s.gen + 1}`);
-      if (!this.s) return;
-      if (!r.ok) {
-        const text = r.error || "ما قدرنا نخصم من الرصيد.";
-        for (const w of this.ctx.getWebSockets()) { const a = w.deserializeAttachment() || {}; if (a.judge || (a.pid && a.pid === s.hostPid)) this.err(w, text); }
+      const r = await A.consume(s.acct, ref);
+      if (!r.ok) { if (this.s === s) toHost(r.error || "ما قدرنا نخصم من الرصيد."); return; }
+      // خلال الخصم ممكن أحد طلع أو انطرد أو تسكرت الغرفة: إذا ما بدت اللعبة نرجّع اللعبة للرصيد
+      if (this.s === s && this.canStart()) this.start();
+      if (this.s !== s || s.gen === gen0) {
+        if (!r.dup) await A.refund(s.acct, r.ref);
+        if (this.s === s) toHost("ما بدت اللعبة، وما انخصم شي من رصيدك.");
         return;
       }
       s.credits = r.credits;
-      return this.start();
     } catch (e) {
       console.log("consume", e && e.stack);
-      for (const w of this.ctx.getWebSockets()) { const a = w.deserializeAttachment() || {}; if (a.judge || (a.pid && a.pid === s.hostPid)) this.err(w, "صار خطأ بالرصيد، جرّب مرة ثانية."); }
+      if (this.s === s) toHost("صار خطأ بالرصيد، جرّب مرة ثانية.");
     } finally { this.starting = false; }
   }
   start() {

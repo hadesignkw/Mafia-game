@@ -1202,7 +1202,7 @@ async function createRoom(){
     if(!r.ok)throw new Error(j.error);
     homeErr="";window.scrollTo({top:0,behavior:"smooth"});await welcomeIn();busy=false;
     // الأون لاين: اللي يفتح الغرفة يدخل لاعب ويصير المضيف
-    sess=online?{code:j.code,token:null,judge:false}:{code:j.code,token:j.token,judge:true};lsSet("mafia.sess",sess);firstState=true;connect();}
+    sess=online?{code:j.code,token:null,judge:false,hostKey:j.token}:{code:j.code,token:j.token,judge:true};lsSet("mafia.sess",sess);firstState=true;connect();}
   catch(e){homeErr=e.message||"ما قدرت أفتح غرفة.";}
   busy=false;render();
 }
@@ -1264,7 +1264,7 @@ async function joinCode(c){
   const old=lsGet("mafia.tok."+c);
   sess={code:c,token:old||null,judge:false};lsSet("mafia.sess",sess);busy=false;firstState=true;connect();
 }
-function submitName(n){n=String(n||"").trim();if(!n)return toast("اكتب اسمك");lsSet("mafia.name",n);send({t:"join",name:n})}
+function submitName(n){n=String(n||"").trim();if(!n)return toast("اكتب اسمك");lsSet("mafia.name",n);send(sess&&sess.hostKey?{t:"join",name:n,host:sess.hostKey}:{t:"join",name:n})}
 function leave(){if(demo)return endDemo("");setTimeout(acctRefresh,300);
   // المضيف بالأون لاين: إذا طلع، الغرفة تسكر على الكل
   if(st&&st.online&&st.me&&st.me.host){if(!confirm("إذا طلعت، الغرفة تسكر والكل يرجع للاستقبال. أكيد؟"))return;send({t:"leave"});endSession("");return}
