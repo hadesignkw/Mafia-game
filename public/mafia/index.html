@@ -1186,14 +1186,56 @@ async function handOver(){
 async function welcomeIn(){setDen("welcome");buzz(30);await nap(1500);setDen("open");await nap(1000)}
 let onlineCreate=false;
 async function createRoom(){
-  if(busy)return;busy=true;const online=onlineCreate;
-  try{const r=await fetch("/api/create"+(online?"?online=1":""),{method:"POST"});const j=await r.json();if(!r.ok)throw new Error(j.error);
+  if(busy)return;const online=onlineCreate;
+  // الحسابات: إذا مفعّلة لازم يكون داخل وعنده رصيد
+  if(billing()&&!acctTok){acctMsg="سجّل دخول أو سوّ حساب عشان تفتح غرفة.";view="acct";render();return}
+  busy=true;
+  try{const r=await fetch("/api/create"+(online?"?online=1":""),{method:"POST",headers:billing()?{authorization:"Bearer "+acctTok}:{}});const j=await r.json();
+    if(r.status===401&&billing()){acctOut(true);acctMsg=j.error||"سجّل دخول.";busy=false;view="acct";render();return}
+    if(r.status===402&&billing()){acctMsg=j.error||"رصيدك خلص.";busy=false;view="acct";acctRefresh();render();return}
+    if(!r.ok)throw new Error(j.error);
     homeErr="";window.scrollTo({top:0,behavior:"smooth"});await welcomeIn();busy=false;
     // الأون لاين: اللي يفتح الغرفة يدخل لاعب ويصير المضيف
     sess=online?{code:j.code,token:null,judge:false}:{code:j.code,token:j.token,judge:true};lsSet("mafia.sess",sess);firstState=true;connect();}
   catch(e){homeErr=e.message||"ما قدرت أفتح غرفة.";}
   busy=false;render();
 }
+/* ---------- الحساب والرصيد (يشتغل بس إذا السيرفر مفعّله) ---------- */
+let acctCfg=null,acctTok=lsGet("mafia.acct"),acctMe=null,acctMode="login",acctMsg="",acctBusy=false;
+const billing=()=>!!(acctCfg&&acctCfg.billing);
+const kd=n=>(+n).toLocaleString("en",{minimumFractionDigits:n%1?1:0,maximumFractionDigits:3})+" د.ك";
+async function acctFetch(path,body){const r=await fetch("/api/acct/"+path,{method:body?"POST":"GET",headers:{"content-type":"application/json",...(acctTok?{authorization:"Bearer "+acctTok}:{})},body:body?JSON.stringify(body):undefined});let j={};try{j=await r.json()}catch{}return{r,j}}
+function acctOut(silent){if(acctTok&&!silent)acctFetch("logout",{}).catch(()=>{});acctTok=null;acctMe=null;lsSet("mafia.acct",null)}
+async function acctRefresh(){if(!billing()||!acctTok)return;try{const{r,j}=await acctFetch("me");if(r.status===401){acctOut(true)}else if(j.me)acctMe=j.me}catch{}if(view==="home"||view==="acct")render()}
+async function acctInit(){try{const r=await fetch("/api/acct/config");acctCfg=await r.json()}catch{acctCfg=null}if(billing()){await acctRefresh();if(view==="home")render()}}
+async function acctSubmit(){
+  if(acctBusy)return;const email=($("#acEmail")||{}).value||"",password=($("#acPass")||{}).value||"",p2=($("#acPass2")||{}).value;
+  if(acctMode==="signup"&&password!==p2){acctMsg="كلمتين السر مو نفس بعض.";render();return}
+  acctBusy=true;acctMsg="";render();
+  try{const{j}=await acctFetch(acctMode==="signup"?"signup":"login",{email,password});
+    if(j.token){acctTok=j.token;lsSet("mafia.acct",j.token);acctMe=j.me;acctMsg=acctMode==="signup"?"تم إنشاء حسابك 👌":"";}else acctMsg=j.error||"صار خطأ، جرّب مرة ثانية.";}
+  catch{acctMsg="ما قدرت أتصل، تأكد من النت."}
+  acctBusy=false;render();
+}
+async function acctBuy(pack){if(acctBusy)return;acctBusy=true;render();try{const{j}=await acctFetch("buy",{pack});if(j.url){location.href=j.url;return}acctMsg=j.error||"الدفع مو متاح للحين."}catch{acctMsg="ما قدرت أتصل، تأكد من النت."}acctBusy=false;render()}
+function acctView(){
+  const msg=acctMsg?`<p class="muted small" role="status">${esc(acctMsg)}</p>`:"";
+  if(!acctTok||!acctMe){const up=acctMode==="signup";
+    return`<div><h1>${up?"حساب جديد":"تسجيل الدخول"}</h1><p class="muted">اللي يفتح الغرفة يحتاج حساب فيه رصيد. الربع يدخلون برقم الغرفة بدون حساب.</p></div>
+    <form class="panel" id="acctF">${msg}
+      <label class="muted small" for="acEmail">الإيميل</label><input id="acEmail" type="email" dir="ltr" autocomplete="email" inputmode="email" maxlength="120" value="${esc(($("#acEmail")||{}).value||"")}">
+      <label class="muted small" for="acPass">كلمة السر</label><input id="acPass" type="password" dir="ltr" autocomplete="${up?"new-password":"current-password"}" maxlength="200">
+      ${up?`<label class="muted small" for="acPass2">أعد كلمة السر</label><input id="acPass2" type="password" dir="ltr" autocomplete="new-password" maxlength="200">`:""}
+      <button class="btn primary" ${acctBusy?"disabled":""}>${up?"سوّ الحساب":"دخول"}</button>
+      <button type="button" class="lnk" data-a="acctMode">${up?"عندك حساب؟ سجّل دخول":"ما عندك حساب؟ سوّ حساب جديد"}</button></form>
+    <button class="btn ghost" data-a="acctBack">رجوع</button>`}
+  const packs=(acctCfg.packs||[]).map(p=>`<div class="row" style="align-items:center"><div style="flex:1"><b>${esc(p.label)}</b><div class="muted small">${kd(p.price)}${p.games>1?` · ${kd(Math.round(p.price/p.games*1000)/1000)} للعبة`:""}</div></div><button class="btn" style="flex:0 0 auto" data-a="acctBuy" data-id="${esc(p.id)}" ${acctBusy?"disabled":""}>اشتري</button></div>`).join("");
+  return`<div><h1>حسابي</h1><p class="muted" dir="ltr" style="text-align:right;margin-top:14px">${esc(acctMe.email)}</p></div>
+  <div class="panel"><p class="muted small">رصيدك</p><h2 style="margin:0">${ar(acctMe.credits)} ${acctMe.credits===1?"لعبة":"ألعاب"}</h2><p class="muted small">تنخصم لعبة وحدة مع بداية كل لعبة، أون لاين أو غرفة القاضي. جرّب اللعبة مجاني.</p></div>
+  <div class="panel"><p class="muted small">الباقات</p>${packs}${msg||(acctCfg.pay?"":`<p class="muted small">الدفع مو متاح للحين، قريباً إن شاء الله.</p>`)}</div>
+  <button class="btn ghost" data-a="acctBack">رجوع</button><button class="lnk" data-a="acctOut">تسجيل خروج</button>`;
+}
+acctInit();
 async function joinCode(c){
   c=en(c).trim();
   if(busy)return;
@@ -1215,7 +1257,7 @@ async function joinCode(c){
   sess={code:c,token:old||null,judge:false};lsSet("mafia.sess",sess);busy=false;firstState=true;connect();
 }
 function submitName(n){n=String(n||"").trim();if(!n)return toast("اكتب اسمك");lsSet("mafia.name",n);send({t:"join",name:n})}
-function leave(){if(demo)return endDemo("");
+function leave(){if(demo)return endDemo("");setTimeout(acctRefresh,300);
   // المضيف بالأون لاين: إذا طلع، الغرفة تسكر على الكل
   if(st&&st.online&&st.me&&st.me.host){if(!confirm("إذا طلعت، الغرفة تسكر والكل يرجع للاستقبال. أكيد؟"))return;send({t:"leave"});endSession("");return}
   if(st&&st.me&&st.phase==="lobby")send({t:"leave"});endSession("")}
@@ -1427,6 +1469,7 @@ function render(){
   if(view!=="game"||!st)app._html=null;
   if(view==="home"){app.innerHTML=homeView();startRain();const i=$("#codeIn");if(i)i.value=nb.prev;requestAnimationFrame(movePen)}
   else if(view==="name")app.innerHTML=nameView();
+  else if(view==="acct")app.innerHTML=acctView();
   else if(!st)app.innerHTML=demoBar()+`<div><h1>غرفة المافيا</h1><p class="muted">قاعد أتصل بالغرفة…</p></div>`;
   else{const html=st.judge?judgeView():playerView();if(changed||html!==app._html||!app.firstChild){
     // الكرت والمؤقت يبقون نفس العنصر إذا ما تغيروا، عشان حركتهم ما تعيد وتومض
@@ -1444,7 +1487,7 @@ const RX_ASSETS={scene:`/mafia/art/reception-${RX_V}.webp`,room:"/mafia/art/room
 [`reception-${RX_V}`,`wrong-${RX_V}`,`welcome-${RX_V}`,"room","farm-day","farm-night"].forEach(n=>{const i=new Image();i.src=`/mafia/art/${n}.webp`});
 function receptionMarkup(){return `<section class="rx-shell" data-state="idle" aria-label="استقبال غرفة المافيا"><div class="rx-stage"><img class="rx-art" src="${RX_ASSETS.scene}" width="941" height="2033" alt="استقبال المافيا، الشريف يطمن الشعب والبيطري عند الباب"><img class="rx-reaction" alt="" aria-hidden="true"><div class="rx-light" aria-hidden="true"></div><div class="rx-fog" aria-hidden="true"></div><div class="rx-vignette" aria-hidden="true"></div><div class="rx-topbar"><a href="/games/">→ كل الألعاب</a><button type="button" class="rx-audio" aria-pressed="false">تشغيل الصوت</button></div><form class="rx-form" id="joinF" novalidate><span class="rx-room-title">رقم الغرفة</span><span class="rx-room-hint">اكتب الرقم وحياك بالدوانية</span><label class="rx-code"><span class="rx-digits" aria-hidden="true"><span></span><span></span><span></span><span></span></span><input class="rx-input" id="codeIn" aria-label="رقم الغرفة، أربعة أرقام" inputmode="numeric" autocomplete="off" maxlength="4" pattern="[0-9٠-٩۰-۹]{4}"></label><button class="rx-submit" type="submit" aria-label="دخول">دخول</button></form><span class="rx-ledger" aria-hidden="true"></span><div class="rx-live" role="status" aria-live="polite" aria-atomic="true"></div><div class="rx-flash" aria-hidden="true"></div><span class="rx-pen" aria-hidden="true"></span><div class="rx-doorway" aria-hidden="true"></div></div></section>`}
 let reception=null,receptionAudio=null,gameAudioButton=null;
-function homeView(){return receptionMarkup()+`${homeErr?`<p class="rx-error" role="alert">${esc(homeErr)}</p>`:""}<div class="rx-footer"><button class="lnk onl-t ${onlineCreate?"on":""}" data-a="onlineToggle" role="checkbox" aria-checked="${onlineCreate}"><span class="onl-box">${onlineCreate?"✓":""}</span>تبيها أون لاين؟</button><button class="lnk" data-a="create" ${busy?"disabled":""}>${onlineCreate?"افتح غرفة أون لاين":"افتح غرفة للقاضي"}</button><button class="lnk" data-a="demoOpen" aria-expanded="${demoOpen}">جرّب اللعبة</button></div>${demoOpen?`<div class="panel demoset"><p class="muted small">غرفة تجربة فيها لاعبين مو حقيقيين. تتنقل بين شاشة القاضي وشاشة كل لاعب وتسوي اختياراتهم بنفسك.</p><label class="muted small" for="demoN">عدد اللاعبين</label><select id="demoN">${[6,7,8,9,10,11,12,13,14,15].map(n=>`<option value="${n}" ${n===8?"selected":""}>${n} لاعبين، ${2+Math.floor((n-6)/4)} مافيا</option>`).join("")}</select><button class="btn" data-a="demo" ${busy?"disabled":""}>ابدا التجربة</button></div>`:""}`}
+function homeView(){return receptionMarkup()+`${homeErr?`<p class="rx-error" role="alert">${esc(homeErr)}</p>`:""}<div class="rx-footer"><button class="lnk onl-t ${onlineCreate?"on":""}" data-a="onlineToggle" role="checkbox" aria-checked="${onlineCreate}"><span class="onl-box">${onlineCreate?"✓":""}</span>تبيها أون لاين؟</button><button class="lnk" data-a="create" ${busy?"disabled":""}>${onlineCreate?"افتح غرفة أون لاين":"افتح غرفة للقاضي"}</button><button class="lnk" data-a="demoOpen" aria-expanded="${demoOpen}">جرّب اللعبة</button>${billing()?`<button class="lnk" data-a="acctOpen">${acctMe?`حسابي · ${ar(acctMe.credits)} ${acctMe.credits===1?"لعبة":"ألعاب"}`:"تسجيل الدخول"}</button>`:""}</div>${demoOpen?`<div class="panel demoset"><p class="muted small">غرفة تجربة فيها لاعبين مو حقيقيين. تتنقل بين شاشة القاضي وشاشة كل لاعب وتسوي اختياراتهم بنفسك.</p><label class="muted small" for="demoN">عدد اللاعبين</label><select id="demoN">${[6,7,8,9,10,11,12,13,14,15].map(n=>`<option value="${n}" ${n===8?"selected":""}>${n} لاعبين، ${2+Math.floor((n-6)/4)} مافيا</option>`).join("")}</select><button class="btn" data-a="demo" ${busy?"disabled":""}>ابدا التجربة</button></div>`:""}`}
 function syncReception(){
  const home=view==='home';document.body.classList.toggle('reception-mode',home);
  const root=document.querySelector('.rx-shell');
@@ -2124,10 +2167,15 @@ function overView(){
 }
 
 /* ---------- الأحداث ---------- */
-document.addEventListener("submit",e=>{e.preventDefault();if(e.target.id==="joinF")joinCode($("#codeIn").value);if(e.target.id==="nameF")submitName($("#nameIn").value)});
+document.addEventListener("submit",e=>{e.preventDefault();if(e.target.id==="joinF")joinCode($("#codeIn").value);if(e.target.id==="nameF")submitName($("#nameIn").value);if(e.target.id==="acctF")acctSubmit()});
 document.addEventListener("click",e=>{
   const b=e.target.closest("[data-a]");if(!b||b.disabled)return;const a=b.dataset.a,id=b.dataset.id;
   if(a==="create")createRoom();
+  else if(a==="acctOpen"){acctMsg="";view="acct";render();acctRefresh()}
+  else if(a==="acctBack"){acctMsg="";view="home";render()}
+  else if(a==="acctMode"){acctMode=acctMode==="login"?"signup":"login";acctMsg="";render()}
+  else if(a==="acctBuy")acctBuy(id);
+  else if(a==="acctOut"){acctOut();acctMsg="";view="home";render()}
   else if(a==="leave")leave();
   else if(a==="guide")openGuide();
   else if(a==="endDemo")endDemo("");

@@ -1,6 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { Parl } from "./parl.js";
-export { Parl };
+import { Acct, PACKS } from "./acct.js";
+export { Parl, Acct };
 
 /* =========== قوانين اللعبة =========== */
 const ROLE_N = {
@@ -38,16 +39,64 @@ const sid = () => crypto.randomUUID().slice(0, 8);
 const json = (o, status = 200) =>
   new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
 
+/* =========== الحسابات والرصيد =========== */
+// مطفي إلا إذا BILLING = "on". وهو مطفي، اللعبة مجانية مثل قبل
+const billingOn = (env) => env.BILLING === "on";
+const acctStub = (env) => env.ACCT.get(env.ACCT.idFromName("main"));
+const bearer = (req) => (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
+// بوابة الدفع: للحين ما فيه بوابة. لما نختار وحدة (ماي فاتورة، تاب...) نركّبها هني
+const PAY_PROVIDER = null;
+async function acctApi(req, env, url) {
+  if (url.pathname === "/api/acct/config") return json({ billing: billingOn(env), packs: PACKS, pay: !!PAY_PROVIDER });
+  if (!billingOn(env)) return json({ error: "not found" }, 404);
+  const A = acctStub(env), tk = bearer(req);
+  let body = {};
+  if (req.method === "POST") { try { body = await req.json(); } catch {} }
+  const out = (r) => json(r, r && r.error ? 400 : 200);
+  switch (url.pathname) {
+    case "/api/acct/signup": return req.method === "POST" ? out(await A.signup(body.email, body.password)) : json({ error: "POST" }, 405);
+    case "/api/acct/login": return req.method === "POST" ? out(await A.login(body.email, body.password)) : json({ error: "POST" }, 405);
+    case "/api/acct/logout": return json(await A.logout(tk));
+    case "/api/acct/me": { const r = await A.me(tk); return json(r, r.error ? 401 : 200); }
+    case "/api/acct/history": { const r = await A.history(tk); return json(r, r.error ? 401 : 200); }
+    case "/api/acct/buy": {
+      if (req.method !== "POST") return json({ error: "POST" }, 405);
+      if (!PAY_PROVIDER) return json({ error: "الدفع مو متاح للحين، قريباً إن شاء الله." }, 503);
+      const o = await A.order(tk, body.pack);
+      if (o.error) return json(o, 400);
+      return json({ error: "الدفع مو متاح للحين." }, 503); // هني ننشئ رابط الدفع من البوابة ونرجعه
+    }
+  }
+  // إضافة رصيد يدوي (تجربة أو تعويض): يشتغل بس إذا فيه مفتاح ADMIN_KEY سري بكلاودفلير
+  if (url.pathname === "/api/acct/admin/grant" && req.method === "POST") {
+    if (!env.ADMIN_KEY || bearer(req) !== env.ADMIN_KEY) return json({ error: "not found" }, 404);
+    const n = parseInt(body.games, 10);
+    if (!(n >= -100 && n <= 100) || !n) return json({ error: "عدد غلط" }, 400);
+    return json(await A.grant(String(body.email || "").trim().toLowerCase(), n, "admin", body.ref ? String(body.ref) : null));
+  }
+  // رد البوابة بعد الدفع: نتأكد من البوابة نفسها قبل لا نضيف الرصيد (ما نصدق الرابط بروحه)
+  if (url.pathname === "/api/pay/callback") return json({ error: "الدفع مو متاح للحين." }, 501);
+  return json({ error: "not found" }, 404);
+}
+
 /* =========== المدخل =========== */
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
+    if (url.pathname.startsWith("/api/acct/") || url.pathname.startsWith("/api/pay/")) return acctApi(req, env, url);
     if ((url.pathname === "/api/create" || url.pathname === "/api/demo") && req.method === "POST") {
       // وضع التجربة: غرفة فيها لاعبين وهميين يتحكم فيهم القاضي من جهاز واحد
       const demo = url.pathname === "/api/demo" ? Math.min(15, Math.max(MIN_PLAYERS, parseInt(url.searchParams.get("n") || "8", 10) || 8)) : 0;
+      // الغرفة الحقيقية (مو التجربة): لازم حساب فيه رصيد، والخصم يصير لما تبدي اللعبة
+      let acct = null;
+      if (!demo && billingOn(env)) {
+        const c = await acctStub(env).check(bearer(req));
+        if (c.error) return json(c, c.code === "login" ? 401 : 402);
+        acct = c.email;
+      }
       for (let i = 0; i < 25; i++) {
         const code = String(1000 + Math.floor(Math.random() * 9000));
-        const r = await env.ROOM.get(env.ROOM.idFromName(code)).create(code, demo, !demo && url.searchParams.get("online") === "1");
+        const r = await env.ROOM.get(env.ROOM.idFromName(code)).create(code, demo, !demo && url.searchParams.get("online") === "1", acct);
         if (r) return json(r);
       }
       return json({ error: "ما قدرت أفتح غرفة، جرّب مرة ثانية." }, 503);
@@ -107,7 +156,7 @@ export class Room extends DurableObject {
   alive() { return !!this.s && Date.now() - (this.s.touched || 0) < ROOM_TTL; }
   async exists() { return this.alive(); }
 
-  async create(code, demo = 0, online = false) {
+  async create(code, demo = 0, online = false, acct = null) {
     if (this.alive()) return null;
     const judgeToken = tok();
     this.s = {
@@ -116,6 +165,7 @@ export class Room extends DurableObject {
       alive: {}, roles: {}, fakeCop: null, notes: {}, night: blankNight(), votes: {}, voteOrder: [], voteTurn: 0,
       sniperPending: null, winner: null, announce: "", timer: null, event: null, log: [], demo: !!demo,
       online: !!online, hostPid: null, deadline: null, chats: { mafia: [], grave: [], town: [] }, offSince: {},
+      acct: acct || null, // صاحب الغرفة: منه تنخصم الألعاب
     };
     const players = [];
     for (let i = 0; i < demo; i++) {
@@ -458,7 +508,7 @@ export class Room extends DurableObject {
           s.settings = { mode, mafia, talk, cops, docs, cap, adv: !!(+m.adv) };
         }
         break;
-      case "start": return this.start();
+      case "start": return this.paidStart();
       case "begin":
         // القاضي يبدا اللعبة بعد ما شاف الكل أدوارهم، والكروت تنشال
         if (s.phase === "deal") { Object.assign(s, { phase: "night0", step: "police", announce: "الليلة الأولى بدت." }); this.ev("dusk"); }
@@ -516,6 +566,36 @@ export class Room extends DurableObject {
     }
   }
 
+  // قبل لا تبدي اللعبة: إذا الغرفة لها صاحب، تنخصم منه لعبة وحدة. وإذا ما عنده رصيد ما تبدي
+  canStart() {
+    const s = this.s;
+    const ids = s.lobby.filter((id) => s.players[id]);
+    if (s.phase !== "lobby" || ids.length < MIN_PLAYERS) return false;
+    if (!s.online && !s.demo && !ids.every((id) => (s.ready || {})[id])) return false;
+    if (this.sets().mode === "custom") { const n = ids.length; if (this.mafiaFor(n) + this.copsFor(n) + this.docsFor(n) + 1 > n) return false; }
+    return true;
+  }
+  async paidStart() {
+    const s = this.s;
+    if (!s.acct || s.demo || !billingOn(this.env)) return this.start();
+    if (this.starting) return; // طلب بدء ثاني وهو للحين يخصم
+    if (!this.canStart()) return this.start();
+    this.starting = true;
+    try {
+      const r = await acctStub(this.env).consume(s.acct, `${s.code}:${s.createdAt}:${s.gen + 1}`);
+      if (!this.s) return;
+      if (!r.ok) {
+        const text = r.error || "ما قدرنا نخصم من الرصيد.";
+        for (const w of this.ctx.getWebSockets()) { const a = w.deserializeAttachment() || {}; if (a.judge || (a.pid && a.pid === s.hostPid)) this.err(w, text); }
+        return;
+      }
+      s.credits = r.credits;
+      return this.start();
+    } catch (e) {
+      console.log("consume", e && e.stack);
+      for (const w of this.ctx.getWebSockets()) { const a = w.deserializeAttachment() || {}; if (a.judge || (a.pid && a.pid === s.hostPid)) this.err(w, "صار خطأ بالرصيد، جرّب مرة ثانية."); }
+    } finally { this.starting = false; }
+  }
   start() {
     const s = this.s;
     const ids = s.lobby.filter((id) => s.players[id]);
