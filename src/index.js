@@ -30,6 +30,7 @@ function plurality(picks) {
 const ROOM_TTL = 12 * 3600e3;
 const EMPTY_TTL = 30 * 60e3; // غرفة ما دخلها أحد تنمسح بعد نص ساعة
 const MAX_SPECT = 20; // أقصى عدد متفرجين
+const HOST_GRACE = 5 * 60e3; // الأون لاين: المضيف إذا انقطع ٥ دقايق واللعبة ما بدت (أو خلصت) تتسكر الغرفة
 const RATE = { n: 25, ms: 2000 }; // أقصى عدد رسايل من الجهاز الواحد (٢٥ كل ثانيتين)
 /* ---------- الأون لاين: القاضي الآلي ---------- */
 const ON = { deal: 20, police: 45, doctor: 45, mafia: 60, all: 60, tieMore: 20, pre: 8, vote: 25, result: 8, sniper: 45, grace: 60 };
@@ -228,6 +229,11 @@ export class Room extends DurableObject {
     if (this.s && !Object.keys(this.s.players).length && !this.ctx.getWebSockets().length && Date.now() - this.s.createdAt >= EMPTY_TTL - 1000) {
       this.s = null; await this.ctx.storage.deleteAll(); return;
     }
+    // المضيف منقطع من ٥ دقايق واللعبة واقفة: نسكر الغرفة (وما ينخصم شي لأن اللعبة ما بدت)
+    if (this.s && this.s.online && this.s.hostIdleSince && !this.hostOn() && Date.now() >= this.s.hostIdleSince + HOST_GRACE - 500) {
+      await this.closeRoom("المضيف انقطع أكثر من ٥ دقايق، والغرفة تسكّرت.");
+      return;
+    }
     if (this.s && this.s.online && this.s.deadline && Date.now() >= this.s.deadline - 80) {
       this.s.deadline = null;
       try { this.tick(); } catch (e) { console.log("tick", e && e.stack); }
@@ -245,10 +251,19 @@ export class Room extends DurableObject {
 
   async save() { this.s.touched = Date.now(); await this.ctx.storage.put("s", this.s); }
   // المنبه: وقت الخطوة الجاية بالأون لاين، وإلا وقت مسح الغرفة
+  hostOn() { const h = this.s && this.s.hostPid; return !!h && this.ctx.getWebSockets().some((w) => w !== this.closing && (w.deserializeAttachment() || {}).pid === h); }
   async schedule() {
     if (!this.s) return;
-    const ttl = (this.s.touched || Date.now()) + ROOM_TTL + 60e3;
-    await this.ctx.storage.setAlarm(this.s.online && this.s.deadline ? Math.min(this.s.deadline, ttl) : ttl);
+    const s = this.s, ttl = (s.touched || Date.now()) + ROOM_TTL + 60e3;
+    // عداد المضيف المنقطع: يبدأ بس إذا اللعبة واقفة (انتظار أو خلصت)
+    const idle = s.online && s.hostPid && !this.hostOn() && (s.phase === "lobby" || s.phase === "over");
+    const was = s.hostIdleSince || null;
+    s.hostIdleSince = idle ? was || Date.now() : null;
+    if (s.hostIdleSince !== was) await this.ctx.storage.put("s", s);
+    const at = [ttl];
+    if (s.online && s.deadline) at.push(s.deadline);
+    if (s.hostIdleSince) at.push(s.hostIdleSince + HOST_GRACE);
+    await this.ctx.storage.setAlarm(Math.min(...at));
   }
 
   async fetch(req) {
@@ -280,6 +295,7 @@ export class Room extends DurableObject {
       if (!s.online && typeof m.token === "string" && m.token === s.judgeToken) { ws.serializeAttachment({ judge: true }); return this.broadcast(); }
       const pid = Object.keys(s.players).find((id) => s.players[id].token === m.token);
       if (m.token && pid && s.players[pid].kicked) { this.send(ws, { t: "kicked" }); return; }
+      if (m.token && pid && s.online && pid === s.hostPid && s.hostIdleSince) { s.hostIdleSince = null; ws.serializeAttachment({ pid }); await this.schedule(); } // المضيف رجع: نوقف العداد
       if (m.token && pid) { ws.serializeAttachment({ pid }); if (s.offSince && s.offSince[pid]) { delete s.offSince[pid]; if (s.online && s.phase !== "lobby") this.notice(`${this.nm(pid)} رجع للعبة`); } return this.broadcast(); }
       this.send(ws, { t: "need-name", phase: s.phase });
       return;
@@ -325,6 +341,7 @@ export class Room extends DurableObject {
       const still = [...this.ctx.getWebSockets()].some((w) => w !== ws && (w.deserializeAttachment() || {}).pid === a.pid);
       if (!still) { (s.offSince = s.offSince || {})[a.pid] = Date.now(); this.notice(`${this.nm(a.pid)} طلع من اللعبة، وممكن يغش 👀`); await this.save(); }
     }
+    if (s && s.online && a.pid && a.pid === s.hostPid) { this.closing = ws; try { await this.schedule(); } finally { this.closing = null; } } // المضيف انقطع: نبدأ العداد إذا اللعبة واقفة
     this.broadcast(ws);
   }
   async closeRoom(text) {
