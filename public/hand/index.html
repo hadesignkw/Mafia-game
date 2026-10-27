@@ -25,7 +25,7 @@
 .sum .us b{color:var(--us)}.sum .them b{color:var(--them)}
 .pl{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:10px 0;border-top:1px solid #ffffff12}
 .pl .num{font-size:1.2rem;min-height:46px;margin-top:6px}
-.sign{min-width:52px;font-size:1.3rem}
+.pm{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:6px 0}.pm .btn{min-height:36px;padding:4px 6px;font-size:.88rem;white-space:nowrap}.pm.neg [data-s="-1"].on{border-color:#d06c58;color:#ffd8cf;background:#d06c5833}
 .zat{border-color:#d06c58;color:#ffd8cf}
 .team .sub.need{color:var(--brass-hi);font-weight:600;font-size:.74rem}
 .dn{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;font-size:.88rem;border-radius:14px;background:#0006;border:1px solid var(--line);font-weight:600;cursor:pointer}
@@ -110,7 +110,7 @@ function renderEntry(){
   const head=`<h2>الجولة ${n+1} من ${ROUNDS}</h2><div class="tabs"><button class="chip ${S.mode==="ready"?"on":""}" data-mode="ready">جاهز</button><button class="chip ${S.mode==="manual"?"on":""}" data-mode="manual">يدوي</button></div>`;
   let body="";
   if(S.mode==="manual"){
-    body=`<div class="row">${[0,1].map(i=>`<label class="f"><span>${esc(S.names[i])}</span><div class="row" style="gap:6px"><button class="btn sign" data-sign="${i}" aria-label="موجب أو سالب">+</button><input class="num" id="m${i}" type="number" inputmode="numeric" min="0" placeholder="0"></div></label>`).join("")}</div>
+    body=`<div class="row">${[0,1].map(i=>`<label class="f"><span>${esc(S.names[i])}</span><div class="pm" data-pm="${i}"><button class="btn chip on" data-s="1">+ زايد</button><button class="btn chip" data-s="-1">− ناقص</button></div><input class="num" id="m${i}" type="number" inputmode="numeric" min="0" placeholder="0"></label>`).join("")}</div>
       <div class="row" style="margin-top:10px"><button class="btn primary" id="madd">سجّل</button></div>`;
   }else if(F.step==="start"){
     body=`<button class="btn primary" data-go="who" style="width:100%;min-height:48px;font-size:1.05rem">هند</button>`;
@@ -144,8 +144,8 @@ function renderEntry(){
   E.querySelectorAll("[data-pts]").forEach(i=>i.addEventListener("input",()=>{F.pts[0]=i.value;const p=calc(F);E.querySelectorAll(".sum b").forEach((b,k)=>b.textContent=fmt(p[k]))}));
   const rec=$("#rec");if(rec)rec.onclick=()=>{if(F.pts[0]===""){toast(F.both?"اكتب جم بيدهم":"اكتب جم بيد اللي نازل");return}addRound(calc(F),tag())};
   E.querySelectorAll("[data-zat]").forEach(b=>b.onclick=()=>doZat(F.team));
-  E.querySelectorAll("[data-sign]").forEach(b=>b.onclick=()=>{b.textContent=b.textContent==="+"?"−":"+"});
-  const madd=$("#madd");if(madd)madd.onclick=()=>{const v=[0,1].map(i=>{const x=Math.abs(parseInt($("#m"+i).value,10)||0);return E.querySelector(`[data-sign="${i}"]`).textContent==="−"?-x:x});if(!v[0]&&!v[1]){toast("اكتب النقاط أول");return}addRound(v,"يدوي")};
+  E.querySelectorAll(".pm").forEach(g=>g.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{g.querySelectorAll("[data-s]").forEach(x=>x.classList.toggle("on",x===b));g.classList.toggle("neg",b.dataset.s==="-1")}));
+  const madd=$("#madd");if(madd)madd.onclick=()=>{const v=[0,1].map(i=>{const x=Math.abs(parseInt($("#m"+i).value,10)||0);return E.querySelector(`[data-pm="${i}"]`).classList.contains("neg")?-x:x});if(!v[0]&&!v[1]){toast("اكتب النقاط أول");return}addRound(v,"يدوي")};
 }
 function addRound(p,tag){S.rounds.push({p,tag});F={step:"start"};save();sfx("add");render([!!p[0],!!p[1]]);if(S.rounds.length>=ROUNDS)finish()}
 function doZat(tm){S.zat=tm;save();finish()}
