@@ -1203,7 +1203,7 @@ async function createRoom(){
     if(!r.ok)throw new Error(j.error);
     homeErr="";window.scrollTo({top:0,behavior:"smooth"});await welcomeIn();busy=false;
     // الأون لاين: اللي يفتح الغرفة يدخل لاعب ويصير المضيف
-    sess=online?{code:j.code,token:null,judge:false,hostKey:j.token}:{code:j.code,token:j.token,judge:true};lsSet("mafia.sess",sess);firstState=true;connect();}
+    sess=online?{code:j.code,token:null,judge:false,hostKey:j.host}:{code:j.code,token:j.token,judge:true};lsSet("mafia.sess",sess);firstState=true;connect();}
   catch(e){homeErr=e.message||"ما قدرت أفتح غرفة.";}
   busy=false;render();
 }
