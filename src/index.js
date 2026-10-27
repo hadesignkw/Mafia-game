@@ -16,6 +16,8 @@ const TALK = 40;
 // أقصى عدد مافيا: لازم يبقى الشريف والبيطري والقناص، والمافيا أقل من الشعب
 const maxMafia = (n, c = 1, d = 1) => Math.max(1, Math.min(n - (c + d + 1), Math.floor((n - 1) / 2)));
 const DEF_SET = { mode: "default", mafia: 2, talk: TALK, cops: 1, docs: 1, cap: MAX_PLAYERS };
+const NIGHTS = ["الأولى", "الثانية", "الثالثة", "الرابعة", "الخامسة", "السادسة", "السابعة", "الثامنة", "التاسعة", "العاشرة"];
+const nightName = n => "الليلة " + (NIGHTS[n - 1] || n); // الليلة الأولى، الثانية… (بعد العاشرة رقم)
 const STEPS0 = ["police", "mafia"]; // الليلة الأولى: الشريف يفتش، والمافيا يتعارفون ويختارون النصاب
 const STEPS = ["mafia", "doctor", "police"];
 const STEPS_ADV = ["all"]; // الإعدادات المتقدمة: بعد الليلة الأولى الكل يختار بنفس الوقت
@@ -831,7 +833,7 @@ export class Room extends DurableObject {
     n.queried = { ...this.qmap(), [cop]: t };
     s.queriesUsed = { ...(s.queriesUsed && typeof s.queriesUsed === "object" ? s.queriesUsed : {}), [cop]: this.qUsed(cop) + 1 };
     const ans = isM(s.roles[t]) ? "مافيا" : "شعب";
-    this.note(cop, `${s.phase === "night0" ? "الليلة الأولى" : "الليلة " + s.round}: ${this.nm(t)} طلع ${ans}`);
+    this.note(cop, `${nightName(s.phase === "night0" ? 1 : s.round + 1)}: ${this.nm(t)} طلع ${ans}`);
     this.log(`${this.nm(cop)} (الشريف) فتّش عن ${this.nm(t)} ← ${ans}`);
   }
 
