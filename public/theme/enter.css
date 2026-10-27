@@ -1,0 +1,55 @@
+/* حركات الدخول: افتتاحية ديوان المدلل، وانتقال كرت المافيا من صفحة الألعاب للعبة. */
+
+/* ---------- 1) افتتاحية الديوان: الدلة تصب والورق ينفرش ---------- */
+html.dw-intro-on main *,html.dw-intro-on main{animation-play-state:paused!important}
+html.dw-intro-on body{overflow:hidden}
+.dw-intro{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  background:radial-gradient(70% 55% at 50% 58%,#3a2412 0%,#170e08 55%,#070504 100%);cursor:pointer;-webkit-tap-highlight-color:transparent;
+  transition:opacity .55s ease,transform .7s cubic-bezier(.6,0,.4,1)}
+.dw-intro.out{opacity:0;transform:scale(1.08);pointer-events:none}
+.dw-intro svg{width:min(92vw,420px);height:auto;overflow:visible}
+.dw-intro .t{font-family:"Readex Pro",Tahoma,sans-serif;font-weight:700;font-size:clamp(2.6rem,13vw,3.6rem);line-height:1;color:#efe3c8;
+  text-shadow:0 2px 0 #6b5428,0 0 30px rgb(255 214 140 / .35);opacity:0;animation:dwUp .7s 1.55s cubic-bezier(.2,.8,.2,1) forwards}
+.dw-intro .s{color:#b9a98c;font-size:1rem;opacity:0;animation:dwUp .6s 1.8s cubic-bezier(.2,.8,.2,1) forwards}
+.dw-intro .skip{position:absolute;bottom:calc(22px + env(safe-area-inset-bottom,0px));font-size:.8rem;color:#8f8370;opacity:0;animation:dwUp .4s .6s forwards}
+@keyframes dwUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.dw-intro .glow{opacity:0;animation:dwFade 1.2s .1s forwards}
+.dw-intro .base{opacity:0;animation:dwUp .6s .05s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes dwFade{to{opacity:1}}
+/* الدلة ترتفع وتميل تصب */
+.dw-intro .dallah{transform-box:view-box;transform-origin:132px 300px;animation:dwPour 2.3s .35s cubic-bezier(.45,0,.3,1) both}
+@keyframes dwPour{0%{transform:none}30%,72%{transform:translate(0,-62px) rotate(40deg)}100%{transform:none}}
+/* خيط القهوة */
+.dw-intro .stream{stroke-dasharray:90;stroke-dashoffset:90;animation:dwStream 1.25s .95s linear both}
+@keyframes dwStream{0%{stroke-dashoffset:90}30%{stroke-dashoffset:0}75%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:-90;opacity:.9}}
+.dw-intro .fill{transform-box:fill-box;transform-origin:50% 100%;animation:dwFill .9s 1.15s ease-out both}
+@keyframes dwFill{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+/* البخار */
+.dw-intro .steam path{fill:none;stroke:#f3e6cf;stroke-width:2.4;stroke-linecap:round;opacity:0;animation:dwSteam 1.8s ease-out infinite}
+.dw-intro .steam path:nth-child(1){animation-delay:1.55s}.dw-intro .steam path:nth-child(2){animation-delay:1.85s}.dw-intro .steam path:nth-child(3){animation-delay:2.15s}
+@keyframes dwSteam{0%{opacity:0;transform:translateY(6px)}30%{opacity:.75}100%{opacity:0;transform:translateY(-26px)}}
+/* الورق ينفرش على المسند */
+.dw-intro .card{transform-box:view-box;transform-origin:200px 336px;animation:dwFan .7s cubic-bezier(.2,1.3,.4,1) both}
+@keyframes dwFan{from{transform:rotate(0) translateY(4px)}}
+/* لمعة على الدلة */
+.dw-intro .sheen{animation:dwSheen 2.4s .2s ease-in-out both}
+@keyframes dwSheen{0%,100%{opacity:0}40%{opacity:.55}}
+
+/* ---------- 2) كرت المافيا يتقلب ويكبر لين يصير صفحة الاستقبال ---------- */
+.dw-zoom{position:fixed;z-index:100;perspective:1400px;pointer-events:none;transition:top .7s cubic-bezier(.6,0,.25,1),left .7s cubic-bezier(.6,0,.25,1),width .7s cubic-bezier(.6,0,.25,1),height .7s cubic-bezier(.6,0,.25,1)}
+.dw-zoom .in{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.6,0,.25,1)}
+.dw-zoom.go .in{transform:rotateY(180deg)}
+.dw-zoom .f,.dw-zoom .b{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;border-radius:6px 6px 22px 22px;transition:border-radius .7s}
+.dw-zoom.go .f,.dw-zoom.go .b{border-radius:0}
+.dw-zoom .f{background:radial-gradient(90% 120% at 15% 100%,#5b1512 0%,#2a0c0a 45%,#120807 100%);box-shadow:0 0 0 1px rgb(201 163 91 / .45)}
+.dw-zoom .f img{position:absolute;left:4px;bottom:-18px;width:170px;height:170px;object-fit:contain;object-position:bottom}
+.dw-zoom .b{transform:rotateY(180deg);display:grid;place-items:center;
+  background:radial-gradient(circle at 50% 45%,transparent 0 28%,#120807 75%),repeating-linear-gradient(45deg,#2a0f0e 0 9px,#3a1513 9px 18px);box-shadow:inset 0 0 0 6px #3a1513,inset 0 0 0 8px #c9a35b}
+.dw-zoom .b svg{width:90px;height:90px;opacity:.9;transition:transform .7s,opacity .7s}
+.dw-zoom.go .b svg{transform:scale(1.6);opacity:0}
+/* وصول صفحة المافيا: نفس لون الكرت يفتح عن الاستقبال */
+.dw-arrive{position:fixed;inset:0;z-index:100;pointer-events:none;background:radial-gradient(circle at 50% 45%,#3a1513,#120807 75%);
+  animation:dwArrive .75s .05s cubic-bezier(.5,0,.3,1) forwards}
+@keyframes dwArrive{to{opacity:0;transform:scale(1.15)}}
+
+@media (prefers-reduced-motion:reduce){.dw-intro,.dw-zoom,.dw-arrive{display:none!important}}

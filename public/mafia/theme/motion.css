@@ -1,0 +1,162 @@
+/* موشن اللعبة: الغرفة، التوزيع، الليل والصبح، الاغتيال، الكلام، التصويت، الطرد، النهاية.
+   قاعدة الخصوصية: كل حركة هني تطلع بنفس الشكل عند الكل، وما فيها شي يكشف دور أحد. */
+
+/* ---------- 3) الغرفة: كل لاعب يجلس على كرسي، ولمبة تنور إذا جهز ---------- */
+.seat{overflow:visible}
+.seat::before{content:"";position:absolute;top:5px;left:50%;width:64px;height:62px;margin-left:-32px;border-radius:20px 20px 8px 8px;z-index:0;pointer-events:none;
+  background:linear-gradient(180deg,#6a4426,#3b2414 70%);box-shadow:inset 0 0 0 2px rgb(201 163 91 / .35),0 6px 12px rgb(0 0 0 / .35)}
+.seat>*{position:relative;z-index:1}
+.seat .kick{position:absolute;z-index:2}
+.seat .bulb{position:absolute;top:-13px;left:50%;width:13px;height:13px;margin-left:-6.5px;border-radius:50% 50% 45% 45%;z-index:2;pointer-events:none;
+  background:radial-gradient(circle at 40% 35%,#6d655a,#3b352e);box-shadow:0 0 0 1.5px #1c1612;transition:background .4s,box-shadow .4s}
+.seat .bulb::before{content:"";position:absolute;bottom:100%;left:50%;width:1.5px;height:8px;margin-left:-.75px;background:#2b231d}
+.seat.rdy .bulb{background:radial-gradient(circle at 40% 35%,#fffbe6,#ffd479 60%,#e3a43c);box-shadow:0 0 0 1.5px #5a4219,0 0 12px 4px rgb(255 205 110 / .65),0 14px 30px 8px rgb(255 205 110 / .22);animation:mvBulb .7s ease-out}
+.seat.rdy{background-image:radial-gradient(70% 55% at 50% 0%,rgb(255 214 140 / .2),transparent 75%)}
+@keyframes mvBulb{0%{filter:brightness(.4)}20%{filter:brightness(1.4)}35%{filter:brightness(.6)}55%{filter:brightness(1.2)}100%{filter:none}}
+.seat.new{animation:mvSit .65s cubic-bezier(.2,1.3,.4,1) both}
+@keyframes mvSit{0%{opacity:0;transform:translateY(-26px) scale(.92)}60%{opacity:1;transform:translateY(3px) scaleY(.94)}100%{transform:none}}
+/* الكل جاهز: الإضاءة تخفت واللمبات تبرز */
+.noir{transition:filter 1.4s ease}
+body.all-ready .noir{filter:brightness(.45)}
+body.all-ready .seat.rdy .bulb{box-shadow:0 0 0 1.5px #5a4219,0 0 16px 6px rgb(255 205 110 / .8),0 18px 40px 12px rgb(255 205 110 / .3)}
+
+/* الباب يتسكر قبل التوزيع */
+#fx.fx-doors{background:radial-gradient(circle at 50% 30%,#3a2a18,#0b0705 75%);color:#f5e7c8;animation:mvDim 1.6s ease forwards}
+@keyframes mvDim{to{background-color:#000;filter:brightness(.8)}}
+#fx.fx-doors .dr{position:absolute;top:0;bottom:0;width:50.5%;z-index:1;
+  background:repeating-linear-gradient(90deg,#4a2e18 0 22px,#3d2513 22px 24px),linear-gradient(#5a3820,#2e1b0d);box-shadow:inset 0 0 0 10px #2a190c,inset 0 0 40px rgb(0 0 0 / .6)}
+#fx.fx-doors .dr.l{left:0;animation:mvDoorL .9s .15s cubic-bezier(.6,0,.3,1.15) both}
+#fx.fx-doors .dr.r{right:0;animation:mvDoorR .9s .15s cubic-bezier(.6,0,.3,1.15) both}
+#fx.fx-doors .dr i{position:absolute;top:50%;width:10px;height:46px;margin-top:-23px;border-radius:6px;background:linear-gradient(#f5d58a,#9a7330);box-shadow:0 2px 6px #000a}
+#fx.fx-doors .dr.l i{right:16px}#fx.fx-doors .dr.r i{left:16px}
+@keyframes mvDoorL{from{transform:translateX(-101%)}}
+@keyframes mvDoorR{from{transform:translateX(101%)}}
+#fx.fx-doors .big{position:relative;z-index:2;font-size:clamp(2rem,10vw,3rem);text-shadow:0 3px 18px #000;animation:fxin .45s 1s both}
+#fx.fx-doors .sub{position:relative;z-index:2;opacity:.8;text-shadow:0 2px 10px #000;animation:fxin .45s 1.2s both}
+
+/* ---------- 4) الكرت يطير من نص الطاولة لتلفونك ---------- */
+.flip.fly .flip-in{animation:mvFly 1.05s cubic-bezier(.2,.85,.25,1) both}
+@keyframes mvFly{0%{transform:translateY(-62vh) scale(.28) rotate(-260deg);opacity:0;filter:brightness(1.6)}
+  15%{opacity:1}62%{transform:translateY(10px) scale(1.04) rotate(5deg);filter:none}80%{transform:translateY(-3px) rotate(-2deg)}100%{transform:none}}
+
+/* ---------- 5) دخول الليل: الشمس تغيب والدنيا تظلم شوي شوي ---------- */
+#fx.mv-sky{background:#05070c!important}
+#fx .mvl{position:absolute;inset:0;pointer-events:none}
+#fx .mvl.ph{background:center/cover no-repeat;animation:mvKen 7s ease-out both}
+@keyframes mvKen{from{transform:scale(1.12)}to{transform:scale(1)}}
+#fx.fx-dusk .mvl.ph{background-image:url("/theme/farm-sunset.webp");background-position:30% 55%}
+#fx.fx-dusk .mvl.dk{background:linear-gradient(180deg,#02040d 0%,#07122b 55%,#0a1020 100%);opacity:0;animation:mvDark 2.8s .5s ease-in forwards}
+#fx.fx-dusk .mvl.sunglow{background:radial-gradient(28vmax 22vmax at 30% 62%,rgb(255 170 70 / .65),transparent 70%);animation:mvSet 2.6s .2s ease-in forwards}
+@keyframes mvSet{to{transform:translateY(16vh);opacity:0}}
+@keyframes mvDark{to{opacity:.9}}
+#fx.mv-sky.fx-dusk .star{display:block!important;opacity:0;animation:mvStar 1.6s ease-out forwards}
+@keyframes mvStar{to{opacity:.9}}
+#fx.fx-dusk .mvmoon{position:absolute;top:12%;right:14%;width:64px;height:64px;border-radius:50%;box-shadow:-14px 8px 0 0 #f1d48a;transform:rotate(-20deg);filter:drop-shadow(0 0 18px rgb(241 212 138 / .5));
+  opacity:0;animation:mvMoon 1.6s 2.6s cubic-bezier(.2,.8,.2,1) forwards;z-index:1}
+@keyframes mvMoon{from{opacity:0;transform:translateY(40px) rotate(-20deg)}to{opacity:1;transform:rotate(-20deg)}}
+#fx.mv-sky.fx-dusk .big{animation:fxin .6s 2.7s both;text-shadow:0 2px 20px #000}
+#fx.mv-sky.fx-dusk .sub{animation:fxin .6s 3s both;text-shadow:0 2px 14px #000}
+
+/* ---------- 6) الصبح: الشمس تطلع ---------- */
+#fx.fx-dawn .mvl.ph{background-image:var(--farm-day)}
+#fx.fx-dawn .mvl.dk{background:linear-gradient(180deg,#050a1c,#0c1630);opacity:.88;animation:mvLight 2.4s .3s ease-out forwards}
+@keyframes mvLight{to{opacity:0}}
+#fx.fx-dawn .mvl.lt{background:linear-gradient(#fff5db55,#fff5dbaa);opacity:0;animation:mvStar 1.6s 1.4s forwards}
+#fx.fx-dawn .mvsun{position:absolute;right:16%;top:16%;width:110px;height:110px;border-radius:50%;z-index:1;pointer-events:none;
+  background:radial-gradient(circle,#fff3c4,#ffc65c 60%,#f59b2f);box-shadow:0 0 80px 34px rgb(255 190 80 / .55);animation:mvRise 2.4s .2s cubic-bezier(.2,.8,.2,1) both}
+@keyframes mvRise{from{transform:translateY(70vh) scale(.8);filter:saturate(1.5) hue-rotate(-15deg)}}
+#fx.mv-sky.fx-dawn .big{animation:fxin .6s 1.5s both}
+#fx.mv-sky.fx-dawn .sub{animation:fxin .6s 1.8s both}
+
+/* اغتيال: منظار، طلقة، الاسم يتشقق ويطيح */
+#fx .mvscope{position:absolute;inset:0;z-index:8;pointer-events:none;overflow:hidden;animation:mvGone .01s 1.18s forwards}
+#fx .mvscope .ret{position:absolute;left:50%;top:44%;width:62vmin;height:62vmin;margin:-31vmin 0 0 -31vmin;border-radius:50%;
+  box-shadow:0 0 0 220vmax #000,inset 0 0 0 3px #111,inset 0 0 50px 10px #000c;animation:mvAim 1.15s cubic-bezier(.3,.1,.3,1) both}
+#fx .mvscope .ret::before,#fx .mvscope .ret::after{content:"";position:absolute;background:#0b0b0b}
+#fx .mvscope .ret::before{left:50%;top:0;bottom:0;width:2px;margin-left:-1px}
+#fx .mvscope .ret::after{top:50%;left:0;right:0;height:2px;margin-top:-1px}
+#fx .mvscope .ret i{position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px;border-radius:50%;background:#ff2b20;box-shadow:0 0 10px 3px #ff2b20aa}
+@keyframes mvAim{0%{transform:translate(-26vw,22vh)}35%{transform:translate(18vw,-10vh)}60%{transform:translate(-6vw,6vh)}80%{transform:translate(2vw,-1vh)}100%{transform:none}}
+@keyframes mvGone{to{opacity:0;visibility:hidden}}
+#fx .mvflash{position:absolute;inset:0;z-index:9;background:#fff;opacity:0;pointer-events:none;animation:mvFlash .5s 1.15s ease-out}
+@keyframes mvFlash{0%{opacity:1}100%{opacity:0}}
+#fx .mvname{position:absolute;inset:0;z-index:4;display:grid;place-items:center;pointer-events:none}
+#fx .mvname>*{grid-area:1/1}
+#fx .mvname b{font-family:var(--ruqaa);font-weight:700;font-size:clamp(2.8rem,15vw,5rem);line-height:1.2;color:#fff;text-shadow:0 0 30px #ff3b3088;padding:0 18px;max-width:92vw;overflow-wrap:anywhere;text-align:center;opacity:0}
+#fx .mvname .h1{clip-path:polygon(0 0,100% 0,100% 44%,62% 56%,38% 47%,0 58%);animation:mvShow .25s 1.3s forwards,mvFallA 1s 2.25s cubic-bezier(.5,0,.8,.4) forwards}
+#fx .mvname .h2{clip-path:polygon(0 58%,38% 47%,62% 56%,100% 44%,100% 100%,0 100%);animation:mvShow .25s 1.3s forwards,mvFallB .9s 2.3s cubic-bezier(.5,0,.8,.4) forwards}
+#fx .mvname svg{width:min(88vw,420px);height:90px;opacity:0;animation:mvShow .1s 1.75s forwards,mvGone .01s 2.25s forwards}
+#fx .mvname svg path{fill:none;stroke:#ffd9d4;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:500;stroke-dashoffset:500;animation:cut .45s 1.75s ease-out forwards;filter:drop-shadow(0 0 6px #ff3b30)}
+@keyframes mvShow{to{opacity:1}}
+@keyframes mvFallA{to{transform:translate(-14px,70vh) rotate(-16deg);opacity:0}}
+@keyframes mvFallB{to{transform:translate(18px,80vh) rotate(12deg);opacity:0}}
+/* محتوى الاغتيال الأصلي يطلع بعد ما يطيح الاسم */
+#fx.fx-kill.mv .t1{animation-delay:3s}
+#fx.fx-kill.mv .t2{animation-delay:3.2s}
+#fx.fx-kill.mv .pola{animation-delay:3s}
+#fx.fx-kill.mv .pola .xm path{animation-delay:3.9s}
+#fx.fx-kill.mv .pola .xm path+path{animation-delay:4.15s}
+#fx.fx-kill.mv .big{animation-delay:3.3s}
+#fx.fx-kill.mv .sub{animation-delay:3.6s!important}
+#fx.fx-kill.mv .sub+.sub{animation-delay:4s!important}
+#fx.fx-kill.mv>.chip{animation:fxin .4s 4.3s both}
+#fx.fx-kill.mv .judgeclose .btn{animation-delay:4.4s}
+
+/* فزعة: نبض قلب والشاشة تنور أخضر */
+#fx .mvlife{position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(60vmax 50vmax at 50% 45%,rgb(127 224 191 / .45),transparent 70%);opacity:0;animation:mvPulse 1s .2s ease-out 3,mvStay 1.2s 3.2s ease forwards}
+@keyframes mvPulse{0%{opacity:0;transform:scale(.85)}18%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.15)}}
+@keyframes mvStay{to{opacity:.6}}
+
+/* ---------- 7) الكلام: آخر 5 ثواني يرجف ويحمر ---------- */
+.timer.hot{color:var(--blood);border-color:color-mix(in srgb,var(--blood) 70%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--blood) 40%,transparent),0 0 40px color-mix(in srgb,var(--blood) 30%,transparent)}
+.timer.hot .ring{animation:mvJit .45s ease-in-out infinite}
+.timer.hot .ring .t{color:var(--blood)}
+@keyframes mvJit{0%,100%{transform:none}20%{transform:translate(-2px,1px) rotate(-1.5deg)}40%{transform:translate(2px,-1px) rotate(1.5deg)}60%{transform:translate(-1px,-1px) rotate(-1deg)}80%{transform:translate(1px,1px) rotate(1deg)}}
+
+/* ---------- 8) التصويت: فيشة تطيح على صورة اللاعب وتتكوم ---------- */
+.vcard .chips{display:flex;flex-direction:row-reverse;align-items:flex-end;height:30px;padding-inline-start:6px}
+.vcard .chips i{width:24px;height:24px;margin-inline-start:-14px;border-radius:50%;flex:none;
+  background:radial-gradient(circle,#b8322c 0 38%,#efe3c8 39% 46%,#b8322c 47%);box-shadow:0 0 0 2px #efe3c8 inset,0 2px 0 #5a1310,0 3px 6px rgb(0 0 0 / .45)}
+.vcard .chips i:nth-child(3n+2){background:radial-gradient(circle,#1f4e8a 0 38%,#efe3c8 39% 46%,#1f4e8a 47%)}
+.vcard .chips i:nth-child(3n){background:radial-gradient(circle,#2f6b55 0 38%,#efe3c8 39% 46%,#2f6b55 47%)}
+.vcard .chips i.drop{animation:mvChip .7s cubic-bezier(.3,.1,.4,1) both}
+@keyframes mvChip{0%{transform:translateY(-120px) rotate(-200deg) scale(1.3);opacity:0}55%{transform:translateY(4px) rotate(0) scale(1);opacity:1}70%{transform:translateY(-8px)}85%{transform:translateY(1px)}100%{transform:none}}
+.vcard .chips em{font-style:normal;font-size:.7rem;color:var(--muted);align-self:center;margin-inline-start:4px}
+
+/* ---------- 9) الطرد: المطرقة تضرب ثلاث مرات، ختم مطرود، ويمشي برا ---------- */
+#fx.fx-out.mv .gv{animation:mvGavel 1.15s linear both}
+@keyframes mvGavel{0%{transform:rotate(-70deg)}24%{transform:rotate(-70deg);animation-timing-function:cubic-bezier(.5,0,.75,0)}
+  30%{transform:rotate(4deg)}38%{transform:rotate(-55deg);animation-timing-function:cubic-bezier(.5,0,.75,0)}
+  60%{transform:rotate(4deg)}68%{transform:rotate(-55deg);animation-timing-function:cubic-bezier(.5,0,.75,0)}
+  92%{transform:rotate(4deg)}96%{transform:rotate(-4deg)}100%{transform:rotate(0)}}
+#fx.fx-out.mv.hit{animation:mvKnock 1.1s .3s linear}
+@keyframes mvKnock{0%,30%,62%,96%{transform:none}5%,35%,67%{transform:translateY(7px)}12%,42%,74%{transform:translateY(-3px)}}
+#fx.fx-out.mv .pola{animation:polaIn .9s .1s cubic-bezier(.2,1.25,.4,1) both,mvWalk 2s 2.8s ease-in forwards}
+#fx.fx-out.mv .pola .stamp{animation-delay:1.25s}
+@keyframes mvWalk{0%{transform:rotate(-4deg)}10%{transform:translate(-10px,-6px) rotate(-8deg)}20%{transform:translate(-30px,0) rotate(-1deg)}30%{transform:translate(-55px,-6px) rotate(-8deg)}
+  40%{transform:translate(-85px,0) rotate(-1deg)}55%{transform:translate(-130px,-6px) rotate(-8deg)}70%{transform:translate(-190px,0) rotate(-2deg)}100%{transform:translate(-110vw,-6px) rotate(-8deg);opacity:.2}}
+
+/* ---------- 10) النهاية ---------- */
+#fx .mvcigar{position:absolute;z-index:3;bottom:calc(70px + env(safe-area-inset-bottom,0px));right:8%;width:150px;height:60px;pointer-events:none;transform:rotate(-14deg);animation:fxin .6s 1.2s both}
+#fx .mvcigar svg{width:100%;height:100%;overflow:visible}
+#fx .mvcigar .tip{animation:mvEmber 1.6s ease-in-out infinite}
+@keyframes mvEmber{0%,100%{fill:#ff7a2a;filter:drop-shadow(0 0 4px #ff5a1a)}50%{fill:#ffd36b;filter:drop-shadow(0 0 12px #ff7a2a)}}
+#fx .mvsmoke{position:absolute;z-index:2;inset:0;pointer-events:none;overflow:hidden}
+#fx .mvsmoke i{position:absolute;bottom:calc(110px + env(safe-area-inset-bottom,0px));right:calc(8% + 12px);width:60px;height:60px;border-radius:50%;
+  background:radial-gradient(circle,rgb(220 220 225 / .38),transparent 70%);filter:blur(4px);opacity:0;animation:mvPuff 4.5s ease-out infinite}
+@keyframes mvPuff{0%{opacity:0;transform:translate(0,0) scale(.4)}15%{opacity:.9}100%{opacity:0;transform:translate(-90px,-60vh) scale(4.5)}}
+/* كشف الأدوار: الكروت تتقلب وحدة ورا الثانية */
+.reveal .mini{animation:none}
+.reveal .mini::before{content:"";position:absolute;inset:0;z-index:6;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(circle at 50% 45%,transparent 0 22%,rgb(18 8 7 / .9) 70%),repeating-linear-gradient(45deg,#2a0f0e 0 6px,#3a1513 6px 12px);box-shadow:inset 0 0 0 3px #3a1513,inset 0 0 0 4px var(--brass,#c9a35b)}
+.reveal.go .mini{animation:mvRev .8s var(--d,.3s) cubic-bezier(.3,.6,.3,1) both}
+.reveal.go .mini::before{animation:mvRevB .8s var(--d,.3s) linear both}
+.reveal.done .mini::before{display:none}
+@keyframes mvRev{0%{transform:perspective(700px) rotateY(0) scale(.96)}50%{transform:perspective(700px) rotateY(90deg) scale(1.06)}100%{transform:perspective(700px) rotateY(0) scale(1)}}
+@keyframes mvRevB{0%,49.9%{opacity:1}50%,100%{opacity:0}}
+
+@media (prefers-reduced-motion:reduce){
+  #fx .mvscope,#fx .mvflash,#fx .mvname,#fx .mvsmoke,.seat .bulb{animation:none!important}
+  #fx .mvscope,#fx .mvflash,#fx .mvname{display:none}
+  .reveal .mini::before{display:none}
+}

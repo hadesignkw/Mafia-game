@@ -691,7 +691,7 @@ span.ch-cop img{animation-delay:-1s}span.ch-doctor img{animation-delay:-2s}span.
 .pola .am{stroke:#ff3b30;stroke-width:3;animation:aim 1s .6s cubic-bezier(.2,.8,.2,1) both}
 @keyframes polaIn{from{transform:translateY(-70vh) rotate(28deg);opacity:0}70%{transform:translateY(6px) rotate(-7deg)}}
 .fx-out .pola{margin-top:4px}
-.fx-out .pola .stamp{position:absolute;inset:0;margin:auto;width:fit-content;height:fit-content;font-size:3.4rem;padding:0 16px;line-height:1.2;background:rgb(13 9 4 / .6);animation-delay:1s}
+.fx-out .pola .stamp{position:absolute;inset:0;margin:auto;width:fit-content;height:fit-content;font-size:2.4rem;padding:0 16px;line-height:1.2;background:rgb(13 9 4 / .6);animation-delay:1s}
 .fx-snipe .pola{transform:rotate(3deg)}
 
 /* آخر اللعبة: الكل ينكشف كرته */
@@ -938,10 +938,14 @@ body[data-phase=day] .pick:not(.on):not(.res){background:rgba(255,250,239,.92);c
 <link rel="stylesheet" href="/mafia/theme/reception.css">
 <script src="/mafia/theme/reception.js"></script>
 <link rel="stylesheet" href="/mafia/theme/live.css">
+<link rel="stylesheet" href="/theme/enter.css?v=1">
+<link rel="stylesheet" href="/mafia/theme/motion.css?v=1">
+<script src="/mafia/theme/motion.js?v=1"></script>
 <script src="/mafia/theme/live.js" defer></script>
 <script src="/mafia/theme/voice.js" defer></script>
 </head>
 <body>
+<script src="/theme/enter.js?v=1"></script>
 <div class="noir" aria-hidden="true"><span class="smoke s1"></span><span class="smoke s2"></span><span class="smoke s3"></span><span class="vig"></span><span class="grain"></span></div>
 <div class="wrap" id="app">
   <div><h1>غرفة المافيا</h1><p class="muted">لحظة…</p></div>
@@ -1042,7 +1046,7 @@ function anon(name){const c=seatColor(name),l=esc([...(name||"")][0]||"؟");
   return`<svg class="anon" viewBox="0 0 120 120" aria-hidden="true"><rect width="120" height="120" fill="#201915"/><circle cx="60" cy="120" r="70" fill="${c}" opacity=".12"/><path d="M14 124c2-34 22-48 46-48s44 14 46 48z" fill="${c}" opacity=".8"/><circle cx="60" cy="46" r="25" fill="${c}"/><text x="60" y="56" text-anchor="middle" font-family="Readex Pro,sans-serif" font-weight="700" font-size="30" fill="#1d1408">${l}</text></svg>`}
 /* صورة بولارويد للي طلع، والعلامة حسب طريقة طلعته */
 function polaroid(name,mark){
-  const m=mark==="x"?`<svg class="xm" viewBox="0 0 100 100" aria-hidden="true"><path d="M18 18 82 82M82 18 18 82"/></svg>`:mark==="out"?`<div class="stamp">طلع</div>`:mark==="aim"?`<svg class="am" viewBox="0 0 100 100" fill="none" aria-hidden="true"><circle cx="50" cy="50" r="30"/><path d="M50 8v24M50 68v24M8 50h24M68 50h24"/></svg>`:"";
+  const m=mark==="x"?`<svg class="xm" viewBox="0 0 100 100" aria-hidden="true"><path d="M18 18 82 82M82 18 18 82"/></svg>`:mark==="out"?`<div class="stamp">مطرود</div>`:mark==="aim"?`<svg class="am" viewBox="0 0 100 100" fill="none" aria-hidden="true"><circle cx="50" cy="50" r="30"/><path d="M50 8v24M50 68v24M8 50h24M68 50h24"/></svg>`:"";
   return`<div class="pola ${mark||""}"><div class="ph">${anon(name)}${m}</div><div class="cap">${esc(name)}</div></div>`}
 const SKY=`<svg class="sky" viewBox="0 0 360 100" preserveAspectRatio="xMidYMax meet" fill="currentColor" aria-hidden="true"><path d="M0 100V76h25V65h22v35h18V73h24v27h24V80h22v20h20V69h30v31h20V77h22v23h26V68h24v32h25V78h24v22z"/><path d="M264 100l4-81h3l4 81zm33 0 3-70h3l4 70zm-59 0 2-91h2l2 91z"/><ellipse cx="269.5" cy="45" rx="12" ry="15"/><ellipse cx="269.5" cy="24" rx="7" ry="8"/><ellipse cx="301.5" cy="55" rx="10" ry="13"/><path d="M164 100V31l16-20 8 89z"/></svg>`;
 
@@ -1380,6 +1384,7 @@ function handleEvent(prev){
   if(firstState&&!fresh){firstState=false;return}
   firstState=false;
   if(e.type==="win"&&e.after&&!e.after.closed)fxQ.push(e.after);
+  if(e.type==="deal"&&!(window.MV&&MV.reduced()))fxQ.push({type:"doors",id:e.id+"-doors"});
   fxQ.push(e);playNext();
 }
 function playNext(){
@@ -1392,13 +1397,14 @@ function playNext(){
   const tap=`<div class="tap">دوس عشان تكمل</div>`;
   if(e.type==="answer"){const bad=/مافيا/.test(e.text);cls="fx-answer "+(bad?"fx-answer-m":"fx-answer-t");dur=10000;
     html=`<div class="big">${bad?"مافيا!":"شعب"}</div><div class="sub">${esc(ar(e.text))}</div><div class="bar"><i></i></div><div class="muted small">احفظها، ما بترجع تطلع لك</div>`;buzz(bad?[60,40,60]:40)}
+  else if(e.type==="doors"){cls="fx-doors";dur=1700;html=`<div class="dr l"><i></i></div><div class="dr r"><i></i></div><div class="big">سكّرنا الباب</div><div class="sub">محد يطلع ولا يدخل</div>`}
   else if(e.type==="deal"){cls="fx-deal";dur=2400;html=`<div class="fan">${[-30,-15,0,15,30].map((r,i)=>`<i style="transform:rotate(${r}deg);animation-delay:${i*.06}s"></i>`).join("")}</div><div class="big">توزعت الكروت</div><div class="sub">${isMe?"اقلب كرتك وغطّ الشاشة عن اللي جنبك":"كل واحد يشوف دوره بتلفونه"}</div>`;dealAnim=true;buzz(60)}
-  else if(e.type==="dusk"){cls="fx-dusk";dur=7000;html=stars(20)+`<div class="rx-event-scene dusk" aria-hidden="true"></div>`+`<div class="big">الليل</div><div class="sub">كل واحد يتابع تلفونه</div>`}
-  else if(e.type==="dawn"){cls="fx-dawn";dur=7000;html=`<div class="rx-event-scene dawn" aria-hidden="true"></div>`+`<div class="big">الصبح</div><div class="sub">بدا النهار</div>`}
-  else if(e.type==="kill"){cls="fx-kill";dur=12000;const tape="مسرح جريمة · لا تقرب · ".repeat(8);html=`<div class="tape t1"><span>${tape}</span></div><div class="tape t2"><span>${tape}</span></div>${polaroid(e.who,"x")}<div class="big">اغتيال</div><div class="sub">تم اغتيال ${esc(e.who)}</div><div class="sub" style="animation-delay:1.3s">صيدة سهلة والبيطري مدوّج 😴</div>${e.sniper?`<div class="chip m" style="font-size:1rem">قناص! بيسحب واحد وياه</div>`:""}`;buzz([80,60,200])}
-  else if(e.type==="saved"){cls="fx-saved";dur=12000;html=`<svg class="cross" viewBox="0 0 64 64" fill="currentColor"><path d="M24 6h16v18h18v16H40v18H24V40H6V24h18z"/></svg><svg class="ecg" viewBox="0 0 320 90"><path d="M0 50 H90 L105 20 L120 80 L140 8 L158 70 L172 50 H320"/></svg><div class="big">اغتيال شامط</div><div class="sub">البيطري موجووووود 🔥</div>`;buzz([40,80,40])}
-  else if(e.type==="nokill"){cls="fx-dawn";dur=12000;html=`<div class="rx-event-scene dawn" aria-hidden="true"></div>`+`<div class="big">خرمس</div><div class="sub">المافيا ما عرفوا يغتالون أحد</div>`}
-  else if(e.type==="out"){cls="fx-out hit";dur=12000;html=`<svg class="gavel" viewBox="0 0 120 120" aria-hidden="true"><g class="gv"><rect x="54" y="40" width="10" height="66" rx="4" fill="#8a5a33"/><rect x="26" y="14" width="66" height="30" rx="8" fill="#5a3720" stroke="#b8cadd" stroke-width="3"/><rect x="21" y="19" width="9" height="20" rx="2" fill="#b8cadd"/><rect x="88" y="19" width="9" height="20" rx="2" fill="#b8cadd"/></g><ellipse cx="59" cy="112" rx="40" ry="6" fill="#2a1a0c"/></svg>${polaroid(e.who,"out")}<div class="sub" style="margin-top:14px">${esc(e.who)} طلع بالتصويت</div><div class="muted">${ar(e.votes)} صوت</div>${e.sniper?`<div class="chip m" style="font-size:1rem">قناص! بيسحب واحد وياه</div>`:""}`;buzz([30,40,160])}
+  else if(e.type==="dusk"){cls="fx-dusk mv-sky";dur=7000;html=(window.MV?MV.sky("dusk"):"")+stars(20)+`<div class="rx-event-scene dusk" aria-hidden="true"></div>`+`<div class="big">الليل</div><div class="sub">كل واحد يتابع تلفونه</div>`}
+  else if(e.type==="dawn"){cls="fx-dawn mv-sky";dur=7000;html=(window.MV?MV.sky("dawn"):"")+`<div class="rx-event-scene dawn" aria-hidden="true"></div>`+`<div class="big">الصبح</div><div class="sub">بدا النهار</div>`}
+  else if(e.type==="kill"){cls="fx-kill"+(window.MV&&!MV.reduced()?" mv":"");dur=12000;const tape="مسرح جريمة · لا تقرب · ".repeat(8);html=(cls.includes(" mv")?MV.scope(e.who):"")+`<div class="tape t1"><span>${tape}</span></div><div class="tape t2"><span>${tape}</span></div>${polaroid(e.who,"x")}<div class="big">اغتيال</div><div class="sub">تم اغتيال ${esc(e.who)}</div><div class="sub" style="animation-delay:1.3s">صيدة سهلة والبيطري مدوّج 😴</div>${e.sniper?`<div class="chip m" style="font-size:1rem">قناص! بيسحب واحد وياه</div>`:""}`;buzz([80,60,200])}
+  else if(e.type==="saved"){cls="fx-saved";dur=12000;html=(window.MV?MV.life():"")+`<svg class="cross" viewBox="0 0 64 64" fill="currentColor"><path d="M24 6h16v18h18v16H40v18H24V40H6V24h18z"/></svg><svg class="ecg" viewBox="0 0 320 90"><path d="M0 50 H90 L105 20 L120 80 L140 8 L158 70 L172 50 H320"/></svg><div class="big">اغتيال شامط</div><div class="sub">البيطري موجووووود 🔥</div>`;buzz([40,80,40])}
+  else if(e.type==="nokill"){cls="fx-dawn mv-sky";dur=12000;html=(window.MV?MV.sky("dawn"):"")+`<div class="rx-event-scene dawn" aria-hidden="true"></div>`+`<div class="big">خرمس</div><div class="sub">المافيا ما عرفوا يغتالون أحد</div>`}
+  else if(e.type==="out"){cls="fx-out hit"+(window.MV&&!MV.reduced()?" mv":"");dur=12000;html=`<svg class="gavel" viewBox="0 0 120 120" aria-hidden="true"><g class="gv"><rect x="54" y="40" width="10" height="66" rx="4" fill="#8a5a33"/><rect x="26" y="14" width="66" height="30" rx="8" fill="#5a3720" stroke="#b8cadd" stroke-width="3"/><rect x="21" y="19" width="9" height="20" rx="2" fill="#b8cadd"/><rect x="88" y="19" width="9" height="20" rx="2" fill="#b8cadd"/></g><ellipse cx="59" cy="112" rx="40" ry="6" fill="#2a1a0c"/></svg>${polaroid(e.who,"out")}<div class="sub" style="margin-top:14px">${esc(e.who)} طلع بالتصويت</div><div class="muted">${ar(e.votes)} صوت</div>${e.sniper?`<div class="chip m" style="font-size:1rem">قناص! بيسحب واحد وياه</div>`:""}`;buzz([30,40,160])}
   else if(e.type==="tie"){cls="fx-tie";dur=12000;html=`<svg class="scale" viewBox="0 0 120 90" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"><path d="M60 8v74M30 84h60M14 22h92M14 22 4 52h22zM106 22l-10 30h22z"/></svg><div class="big">${e.none?"ما أحد صوّت":"تعادل"}</div><div class="sub">التصويت ما ينحسب</div>`}
   else if(e.type==="snipe"){cls="fx-snipe";dur=12000;html=`${polaroid(e.who,"aim")}<div class="big" style="font-size:2.4rem">القناص سحبه</div>`;buzz([20,30,20,30,200])}
   else if(e.type==="cast"){cls="fx-cast hit";dur=2600;
@@ -1407,21 +1413,27 @@ function playNext(){
     buzz(e.t===me?[60,40,120]:30)}
   else if(e.type==="win"){const t=e.winner==="town";cls="fx-win fx-win-"+(t?"town":"mafia");dur=6000;
     const pic=t?`<svg viewBox="0 0 110 90" fill="#d4e2f4"><path d="M10 70 4 18l26 22L55 6l25 34 26-22-6 52z"/><rect x="10" y="74" width="90" height="10" rx="3"/></svg>`:`<svg viewBox="0 0 64 64" fill="#ff6b62">${ICON.mafia.replace(/<\/?svg[^>]*>/g,"")}</svg>`;
-    html=`<div class="news"><div class="mast">جريدة الليل</div><div class="date">عدد خاص · آخر الأخبار</div><div class="head">${t?"الشعب صااااحي ومالكم فيها 🔥":"المافيا خذوها طررررق 🔥"}</div><div class="nb"><div class="pic">${pic}</div><div class="cols"><i></i><i></i><i></i><i></i><i></i><i style="width:60%"></i></div></div></div><div class="sub">${t?"صادوا كل المافيا 🔥":"صاروا قد الشعب"}</div>`;dur=7000;
+    html=`<div class="news"><div class="mast">جريدة الليل</div><div class="date">عدد خاص · آخر الأخبار</div><div class="head">${t?"الشعب صااااحي ومالكم فيها 🔥":"المافيا خذوها طررررق 🔥"}</div><div class="nb"><div class="pic">${pic}</div><div class="cols"><i></i><i></i><i></i><i></i><i></i><i style="width:60%"></i></div></div></div><div class="sub">${t?"صادوا كل المافيا 🔥":"صاروا قد الشعب"}</div>`+(!t&&window.MV?MV.cigar():"");dur=7000;
     buzz([100,60,100,60,300])}
   else {fxBusy=false;return playNext()}
   const sticky=isSticky(e.type);
   const tapH=!sticky?tap:(st&&st.judge?`<div class="tap judgeclose"><button class="btn primary" data-fx="close">سكّر النتيجة عند الكل</button></div>`:`<div class="tap">القاضي يسكرها لما يشوفها الكل</div>`);
   const demoH=demo&&st&&!st.judge?`<div class="democlose"><button class="btn sm" data-fx="judge">رجوع لشاشة القاضي</button></div>`:"";
   fx.className="fx-enter "+cls+(sticky?" sticky":"");fx.innerHTML=html+tapH+demoH;fx.hidden=false;
-  if(e.type==="win")confettiStop=confetti(fx,e.winner==="town"?["#d4e2f4","#72b096","#f4ffef","#d2a74c"]:["#cf5c55","#7a1d1f","#ffb4ab","#2a0a0b"],e.winner!=="town");
+  if(e.type==="win"){const s1=confetti(fx,e.winner==="town"?["#d4e2f4","#72b096","#f4ffef","#d2a74c"]:["#cf5c55","#7a1d1f","#ffb4ab","#2a0a0b"],e.winner!=="town"),s2=e.winner==="town"&&window.MV?MV.fireworks(fx):null;confettiStop=s1||s2?()=>{s1&&s1();s2&&s2()}:null}
   clearTimeout(fxTimer);if(!sticky)fxTimer=setTimeout(closeFx,matchMedia("(prefers-reduced-motion: reduce)").matches?Math.min(dur,1800):dur);
   if(night)document.body.dataset.phase="night";
 }
+/* كشف الأدوار بالنهاية: الكروت تتقلب وحدة وحدة بعد ما تسكر شاشة الفوز */
+let revealGen=null;
+function revealGo(){const r=document.querySelector(".reveal");if(!r||!st)return;revealGen=st.gen;r.classList.remove("done");r.classList.add("go")}
+function revealSync(){const r=document.querySelector(".reveal");if(!r||!st)return;if(r.classList.contains("go")||r.classList.contains("done"))return;
+  if((curFx&&curFx.type==="win")||fxQ.some(x=>x.type==="win"))return;
+  if(revealGen===st.gen)r.classList.add("done");else revealGo()}
 function closeFx(){
-  const fx=$("#fx");curFx=null;if(fx.hidden){fxBusy=false;return playNext()}
+  const fx=$("#fx"),was=curFx&&curFx.type;curFx=null;if(fx.hidden){fxBusy=false;return playNext()}
   clearTimeout(fxTimer);fx.classList.add("fx-leave");
-  setTimeout(()=>{fx.hidden=true;fx.innerHTML="";fx.className="";if(confettiStop){confettiStop();confettiStop=null}fxBusy=false;playNext()},380);
+  setTimeout(()=>{fx.hidden=true;fx.innerHTML="";fx.className="";if(confettiStop){confettiStop();confettiStop=null}fxBusy=false;if(was==="deal"&&window.MV)MV.flyCard();if(was==="win")revealGo();playNext()},380);
 }
 $("#fx").addEventListener("click",e=>{
   if(e.target.closest("[data-fx=close]")){send({t:"closeFx"});closeFx();return}
@@ -1453,7 +1465,7 @@ function drawTimer(){
   const el=$("#timer");if(!el)return;
   if(!st||!st.timer){el.hidden=true;return}
   const left=Math.max(0,(st.timer.endsAt-(Date.now()+offset))/1000);
-  el.hidden=false;el.classList.toggle("end",left<=0);
+  el.hidden=false;el.classList.toggle("end",left<=0);el.classList.toggle("hot",left>0&&left<=5);
   const tt=el.querySelector(".t"),sec=left<=0?"0":ar(Math.ceil(left));
   if(tt.textContent!==sec){tt.textContent=sec;if(left>0&&left<=10)receptionAudio?.play("tick",{gain:left<=5?.7:.45,vary:false});if(left<=10){tt.classList.remove("tick");void tt.offsetWidth;tt.classList.add("tick")}}
   const C=2*Math.PI*26;el.querySelector(".fgc").style.strokeDashoffset=String(C*(1-left/st.timer.dur));
@@ -1469,6 +1481,7 @@ const rowCls=id=>{if(seenRows.has(id))return"";seenRows.add(id);return"new"};
 function render(){
   document.body.dataset.phase=phaseAttr();
   document.body.classList.toggle("judge-view",!!(st&&view==="game"&&st.judge));
+  document.body.classList.toggle("all-ready",!!(st&&view==="game"&&st.phase==="lobby"&&!st.online&&st.ready&&st.players.length>=2&&st.players.every(p=>st.ready[p.id])));
   document.body.classList.toggle("adv-dim",!!(st&&view==="game"&&st.adv&&!st.judge&&(st.phase==="night"||st.phase==="night0")));
   if(receptionAudio)receptionAudio.setAmb(phaseAmb());
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content",phaseAttr()==="day"?"#f2ede3":"#040405");
@@ -1485,10 +1498,10 @@ function render(){
   else{const html=st.judge?judgeView():playerView();if(changed||html!==app._html||!app.firstChild){
     // الكرت والمؤقت يبقون نفس العنصر إذا ما تغيروا، عشان حركتهم ما تعيد وتومض
     const old={};if(!changed)app.querySelectorAll("[data-keep]").forEach(e=>old[e.dataset.keep]=e);
-    app.innerHTML=html;app._html=html;
+    const fl=window.MV?MV.flipBefore():null;app.innerHTML=html;app._html=html;if(fl)MV.flipAfter(fl);
     app.querySelectorAll("[data-keep]").forEach(e=>{const o=old[e.dataset.keep];if(o&&o!==e)e.replaceWith(o)})}}
   if(keep){const k=document.getElementById(keep);if(k&&k.tagName==="INPUT")k.focus()}
-  drawTimer();dealAnim=false;syncReception();
+  drawTimer();dealAnim=false;syncReception();revealSync();
   if(st&&st.online){scrollChats();keepAwake()}
   if(demo){const t=document.querySelector(".tab.on");if(t)t.scrollIntoView({block:"nearest",inline:"center"})}
 }
@@ -1526,13 +1539,14 @@ function syncReception(){
 function phaseScene(){return '';}
 function sceneSound(e){
   if(!receptionAudio?.enabled)return;const A=receptionAudio;A.resume();const type=e.type||e,P=(n,o)=>A.play(n,o);
-  if(type==="deal"){P("shuffle",{gain:.9});P("slide",{gain:.6,delay:1.2});P("slide",{gain:.6,delay:1.45});P("slide",{gain:.6,delay:1.7})}
+  if(type==="doors"){P("door",{gain:.7,delay:.55})}
+  else if(type==="deal"){P("shuffle",{gain:.9});P("slide",{gain:.6,delay:1.2});P("slide",{gain:.6,delay:1.45});P("slide",{gain:.6,delay:1.7})}
   else if(type==="dusk"){P("whoosh",{gain:.5});P("door",{gain:.45,delay:.35})}
   else if(type==="dawn"){P("rooster",{gain:.5,delay:.3})}
-  else if(type==="kill"){P("sniper",{gain:1.3,vary:false});P("gasp",{gain:.55,delay:.45});P("tension",{gain:.55,delay:.9})}
+  else if(type==="kill"){const d=window.MV&&!MV.reduced()?1.15:0;P("sniper",{gain:1.3,vary:false,delay:d});P("gasp",{gain:.55,delay:d+.45});P("tension",{gain:.55,delay:d+1.2})}
   else if(type==="saved"){P("heartbeat",{gain:.9});P("bell",{gain:.35,delay:2.6})}
   else if(type==="nokill"){P("rooster",{gain:.45,delay:.2});P("coins",{gain:.4,delay:1.4})}
-  else if(type==="out"){P("gavel",{gain:1,vary:false});P("gavel",{gain:1,delay:.38,vary:false});P("gavel",{gain:1.1,delay:.76,vary:false});P("gasp",{gain:.4,delay:1.1})}
+  else if(type==="out"){const d=window.MV&&!MV.reduced()?.3:0;P("gavel",{gain:1,vary:false,delay:d});P("gavel",{gain:1,delay:d+.38,vary:false});P("gavel",{gain:1.1,delay:d+.76,vary:false});P("gasp",{gain:.4,delay:d+1.1})}
   else if(type==="tie"){P("gavel",{gain:.8});P("coins",{gain:.35,delay:.4})}
   else if(type==="snipe"){P("shot",{gain:1.2,vary:false});P("gasp",{gain:.5,delay:.5});P("tension",{gain:.5,delay:.8})}
   else if(type==="cast"){P("chips",{gain:.9})}
@@ -1718,7 +1732,7 @@ function voteStage(opts={}){
   const key=st.gen+"|"+st.round,top=rows.length?rows[0][1]:0;
   h+=`<div class="panel"><h3>الأصوات</h3>${rows.length?`<div class="vcards">${rows.map(([id,c])=>{
     const k=key+"|"+id,bump=(lastTally[k]||0)<c;lastTally[k]=c;
-    return`<div class="vcard ${c===top?"top":""} ${bump?"bump":""}" style="--c:${seatColor(nm(id))}"><div class="vh"><span class="av">${esc([...nm(id)][0]||"؟")}</span><span class="sn">${esc(nm(id))}${st.me&&id===st.me.id?" (أنت)":""}</span><span class="vn">${ar(c)}</span></div>
+    return`<div class="vcard ${c===top?"top":""} ${bump?"bump":""}" data-id="${id}" style="--c:${seatColor(nm(id))}"><div class="vh"><span class="av">${esc([...nm(id)][0]||"؟")}</span><span class="sn">${esc(nm(id))}${st.me&&id===st.me.id?" (أنت)":""}</span><span class="chips" aria-hidden="true">${Array.from({length:Math.min(c,8)},(_,i)=>`<i class="${bump&&i===Math.min(c,8)-1?"drop":""}"></i>`).join("")}</span><span class="vn">${ar(c)}</span></div>
       <div class="vby"><span class="muted small">صوّتوا عليه:</span>${by[id].map(v=>{const kk=key+"|"+v,n=!seenCast.has(kk);seenCast.add(kk);return`<span class="vv ${n?"new":""}">${esc(nm(v))}${st.me&&v===st.me.id?" (أنت)":""}</span>`}).join("")}</div></div>`}).join("")}</div>`:`<p class="muted small">ما أحد صوّت للحين.</p>`}</div>`;
   return h;
 }
@@ -1731,7 +1745,7 @@ function seats(judge){
   return`<div class="seats">${st.players.map(p=>{
     const me=st.me&&p.id===st.me.id,c=seatColor(p.name);
     const muted=st.online&&p.mic&&p.mic.on&&p.mic.mute;
-    return`<div class="seat ${p.online?"":"off"} ${me?"me":""} ${muted?"muted":""} ${rowCls((judge?"j":"p")+p.id)}" data-pid="${p.id}" style="--c:${c}">
+    return`<div class="seat ${p.online?"":"off"} ${me?"me":""} ${muted?"muted":""} ${st.ready&&st.ready[p.id]?"rdy":""} ${rowCls((judge?"j":"p")+p.id)}" data-pid="${p.id}" style="--c:${c}"><i class="bulb" aria-hidden="true"></i>
       <span class="av"><b class="lt">${esc([...p.name][0]||"؟")}</b>${st.online?MIC_SVG:""}<i class="on" title="${p.online?"موجود":"طلع من الموقع"}"></i></span>
       <span class="sn">${esc(p.name)}</span><span class="st ${st.ready&&st.ready[p.id]?"rdy":""}">${muted?"مكتوم · ":""}${!p.online?"طلع":st.ready&&!demo?(st.ready[p.id]?"جاهز ✓":"مو جاهز"):me?"أنت":"موجود"}</span>
       ${judge&&!me?`<button class="kick" data-a="cmd" data-c="kick" data-id="${p.id}" aria-label="شيل ${esc(p.name)}">×</button>`:""}</div>`}).join("")}</div>`;
@@ -2176,7 +2190,7 @@ function bestPanel(){
 }
 function overView(){
   const w=st.winner;
-  return bestPanel()+detectivePanel()+`<div class="panel"><h2 style="color:var(--${w==="town"?"town":"blood"})">${w==="town"?"فاز الشعب":"فازت المافيا"}</h2><div class="reveal">${st.players.map((p,i)=>{const r=st.reveal[p.id],t=ROLE[r.role].team;return`<div class="mini ${t} ${p.alive?"":"out"} ${p.id===st.me.id?"me":""}" style="animation-delay:${(.4+i*.12).toFixed(2)}s">${portrait(r.role,"bust")}<b>${esc(p.name)}${p.id===st.me.id?" (أنت)":""}</b><span class="chip ${t}">${ROLE[r.role].n}${r.fake?" · النصاب":""}</span></div>`}).join("")}</div>${st.online?(st.me&&st.me.host?`<button class="btn primary" data-a="cmd" data-c="newGame">لعبة جديدة بنفس الغرفة</button>`:`<p class="muted small">انطر المضيف يبدا لعبة جديدة.</p>`):`<p class="muted small">انطر القاضي يبدا لعبة جديدة.</p>`}</div>`;
+  return bestPanel()+detectivePanel()+`<div class="panel"><h2 style="color:var(--${w==="town"?"town":"blood"})">${w==="town"?"فاز الشعب":"فازت المافيا"}</h2><div class="reveal">${st.players.map((p,i)=>{const r=st.reveal[p.id],t=ROLE[r.role].team;return`<div class="mini ${t} ${p.alive?"":"out"} ${p.id===st.me.id?"me":""}" style="--d:${(.3+i*.28).toFixed(2)}s;animation-delay:${(.4+i*.12).toFixed(2)}s">${portrait(r.role,"bust")}<b>${esc(p.name)}${p.id===st.me.id?" (أنت)":""}</b><span class="chip ${t}">${ROLE[r.role].n}${r.fake?" · النصاب":""}</span></div>`}).join("")}</div>${st.online?(st.me&&st.me.host?`<button class="btn primary" data-a="cmd" data-c="newGame">لعبة جديدة بنفس الغرفة</button>`:`<p class="muted small">انطر المضيف يبدا لعبة جديدة.</p>`):`<p class="muted small">انطر القاضي يبدا لعبة جديدة.</p>`}</div>`;
 }
 
 /* ---------- الأحداث ---------- */
