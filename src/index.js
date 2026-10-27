@@ -107,10 +107,23 @@ async function acctApi(req, env, url) {
   return json({ error: "not found" }, 404);
 }
 
+/* حد الطلبات لكل جهاز/شبكة (تقريبي، لكل نسخة من السيرفر) عشان محد يفتح آلاف الغرف أو يدوّر على أرقامها */
+const HITS = new Map();
+function tooMany(req, kind, n, ms) {
+  const k = kind + "|" + (req.headers.get("cf-connecting-ip") || "local"), now = Date.now();
+  let b = HITS.get(k);
+  if (!b || now - b.t > ms) { b = { n: 0, t: now }; HITS.set(k, b); }
+  if (HITS.size > 50000) for (const [kk, v] of HITS) if (now - v.t > 3600e3) HITS.delete(kk);
+  return ++b.n > n;
+}
+const slow = () => json({ error: "طلبات واجد، جرّب بعد شوي." }, 429);
+
 /* =========== المدخل =========== */
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
+    if (url.pathname === "/api/create" || url.pathname === "/api/demo" || url.pathname === "/api/parl/create") { if (req.method === "POST" && tooMany(req, "create", 30, 10 * 60e3)) return slow(); }
+    if (url.pathname === "/api/exists" || url.pathname === "/api/parl/exists") { if (tooMany(req, "exists", 60, 60e3)) return slow(); }
     if (url.pathname.startsWith("/api/acct/") || url.pathname.startsWith("/api/pay/")) return acctApi(req, env, url);
     if ((url.pathname === "/api/create" || url.pathname === "/api/demo") && req.method === "POST") {
       // وضع التجربة: غرفة فيها لاعبين وهميين يتحكم فيهم القاضي من جهاز واحد
