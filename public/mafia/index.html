@@ -1455,9 +1455,9 @@ function drawTimer(){
   const left=Math.max(0,(st.timer.endsAt-(Date.now()+offset))/1000);
   el.hidden=false;el.classList.toggle("end",left<=0);
   const tt=el.querySelector(".t"),sec=left<=0?"0":ar(Math.ceil(left));
-  if(tt.textContent!==sec){tt.textContent=sec;if(left>0&&left<=10)receptionAudio?.play("tick",{gain:left<=5?.7:.45,vary:false});if(Math.ceil(left)===10)narrate(13);if(left<=10){tt.classList.remove("tick");void tt.offsetWidth;tt.classList.add("tick")}}
+  if(tt.textContent!==sec){tt.textContent=sec;if(left>0&&left<=10)receptionAudio?.play("tick",{gain:left<=5?.7:.45,vary:false});if(left<=10){tt.classList.remove("tick");void tt.offsetWidth;tt.classList.add("tick")}}
   const C=2*Math.PI*26;el.querySelector(".fgc").style.strokeDashoffset=String(C*(1-left/st.timer.dur));
-  if(left<=0&&lastBuzzT!==st.timer.id){lastBuzzT=st.timer.id;narrate(14);receptionAudio?.play("buzzer",{gain:.55});buzz([200,80,200])}
+  if(left<=0&&lastBuzzT!==st.timer.id){lastBuzzT=st.timer.id;receptionAudio?.play("buzzer",{gain:.55});buzz([200,80,200])}
 }
 setInterval(drawTimer,200);
 
@@ -1489,7 +1489,7 @@ function render(){
     app.querySelectorAll("[data-keep]").forEach(e=>{const o=old[e.dataset.keep];if(o&&o!==e)e.replaceWith(o)})}}
   if(keep){const k=document.getElementById(keep);if(k&&k.tagName==="INPUT")k.focus()}
   drawTimer();dealAnim=false;syncReception();
-  if(st&&st.online){scrollChats();keepAwake();narrateState()}
+  if(st&&st.online){scrollChats();keepAwake()}
   if(demo){const t=document.querySelector(".tab.on");if(t)t.scrollIntoView({block:"nearest",inline:"center"})}
 }
 const RX_V=window.RxTime?window.RxTime.variant():"night";document.body.dataset.receptionTime=window.RxTime?window.RxTime.period():"night";
@@ -1524,7 +1524,7 @@ function syncReception(){
  if(home&&gameAudioButton){gameAudioButton.remove();gameAudioButton=null}
 }
 function phaseScene(){return '';}
-function sceneSound(e){if(st&&st.online){const v={deal:1,dusk:3,dawn:8,kill:9,saved:10,nokill:11,tie:16,snipe:17}[e.type];if(v)narrate(v);if(e.type==="deal")narrate(2,2600);if(e.type==="dawn")narrate(12,2600);if((e.type==="kill"||e.type==="out")&&e.sniper)narrate(17,3000);if(e.type==="win")narrate(e.winner==="town"?18:19,600)}
+function sceneSound(e){
   if(!receptionAudio?.enabled)return;const A=receptionAudio;A.resume();const type=e.type||e,P=(n,o)=>A.play(n,o);
   if(type==="deal"){P("shuffle",{gain:.9});P("slide",{gain:.6,delay:1.2});P("slide",{gain:.6,delay:1.45});P("slide",{gain:.6,delay:1.7})}
   else if(type==="dusk"){P("whoosh",{gain:.5});P("door",{gain:.45,delay:.35})}
@@ -1676,20 +1676,6 @@ document.addEventListener("visibilitychange",()=>{
   if(!(st&&st.online&&view==="game"&&!["lobby","over"].includes(st.phase)))return;
   if(document.hidden)send({t:"away",v:true});else{wakeLock=null;keepAwake()}
 });
-/* الراوي: تسجيلات صوتية (تشتغل لما توصل الملفات) */
-const voiceCache={};
-function narrate(n,delay=0){if(!st||!st.online||!receptionAudio||!receptionAudio.enabled)return;setTimeout(()=>{const a=voiceCache[n]||(voiceCache[n]=new Audio(`/mafia/voice/${n}.mp3`));try{a.currentTime=0}catch{}a.play().catch(()=>{})},delay)}
-let lastNarrKey="";
-function narrateState(){
-  if(!st||!st.online||view!=="game")return;
-  const k=[st.phase,st.step,st.round].join("|");if(k===lastNarrKey)return;const prev=lastNarrKey;lastNarrKey=k;if(!prev)return;
-  if(st.phase==="night0"&&st.step==="police")narrate(4,3200);
-  else if(st.phase==="night0"&&st.step==="mafia")narrate(5);
-  else if(st.phase==="night"&&st.step==="mafia")narrate(6,3200);
-  else if(st.phase==="night"&&st.step==="doctor")narrate(7);
-  else if(st.phase==="night"&&st.step==="police")narrate(4);
-  else if(st.phase==="vote")narrate(15);
-}
 function nameView(){
   return`<div><h1>غرفة ${ar(sess.code)}</h1><p class="muted">اكتب اسمك عشان يشوفه القاضي والربع.</p></div>
   <form class="panel" id="nameF"><label class="muted small" for="nameIn">اسمك</label>
