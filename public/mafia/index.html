@@ -775,6 +775,7 @@ body.reception-mode #app{max-width:620px;padding:0;margin:auto;gap:0}
 .rx-ledger{position:absolute;top:52.5%;left:41%;direction:ltr;transform:rotate(4deg);font:italic clamp(8px,2.2vw,15px) Georgia,serif;color:#263441;letter-spacing:3px;pointer-events:none;opacity:.8}
 .rx-topbar{position:absolute;top:max(10px,env(safe-area-inset-top));left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;z-index:2}
 .rx-topbar a,.rx-audio{border:1px solid #879caf50;border-radius:99px;color:#e4eaf0;background:#09101bd9;padding:9px 13px;text-decoration:none;font:12px var(--body);backdrop-filter:blur(8px);cursor:pointer;min-height:38px}
+.rx-me{border:1px solid #c9a35b80;border-radius:99px;color:#f3e2b8;background:#140f08e0;padding:9px 13px;font:12px var(--body);backdrop-filter:blur(8px);cursor:pointer;min-height:38px;max-width:46vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rx-me b{color:#ffd88a}
 .rx-topbar a:focus-visible,.rx-audio:focus-visible{outline:2px solid #d7e7ff;outline-offset:3px}
 .rx-footer{padding:14px 16px max(20px,env(safe-area-inset-bottom));background:#080c12;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 .rx-footer .lnk{color:#c5d2e0;background:none;border:0;cursor:pointer;font:13px var(--body);min-height:44px;padding:8px}
@@ -1206,14 +1207,15 @@ const billing=()=>!!(acctCfg&&acctCfg.billing);
 const kd=n=>(+n).toLocaleString("en",{minimumFractionDigits:n%1?1:0,maximumFractionDigits:3})+" د.ك";
 async function acctFetch(path,body){const r=await fetch("/api/acct/"+path,{method:body?"POST":"GET",headers:{"content-type":"application/json",...(acctTok?{authorization:"Bearer "+acctTok}:{})},body:body?JSON.stringify(body):undefined});let j={};try{j=await r.json()}catch{}return{r,j}}
 function acctOut(silent){if(acctTok&&!silent)acctFetch("logout",{}).catch(()=>{});acctTok=null;acctMe=null;lsSet("mafia.acct",null)}
-async function acctRefresh(){if(!billing()||!acctTok)return;try{const{r,j}=await acctFetch("me");if(r.status===401){acctOut(true)}else if(j.me)acctMe=j.me}catch{}if(view==="home"||view==="acct")render()}
+async function acctRefresh(){if(!billing()||!acctTok)return;try{const{r,j}=await acctFetch("me");if(r.status===401){acctOut(true)}else if(j.me)acctMe=j.me}catch{}if(view==="home"||view==="acct"||view==="create")render()}
 async function acctInit(){try{const r=await fetch("/api/acct/config");acctCfg=await r.json()}catch{acctCfg=null}if(billing()){await acctRefresh();if(view==="home")render()}}
 async function acctSubmit(){
   if(acctBusy)return;const email=($("#acEmail")||{}).value||"",password=($("#acPass")||{}).value||"",p2=($("#acPass2")||{}).value;
+  const name=($("#acName")||{}).value||"";
   if(acctMode==="signup"&&password!==p2){acctMsg="كلمتين السر مو نفس بعض.";render();return}
   acctBusy=true;acctMsg="";render();
-  try{const{j}=await acctFetch(acctMode==="signup"?"signup":"login",{email,password});
-    if(j.token){acctTok=j.token;lsSet("mafia.acct",j.token);acctMe=j.me;acctMsg=acctMode==="signup"?"تم إنشاء حسابك 👌":"";}else acctMsg=j.error||"صار خطأ، جرّب مرة ثانية.";}
+  try{const{j}=await acctFetch(acctMode==="signup"?"signup":"login",{email,password,name});
+    if(j.token){acctTok=j.token;lsSet("mafia.acct",j.token);acctMe=j.me;acctMsg="";view="home";if(acctMode==="signup")setTimeout(()=>toast(`حياك ${j.me.name} 👋 حسابك جاهز`),300);}else acctMsg=j.error||"صار خطأ، جرّب مرة ثانية.";}
   catch{acctMsg="ما قدرت أتصل، تأكد من النت."}
   acctBusy=false;render();
 }
@@ -1223,6 +1225,7 @@ function acctView(){
   if(!acctTok||!acctMe){const up=acctMode==="signup";
     return`<div><h1>${up?"حساب جديد":"تسجيل الدخول"}</h1><p class="muted">اللي يفتح الغرفة يحتاج حساب فيه رصيد. الربع يدخلون برقم الغرفة بدون حساب.</p></div>
     <form class="panel" id="acctF">${msg}
+      ${up?`<label class="muted small" for="acName">اسمك</label><input id="acName" maxlength="24" autocomplete="nickname" value="${esc(($("#acName")||{}).value||lsGet("mafia.name")||"")}">`:""}
       <label class="muted small" for="acEmail">الإيميل</label><input id="acEmail" type="email" dir="ltr" autocomplete="email" inputmode="email" maxlength="120" value="${esc(($("#acEmail")||{}).value||"")}">
       <label class="muted small" for="acPass">كلمة السر</label><input id="acPass" type="password" dir="ltr" autocomplete="${up?"new-password":"current-password"}" maxlength="200">
       ${up?`<label class="muted small" for="acPass2">أعد كلمة السر</label><input id="acPass2" type="password" dir="ltr" autocomplete="new-password" maxlength="200">`:""}
@@ -1230,7 +1233,7 @@ function acctView(){
       <button type="button" class="lnk" data-a="acctMode">${up?"عندك حساب؟ سجّل دخول":"ما عندك حساب؟ سوّ حساب جديد"}</button></form>
     <button class="btn ghost" data-a="acctBack">رجوع</button>`}
   const packs=(acctCfg.packs||[]).map(p=>`<div class="row" style="align-items:center"><div style="flex:1"><b>${esc(p.label)}</b><div class="muted small">${kd(p.price)}${p.games>1?` · ${kd(Math.round(p.price/p.games*1000)/1000)} للعبة`:""}</div></div><button class="btn" style="flex:0 0 auto" data-a="acctBuy" data-id="${esc(p.id)}" ${acctBusy?"disabled":""}>اشتري</button></div>`).join("");
-  return`<div><h1>حسابي</h1><p class="muted" dir="ltr" style="text-align:right;margin-top:14px">${esc(acctMe.email)}</p></div>
+  return`<div><h1>${esc(acctMe.name)}</h1><p class="muted" dir="ltr" style="text-align:right;margin-top:14px">${esc(acctMe.email)}</p></div>
   <div class="panel"><p class="muted small">رصيدك</p><h2 style="margin:0">${ar(acctMe.credits)} ${acctMe.credits===1?"لعبة":"ألعاب"}</h2><p class="muted small">تنخصم لعبة وحدة مع بداية كل لعبة، أون لاين أو غرفة القاضي. جرّب اللعبة مجاني.</p></div>
   <div class="panel"><p class="muted small">الباقات</p>${packs}${msg||(acctCfg.pay?"":`<p class="muted small">الدفع مو متاح للحين، قريباً إن شاء الله.</p>`)}</div>
   <button class="btn ghost" data-a="acctBack">رجوع</button><button class="lnk" data-a="acctOut">تسجيل خروج</button>`;
@@ -1470,6 +1473,7 @@ function render(){
   if(view==="home"){app.innerHTML=homeView();startRain();const i=$("#codeIn");if(i)i.value=nb.prev;requestAnimationFrame(movePen)}
   else if(view==="name")app.innerHTML=nameView();
   else if(view==="acct")app.innerHTML=acctView();
+  else if(view==="create")app.innerHTML=createView();
   else if(!st)app.innerHTML=demoBar()+`<div><h1>غرفة المافيا</h1><p class="muted">قاعد أتصل بالغرفة…</p></div>`;
   else{const html=st.judge?judgeView():playerView();if(changed||html!==app._html||!app.firstChild){
     // الكرت والمؤقت يبقون نفس العنصر إذا ما تغيروا، عشان حركتهم ما تعيد وتومض
@@ -1487,7 +1491,21 @@ const RX_ASSETS={scene:`/mafia/art/reception-${RX_V}.webp`,room:"/mafia/art/room
 [`reception-${RX_V}`,`wrong-${RX_V}`,`welcome-${RX_V}`,"room","farm-day","farm-night"].forEach(n=>{const i=new Image();i.src=`/mafia/art/${n}.webp`});
 function receptionMarkup(){return `<section class="rx-shell" data-state="idle" aria-label="استقبال غرفة المافيا"><div class="rx-stage"><img class="rx-art" src="${RX_ASSETS.scene}" width="941" height="2033" alt="استقبال المافيا، الشريف يطمن الشعب والبيطري عند الباب"><img class="rx-reaction" alt="" aria-hidden="true"><div class="rx-light" aria-hidden="true"></div><div class="rx-fog" aria-hidden="true"></div><div class="rx-vignette" aria-hidden="true"></div><div class="rx-topbar"><a href="/games/">→ كل الألعاب</a><button type="button" class="rx-audio" aria-pressed="false">تشغيل الصوت</button></div><form class="rx-form" id="joinF" novalidate><span class="rx-room-title">رقم الغرفة</span><span class="rx-room-hint">اكتب الرقم وحياك بالدوانية</span><label class="rx-code"><span class="rx-digits" aria-hidden="true"><span></span><span></span><span></span><span></span></span><input class="rx-input" id="codeIn" aria-label="رقم الغرفة، أربعة أرقام" inputmode="numeric" autocomplete="off" maxlength="4" pattern="[0-9٠-٩۰-۹]{4}"></label><button class="rx-submit" type="submit" aria-label="دخول">دخول</button></form><span class="rx-ledger" aria-hidden="true"></span><div class="rx-live" role="status" aria-live="polite" aria-atomic="true"></div><div class="rx-flash" aria-hidden="true"></div><span class="rx-pen" aria-hidden="true"></span><div class="rx-doorway" aria-hidden="true"></div></div></section>`}
 let reception=null,receptionAudio=null,gameAudioButton=null;
-function homeView(){return receptionMarkup()+`${homeErr?`<p class="rx-error" role="alert">${esc(homeErr)}</p>`:""}<div class="rx-footer"><button class="lnk onl-t ${onlineCreate?"on":""}" data-a="onlineToggle" role="checkbox" aria-checked="${onlineCreate}"><span class="onl-box">${onlineCreate?"✓":""}</span>تبيها أون لاين؟</button><button class="lnk" data-a="create" ${busy?"disabled":""}>${onlineCreate?"افتح غرفة أون لاين":"افتح غرفة للقاضي"}</button><button class="lnk" data-a="demoOpen" aria-expanded="${demoOpen}">جرّب اللعبة</button>${billing()?`<button class="lnk" data-a="acctOpen">${acctMe?`حسابي · ${ar(acctMe.credits)} ${acctMe.credits===1?"لعبة":"ألعاب"}`:"تسجيل الدخول"}</button>`:""}</div>${demoOpen?`<div class="panel demoset"><p class="muted small">غرفة تجربة فيها لاعبين مو حقيقيين. تتنقل بين شاشة القاضي وشاشة كل لاعب وتسوي اختياراتهم بنفسك.</p><label class="muted small" for="demoN">عدد اللاعبين</label><select id="demoN">${[6,7,8,9,10,11,12,13,14,15].map(n=>`<option value="${n}" ${n===8?"selected":""}>${n} لاعبين، ${2+Math.floor((n-6)/4)} مافيا</option>`).join("")}</select><button class="btn" data-a="demo" ${busy?"disabled":""}>ابدا التجربة</button></div>`:""}`}
+// بعد تفعيل الحسابات: اللي مو داخل يشوف تسجيل الدخول وجرّب اللعبة بس، واللي داخل يشوف اسمه ورصيده وأنشئ غرفة
+function homeViewPaid(){
+  const me=acctTok&&acctMe;
+  const pill=me?`<button type="button" class="rx-me" data-a="acctOpen" aria-label="حسابي">${esc(acctMe.name)} · <b>${ar(acctMe.credits)}</b> ${acctMe.credits===1?"لعبة":"ألعاب"}</button>`:"";
+  const rx=receptionMarkup().replace('<button type="button" class="rx-audio"',pill+'<button type="button" class="rx-audio"');
+  return rx+`${homeErr?`<p class="rx-error" role="alert">${esc(homeErr)}</p>`:""}<div class="rx-footer">${me?`<button class="lnk" data-a="createOpen">أنشئ غرفة</button>`:`<button class="lnk" data-a="acctOpen">تسجيل الدخول</button>`}<button class="lnk" data-a="demoOpen" aria-expanded="${demoOpen}">جرّب اللعبة</button></div>${demoOpen?demoPanel():""}`;
+}
+function demoPanel(){return`<div class="panel demoset"><p class="muted small">غرفة تجربة فيها لاعبين مو حقيقيين. تتنقل بين شاشة القاضي وشاشة كل لاعب وتسوي اختياراتهم بنفسك.</p><label class="muted small" for="demoN">عدد اللاعبين</label><select id="demoN">${[6,7,8,9,10,11,12,13,14,15].map(n=>`<option value="${n}" ${n===8?"selected":""}>${n} لاعبين، ${2+Math.floor((n-6)/4)} مافيا</option>`).join("")}</select><button class="btn" data-a="demo" ${busy?"disabled":""}>ابدا التجربة</button></div>`}
+function createView(){return`<div><h1>غرفة جديدة</h1><p class="muted">رصيدك ${ar(acctMe?acctMe.credits:0)} ${acctMe&&acctMe.credits===1?"لعبة":"ألعاب"}. تنخصم لعبة وحدة لما تبدون اللعبة، مو الحين.</p></div>
+  <div class="panel">${homeErr?`<p class="err small" role="alert">${esc(homeErr)}</p>`:""}
+    <button class="lnk onl-t ${onlineCreate?"on":""}" data-a="onlineToggle" role="checkbox" aria-checked="${onlineCreate}" style="align-self:flex-start"><span class="onl-box">${onlineCreate?"✓":""}</span>تبيها أون لاين؟</button>
+    <p class="muted small">${onlineCreate?"كل واحد يلعب من تلفونه وهو بمكانه، والقاضي آلي.":"تجتمعون بمكان واحد، وأنت القاضي من تلفونك."}</p>
+    <button class="btn primary" data-a="create" ${busy?"disabled":""}>${onlineCreate?"افتح غرفة أون لاين":"افتح غرفة للقاضي"}</button></div>
+  <button class="btn ghost" data-a="acctBack">رجوع</button>`}
+function homeView(){if(billing())return homeViewPaid();return receptionMarkup()+`${homeErr?`<p class="rx-error" role="alert">${esc(homeErr)}</p>`:""}<div class="rx-footer"><button class="lnk onl-t ${onlineCreate?"on":""}" data-a="onlineToggle" role="checkbox" aria-checked="${onlineCreate}"><span class="onl-box">${onlineCreate?"✓":""}</span>تبيها أون لاين؟</button><button class="lnk" data-a="create" ${busy?"disabled":""}>${onlineCreate?"افتح غرفة أون لاين":"افتح غرفة للقاضي"}</button><button class="lnk" data-a="demoOpen" aria-expanded="${demoOpen}">جرّب اللعبة</button>${billing()?`<button class="lnk" data-a="acctOpen">${acctMe?`حسابي · ${ar(acctMe.credits)} ${acctMe.credits===1?"لعبة":"ألعاب"}`:"تسجيل الدخول"}</button>`:""}</div>${demoOpen?`<div class="panel demoset"><p class="muted small">غرفة تجربة فيها لاعبين مو حقيقيين. تتنقل بين شاشة القاضي وشاشة كل لاعب وتسوي اختياراتهم بنفسك.</p><label class="muted small" for="demoN">عدد اللاعبين</label><select id="demoN">${[6,7,8,9,10,11,12,13,14,15].map(n=>`<option value="${n}" ${n===8?"selected":""}>${n} لاعبين، ${2+Math.floor((n-6)/4)} مافيا</option>`).join("")}</select><button class="btn" data-a="demo" ${busy?"disabled":""}>ابدا التجربة</button></div>`:""}`}
 function syncReception(){
  const home=view==='home';document.body.classList.toggle('reception-mode',home);
  const root=document.querySelector('.rx-shell');
@@ -1666,7 +1684,7 @@ function narrateState(){
 function nameView(){
   return`<div><h1>غرفة ${ar(sess.code)}</h1><p class="muted">اكتب اسمك عشان يشوفه القاضي والربع.</p></div>
   <form class="panel" id="nameF"><label class="muted small" for="nameIn">اسمك</label>
-  <input id="nameIn" maxlength="24" value="${esc(lsGet("mafia.name")||"")}" autocomplete="nickname">
+  <input id="nameIn" maxlength="24" value="${esc(lsGet("mafia.name")||(acctTok&&acctMe&&acctMe.name)||"")}" autocomplete="nickname">
   <button class="btn primary">دخول الغرفة</button></form>
   <button class="btn ghost" data-a="leave">رجوع</button>`;
 }
@@ -2171,8 +2189,9 @@ document.addEventListener("submit",e=>{e.preventDefault();if(e.target.id==="join
 document.addEventListener("click",e=>{
   const b=e.target.closest("[data-a]");if(!b||b.disabled)return;const a=b.dataset.a,id=b.dataset.id;
   if(a==="create")createRoom();
+  else if(a==="createOpen"){homeErr="";view="create";render();acctRefresh()}
   else if(a==="acctOpen"){acctMsg="";view="acct";render();acctRefresh()}
-  else if(a==="acctBack"){acctMsg="";view="home";render()}
+  else if(a==="acctBack"){acctMsg="";homeErr="";view="home";render()}
   else if(a==="acctMode"){acctMode=acctMode==="login"?"signup":"login";acctMsg="";render()}
   else if(a==="acctBuy")acctBuy(id);
   else if(a==="acctOut"){acctOut();acctMsg="";view="home";render()}

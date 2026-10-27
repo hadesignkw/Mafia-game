@@ -54,7 +54,7 @@ async function acctApi(req, env, url) {
   if (req.method === "POST") { try { body = await req.json(); } catch {} }
   const out = (r) => json(r, r && r.error ? 400 : 200);
   switch (url.pathname) {
-    case "/api/acct/signup": return req.method === "POST" ? out(await A.signup(body.email, body.password)) : json({ error: "POST" }, 405);
+    case "/api/acct/signup": return req.method === "POST" ? out(await A.signup(body.email, body.password, body.name)) : json({ error: "POST" }, 405);
     case "/api/acct/login": return req.method === "POST" ? out(await A.login(body.email, body.password)) : json({ error: "POST" }, 405);
     case "/api/acct/logout": return json(await A.logout(tk));
     case "/api/acct/me": { const r = await A.me(tk); return json(r, r.error ? 401 : 200); }

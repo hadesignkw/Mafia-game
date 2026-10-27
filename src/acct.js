@@ -37,6 +37,7 @@ export class Acct extends DurableObject {
       CREATE UNIQUE INDEX IF NOT EXISTS ledger_ref ON ledger(email, ref);
       CREATE TABLE IF NOT EXISTS orders (id TEXT PRIMARY KEY, email TEXT NOT NULL, pack TEXT NOT NULL, games INTEGER NOT NULL, amount REAL NOT NULL, status TEXT NOT NULL, provider TEXT, provider_ref TEXT, created INTEGER NOT NULL, paid INTEGER);
     `);
+    try { this.sql.exec("ALTER TABLE users ADD COLUMN name TEXT NOT NULL DEFAULT ''"); } catch {} // الاسم (أضفناه بعدين)
   }
 
   one(q, ...a) { return this.sql.exec(q, ...a).toArray()[0] || null; }
@@ -47,19 +48,21 @@ export class Acct extends DurableObject {
     return token;
   }
   view(email) {
-    const u = this.one("SELECT email, credits FROM users WHERE email = ?", email);
-    return u ? { email: u.email, credits: u.credits } : null;
+    const u = this.one("SELECT email, name, credits FROM users WHERE email = ?", email);
+    return u ? { email: u.email, name: u.name || u.email.split("@")[0], credits: u.credits } : null;
   }
 
-  async signup(email, pass) {
+  async signup(email, pass, name) {
     email = cleanEmail(email); pass = String(pass || "");
+    name = String(name || "").trim().replace(/\s+/g, " ").slice(0, 24);
+    if (!name) return { error: "اكتب اسمك." };
     if (!okEmail(email)) return { error: "اكتب إيميل صحيح." };
     if (pass.length < 6) return { error: "كلمة السر لازم ٦ حروف أو أكثر." };
     if (pass.length > 200) return { error: "كلمة السر طويلة واجد." };
     if (this.one("SELECT 1 FROM users WHERE email = ?", email)) return { error: "هالإيميل مسجل من قبل، سجّل دخول." };
     const salt = rand(16), hash = await hashPass(pass, salt);
     if (this.one("SELECT 1 FROM users WHERE email = ?", email)) return { error: "هالإيميل مسجل من قبل، سجّل دخول." };
-    this.sql.exec("INSERT INTO users (email, salt, hash, created) VALUES (?, ?, ?, ?)", email, salt, hash, Date.now());
+    this.sql.exec("INSERT INTO users (email, name, salt, hash, created) VALUES (?, ?, ?, ?, ?)", email, name, salt, hash, Date.now());
     return { token: await this.newSession(email), me: this.view(email) };
   }
 
