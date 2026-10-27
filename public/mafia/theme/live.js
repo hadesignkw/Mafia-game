@@ -5,6 +5,8 @@
 if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const DPR=()=>Math.min(devicePixelRatio||1,2);
+const SOFT=()=>1; // طبقات التوهج والدخان ناعمة أصلاً، فدقة 1 تكفي وتخفف الرسم وايد
+const FPS30=33; // الخلفيات الهادية ترتسم 30 مرة بالثانية، والحركة تظل ناعمة
 const G=name=>{try{return eval(name)}catch{return undefined}}; // reads the game's top-level st/view
 const isNightPhase=()=>{const st=G('st'),v=G('view');return v==='game'&&st&&(st.phase==='night'||st.phase==='night0')};
 const audio=()=>{const a=G('receptionAudio');return a&&a.enabled&&!isNightPhase()?a:null};
@@ -24,17 +26,18 @@ function rxMount(){
  if(rx)rx.stop();
  const cv=document.createElement('canvas');cv.className='rx-livefx';cv.setAttribute('aria-hidden','true');
  const vig=stage.querySelector('.rx-vignette');stage.insertBefore(cv,vig||stage.querySelector('.rx-topbar'));
- const ctx=cv.getContext('2d');let W=0,H=0,on=true,raf=0,last=performance.now(),t=0,sa=0,ta=0,smoke=[],steam=[],motes=[],motesNight=null;
- const ro=new ResizeObserver(()=>{const r=stage.getBoundingClientRect(),d=DPR();W=r.width;H=r.height;cv.width=Math.round(W*d);cv.height=Math.round(H*d);ctx.setTransform(d,0,0,d,0,0)});ro.observe(stage);
+ const ctx=cv.getContext('2d');let paused=false,W=0,H=0,on=true,raf=0,last=performance.now(),t=0,sa=0,ta=0,smoke=[],steam=[],motes=[],motesNight=null;
+ const ro=new ResizeObserver(()=>{const r=stage.getBoundingClientRect(),d=SOFT();W=r.width;H=r.height;cv.width=Math.round(W*d);cv.height=Math.round(H*d);ctx.setTransform(d,0,0,d,0,0)});ro.observe(stage);
  const night=()=>['night','dawn'].includes(document.body.dataset.receptionTime||'night');
  const seed=n=>{motes=[];motesNight=n;for(let i=0;i<(n?14:22);i++)motes.push(n?{x:rnd(.18,.82),y:rnd(.2,.34),vx:rnd(-.01,.01),vy:rnd(-.006,.006),ph:rnd(0,6.28),s:rnd(.6,1.1)}:{x:rnd(.45,.98),y:rnd(.05,.55),vx:rnd(-.004,.004),vy:rnd(.002,.008),ph:rnd(0,6.28),s:rnd(.4,.9)})};
  const arts=()=>stage.querySelectorAll('.rx-art,.rx-reaction');
  function frame(now){
-  if(!on)return;raf=requestAnimationFrame(frame);
-  if(document.hidden){last=now;return}
-  const dt=Math.min((now-last)/1000,.05);last=now;t+=dt;
+  if(!on)return;
+  if(document.hidden||CALM.on){paused=true;last=now;return} // هدوء: نوقف الحلقة ونرجع لها مع أول حركة
+  raf=requestAnimationFrame(frame);
+  if(now-last<FPS30)return;
+  const dt=Math.min((now-last)/1000,.08);last=now;t+=dt;
   const n=night();if(motesNight!==n)seed(n);
-  const s=(1.012+.006*Math.sin(t*2*Math.PI/9)).toFixed(4);arts().forEach(a=>a.style.scale=s);cv.style.scale=s;
   ctx.clearRect(0,0,W,H);ctx.globalCompositeOperation='lighter';
   RX.lamps[n?"night":"day"].forEach(([lx,ly],i)=>{const f=.78+.12*Math.sin(t*7.3+i*4)+.07*Math.sin(t*13.1+i*8)+.05*Math.sin(t*23.7+i*12),cx=lx*W,cy=ly*H,R=W*(n?.2:.12)*f,g=ctx.createRadialGradient(cx,cy,0,cx,cy,R);
    g.addColorStop(0,`rgba(255,196,110,${(n?.42:.16)*f})`);g.addColorStop(.35,`rgba(255,160,70,${(n?.16:.05)*f})`);g.addColorStop(1,'rgba(255,140,60,0)');ctx.fillStyle=g;ctx.fillRect(cx-R,cy-R,R*2,R*2)});
@@ -55,37 +58,40 @@ function rxMount(){
   ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
  }
  raf=requestAnimationFrame(frame);
- rx={stage,stop(){on=false;cancelAnimationFrame(raf);ro.disconnect();cv.remove();arts().forEach(a=>a.style.scale='')}};
+ rx={stage,resume(){if(on&&paused){paused=false;last=performance.now();raf=requestAnimationFrame(frame)}},stop(){on=false;cancelAnimationFrame(raf);ro.disconnect();cv.remove();arts().forEach(a=>a.style.scale='')}};
 }
 
 /* ================= Farm ambience behind the game screens ================= */
 const farm=document.createElement('canvas');farm.id='liveFarm';farm.setAttribute('aria-hidden','true');
-const fctx=farm.getContext('2d');let FW=0,FH=0,fT=0,fLast=performance.now(),lastDay=null,flash=null;
-function fsize(){const d=DPR();FW=innerWidth;FH=innerHeight;farm.width=Math.round(FW*d);farm.height=Math.round(FH*d);fctx.setTransform(d,0,0,d,0,0)}
+const fctx=farm.getContext('2d');
+// التوهج الدافي وومضة تغيّر الليل والنهار صاروا طبقات CSS على كرت الشاشة؛ الكانفس للنجوم والغبار بس
+const glow=document.createElement('div');glow.id='liveGlow';glow.setAttribute('aria-hidden','true');
+const flashEl=document.createElement('div');flashEl.id='liveFlash';flashEl.setAttribute('aria-hidden','true');let fCleared=false,FW=0,FH=0,fT=0,fLast=performance.now(),lastDay=null,flash=null;
+function fsize(){const d=SOFT();FW=innerWidth;FH=innerHeight;farm.width=Math.round(FW*d);farm.height=Math.round(FH*d);fctx.setTransform(d,0,0,d,0,0)}
 const WIN=[[.43,.72,.2,.33],[0,.25,.08,.32],[.75,1,.08,.32]];
 const stars=Array.from({length:46},(_,i)=>{const w=WIN[i%3];return{fx:rnd(w[0],w[1]),fy:rnd(w[2],w[3]),ph:rnd(0,6.28),sp:rnd(1,2.6),s:rnd(.6,1.4)}});
 const dust=Array.from({length:26},()=>({fx:rnd(.25,.8),fy:rnd(.15,.85),ph:rnd(0,6.28),v:rnd(.004,.012)}));
 function img2st(fx,fy){const iw=1672,ih=941,s=Math.max(FW/iw,FH/ih),ox=(FW-iw*s)/2,oy=(FH-ih*s)/2;return[ox+fx*iw*s,oy+fy*ih*s]}
+let farmRun=false;
+function farmKick(){if(farmRun)return;farmRun=true;fLast=performance.now();requestAnimationFrame(farmFrame)}
 function farmFrame(now){
- requestAnimationFrame(farmFrame);
  const active=G('view')==='game'&&!document.body.classList.contains('reception-mode');
- if(document.hidden||!active){fLast=now;if(farm.isConnected&&!active)fctx.clearRect(0,0,FW,FH);return}
- const dt=Math.min((now-fLast)/1000,.05);fLast=now;fT+=dt;
+ if(document.hidden||!active||CALM.on){farmRun=false;fLast=now;if(farm.isConnected&&!active&&!fCleared){fctx.clearRect(0,0,FW,FH);fCleared=true}return} // وقفنا: ما فيه حلقة شغالة تصحّي المعالج
+ requestAnimationFrame(farmFrame);
+ if(now-fLast<FPS30)return;fCleared=false;
+ const dt=Math.min((now-fLast)/1000,.08);fLast=now;fT+=dt;
  const day=document.body.dataset.phase==='day';
- if(lastDay!==null&&lastDay!==day)flash={t:0,day};lastDay=day;
+ if(lastDay!==null&&lastDay!==day){flashEl.className='';void flashEl.offsetWidth;flashEl.className=day?'go-day':'go-night'}lastDay=day;
  fctx.clearRect(0,0,FW,FH);fctx.globalCompositeOperation='lighter';
  if(!day)stars.forEach(s=>{s.ph+=dt*s.sp;const[x,y]=img2st(s.fx,s.fy);if(x<-5||x>FW+5)return;fctx.globalAlpha=(Math.max(0,Math.sin(s.ph))**3)*.85;const r=3*s.s;fctx.drawImage(SP.star,x-r,y-r,r*2,r*2)});
  else dust.forEach(m=>{m.ph+=dt;m.fy+=m.v*dt;if(m.fy>.9)m.fy=.12;const[x,y]=img2st(m.fx+.01*Math.sin(m.ph*.6),m.fy);fctx.globalAlpha=.28+.28*Math.sin(m.ph*1.7);fctx.drawImage(SP.white,x-2.5,y-2.5,5,5)});
- const f=.06+.03*Math.sin(fT*1.3)+.015*Math.sin(fT*5.1),g=fctx.createRadialGradient(FW*.5,FH*.3,0,FW*.5,FH*.3,Math.max(FW,FH)*.8);
- g.addColorStop(0,`rgba(255,190,110,${day?f*.5:f})`);g.addColorStop(1,'rgba(255,190,110,0)');fctx.globalAlpha=1;fctx.fillStyle=g;fctx.fillRect(0,0,FW,FH);
- if(flash){flash.t+=dt;const u=flash.t/3.6;if(u>=1)flash=null;else{const a=Math.sin(Math.PI*u)*(flash.day?.55:.4),c=flash.day?'255,170,80':'90,120,200',gg=fctx.createRadialGradient(FW*.5,FH*.25,0,FW*.5,FH*.25,Math.max(FW,FH));gg.addColorStop(0,`rgba(${c},${a})`);gg.addColorStop(1,`rgba(${c},0)`);fctx.fillStyle=gg;fctx.fillRect(0,0,FW,FH)}}
  fctx.globalCompositeOperation='source-over';
 }
 
 /* ================= Event particles on top of everything ================= */
 const fx=document.createElement('canvas');fx.id='liveFx';fx.setAttribute('aria-hidden','true');
 const ctx=fx.getContext('2d');let W=0,H=0,parts=[],draws=[],last=performance.now(),running=false;
-function size(){const d=DPR();W=innerWidth;H=innerHeight;fx.width=Math.round(W*d);fx.height=Math.round(H*d);ctx.setTransform(d,0,0,d,0,0)}
+function size(){const d=Math.min(DPR(),1.5);W=innerWidth;H=innerHeight;fx.width=Math.round(W*d);fx.height=Math.round(H*d);ctx.setTransform(d,0,0,d,0,0)}
 function add(p){parts.push(Object.assign({vx:0,vy:0,ax:0,ay:0,gr:0,life:0,a:1,mode:'add',kind:'sprite',rot:0,vr:0,fade:'out'},p));wake()}
 function draw(f){draws.push(f);wake()}
 function burst(x,y,n,o){for(let i=0;i<n;i++){const a=rnd(0,6.283),s=rnd(o.s0||40,o.s1||180);add(Object.assign({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,max:rnd(o.l0||.7,o.l1||1.4),r:rnd(o.r0||2,o.r1||5)},o.p||{}))}}
@@ -190,15 +196,32 @@ function timerFuse(){
  for(let i=0;i<(left<=5?3:2);i++)parts.push({x,y,vx:rnd(-90,90),vy:rnd(-120,20),ax:0,ay:260,gr:0,life:0,a:1,mode:'add',kind:'sprite',rot:0,vr:0,fade:'out',r:rnd(1.5,3.2),max:rnd(.3,.7),sp:SP.fire});
  ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.9;ctx.drawImage(SP.fire,x-14,y-14,28,28);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
 }
-setInterval(()=>{const el=document.getElementById('timer');if(el&&!el.hidden)wake()},250);
+setInterval(()=>{const el=document.getElementById('timer');if(!el||el.hidden)return;const st=G('st'),off=G('offset')||0;if(!st||!st.timer)return;const left=(st.timer.endsAt-(Date.now()+off))/1000;if(left<=10.5&&left>-1)wake()},250);
+
+/* ================= وضع الهدوء: عشان التلفون ما يحتر =================
+   إذا ما صار شي 12 ثانية، الحركات التزيينية تتجمد والرسم يوقف. أول ما يصير شي ترجع.
+   بالليل يمشي على حالة اللعبة بس (مو على لمس الشاشة)، فكل التلفونات تهدا مع بعض وما ينعرف منو يلمس تلفونه. */
+const CALM={on:false,last:performance.now(),sig:''};
+function calmSet(v){if(CALM.on===v)return;CALM.on=v;document.body.classList.toggle('calm',v);if(!v){farmKick();if(rx&&rx.resume)rx.resume()}}
+function calmPoke(){CALM.last=performance.now();calmSet(false)}
+['pointerdown','keydown','wheel','touchmove'].forEach(t=>addEventListener(t,()=>{if(!isNightPhase())calmPoke()},{capture:true,passive:true}));
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)calmPoke()});
+setInterval(()=>{
+ const st=G('st'),v=G('view'),fxEl=document.getElementById('fx');
+ const sig=[v,st&&st.phase,st&&st.step,st&&st.gen,st&&st.round,st&&st.event&&st.event.id,st&&st.vote&&st.vote.turn,st&&st.players&&st.players.length,st&&st.timer&&st.timer.id,st&&st.announce,document.body.dataset.receptionTime].join('|');
+ if(sig!==CALM.sig){CALM.sig=sig;calmPoke();return}
+ if(fxEl&&!fxEl.hidden){calmPoke();return} // شاشة حدث طالعة
+ if(parts.length||draws.length){CALM.last=performance.now();return} // جزيئات حدث للحين شغالة
+ if(performance.now()-CALM.last>12000)calmSet(true);
+},1000);
 
 /* ================= Wiring ================= */
 function start(){
- document.body.appendChild(farm);document.body.appendChild(fx);fsize();size();
+ document.body.appendChild(glow);document.body.appendChild(flashEl);document.body.appendChild(farm);document.body.appendChild(fx);fsize();size();
  addEventListener('resize',()=>{fsize();size()});
- requestAnimationFrame(farmFrame);
+ farmKick();
  const app=document.getElementById('app');
- if(app)new MutationObserver(()=>{rxMount();onCards();onSeats()}).observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+ if(app)new MutationObserver(()=>{rxMount();onCards();onSeats();farmKick()}).observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
  const f=fxEl();if(f)new MutationObserver(onFx).observe(f,{attributes:true,attributeFilter:['class','hidden'],childList:true});
  rxMount();onCards();onSeats();
 }

@@ -4,3 +4,20 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), geolocation=(), microphone=(self), screen-wake-lock=(self), payment=()
+
+# الصور والأصوات والخطوط: تنحفظ بالتلفون عشان الصفحات تفتح على طول بدون ما ترجع تسأل السيرفر
+# (يوم كامل، وبعدها تنعرض من الذاكرة وتتحدث بالخلفية لمدة أسبوع)
+/mafia/art/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/mafia/chars/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/mafia/sfx/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/fonts/*
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=2592000
+/theme/farm-day.webp
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/theme/farm-sunset.webp
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/theme/farm-night.webp
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800

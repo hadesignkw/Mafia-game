@@ -11,8 +11,9 @@ body.reception-mode #liveFarm{display:none}
 .flip.open:not(.still) .face.front .rfx{animation:liveRfx 1.2s .45s ease-out both!important}
 @keyframes liveRfx{0%{opacity:0;transform:scale(.6)}35%{opacity:1}100%{opacity:0;transform:scale(1.25)}}
 .flip .art .tm{background:#d9b87826!important;color:var(--brass-hi,#e7cf9a)!important;border-color:#d9b87866!important}
-.flip:not(.open) .face.back{animation:liveLeak 3.2s ease-in-out infinite}
-@keyframes liveLeak{0%,100%{box-shadow:0 0 0 0 #ffd98a00}50%{box-shadow:0 0 22px 2px #ffd98a55}}
+button.flip{position:relative}
+button.flip:not(.open)::after{content:"";position:absolute;inset:0;border-radius:20px;box-shadow:0 0 22px 2px #ffd98a55;opacity:0;pointer-events:none;will-change:opacity;animation:liveLeakO 3.2s ease-in-out infinite}
+@keyframes liveLeakO{50%{opacity:1}}
 
 /* Timer fuse: last ten seconds */
 .timer.live-hot .fgc{stroke:#ff9a3c}
@@ -20,10 +21,11 @@ body.reception-mode #liveFarm{display:none}
 .timer.live-hot .ring .t{color:#ffb070;text-shadow:0 0 18px #ff6a2a88}
 
 /* Lobby: a lantern lights on each new player */
-.seat.live-lit .av{animation:liveLamp 2.4s ease-in-out infinite;box-shadow:0 0 0 2px #ffcf7a99,0 0 18px 2px #ffb04a66}
-@keyframes liveLamp{0%,100%{box-shadow:0 0 0 2px #ffcf7a99,0 0 18px 2px #ffb04a66}40%{box-shadow:0 0 0 2px #ffcf7a77,0 0 12px 1px #ffb04a44}60%{box-shadow:0 0 0 2px #ffcf7aaa,0 0 22px 3px #ffb04a77}}
+.seat.live-lit .av{box-shadow:0 0 0 2px #ffcf7a99,0 0 12px 1px #ffb04a44}
+.seat.live-lit .av::after{content:"";position:absolute;inset:-2px;border-radius:50%;box-shadow:0 0 22px 3px #ffb04a77;opacity:.5;pointer-events:none;will-change:opacity;animation:liveLampO 2.4s ease-in-out infinite}
+@keyframes liveLampO{40%{opacity:.15}60%{opacity:1}}
 
-@media(prefers-reduced-motion:reduce){.rx-livefx,#liveFarm,#liveFx{display:none}.seat.live-lit .av,.flip:not(.open) .face.back{animation:none}}
+@media(prefers-reduced-motion:reduce){.rx-livefx,#liveFarm,#liveFx{display:none}.seat.live-lit .av::after,button.flip:not(.open)::after{animation:none}}
 
 /* ===== الإعدادات المتقدمة ===== */
 .adv-row{display:flex;align-items:center;gap:10px;margin-top:12px}
@@ -117,8 +119,10 @@ body.adv-dim .pick.red{--c:var(--brass)}
 #voiceBar .vb-go{border:0;border-radius:12px;padding:10px 14px;min-height:44px;background:linear-gradient(#e9cf98,#b98d4c);color:#2a1c0c;font:700 .95rem var(--body,system-ui);cursor:pointer;white-space:nowrap}
 #voiceBar .vb-btn{border:1px solid #9fb4c855;border-radius:12px;padding:8px 12px;min-height:40px;background:transparent;color:#eef3f8;font:600 .85rem var(--body,system-ui);cursor:pointer;white-space:nowrap}
 #voiceBar .vb-mic{width:14px;height:14px;border-radius:50%;background:#5b6573;flex:none}
-#voiceBar .vb-mic.on{background:#4fd18b;box-shadow:0 0 0 0 #4fd18b88;animation:vbPulse 1.4s infinite}
-@keyframes vbPulse{70%{box-shadow:0 0 0 10px #4fd18b00}100%{box-shadow:0 0 0 0 #4fd18b00}}
+#voiceBar .vb-mic{position:relative}
+#voiceBar .vb-mic.on{background:#4fd18b}
+#voiceBar .vb-mic.on::after{content:"";position:absolute;inset:0;border-radius:50%;background:#4fd18b88;will-change:transform,opacity;animation:vbPulseO 1.4s infinite}
+@keyframes vbPulseO{0%{transform:scale(1);opacity:1}70%,100%{transform:scale(2.4);opacity:0}}
 body:has(#voiceBar:not([hidden])) .wrap{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
 
 /* جاهز */
@@ -172,8 +176,9 @@ body.reception-mode .rx-shell{position:relative;isolation:isolate;overflow:hidde
 body.reception-mode .rx-shell::before{content:"";position:absolute;inset:-40px;z-index:-1;background:url(/mafia/art/reception-night.webp) center top/cover no-repeat;filter:blur(18px) brightness(.55) saturate(1.1);transform:scale(1.08)}
 body.reception-mode:is([data-reception-time=day],[data-reception-time=sunrise],[data-reception-time=sunset]) .rx-shell::before{background-image:url(/mafia/art/reception-day.webp)}
 body.reception-mode .rx-stage{box-shadow:0 -18px 40px #0006}
-#voiceBar .vb-go.vb-pulse{animation:vbGo 1.2s ease-in-out infinite}
-@keyframes vbGo{50%{box-shadow:0 0 0 8px #e9cf9833}}
+#voiceBar .vb-go{position:relative}
+#voiceBar .vb-go.vb-pulse::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:0 0 0 8px #e9cf9833;opacity:0;pointer-events:none;will-change:opacity;animation:vbGoO 1.2s ease-in-out infinite}
+@keyframes vbGoO{50%{opacity:1}}
 .hostp summary{cursor:pointer;min-height:40px;display:flex;align-items:center}
 .hostp .li .btn{margin-inline-start:auto}
 .spect h2{margin:0 0 4px}
@@ -181,3 +186,23 @@ body.reception-mode .rx-stage{box-shadow:0 -18px 40px #0006}
 /* شرح التجربة فوق اختيار العدد */
 .demo-intro{flex:1 0 100%;display:flex;flex-direction:column;gap:4px;font-size:13px;line-height:1.6;color:var(--muted);padding:4px 2px 6px}.demo-intro b{color:var(--fg);font-size:14px}
 body.reception-mode .demoset select{flex:1 1 0!important}
+/* الاستقبال: تنفّس الصورة بالـCSS على كرت الشاشة (بدل ما الجافاسكربت يغيرها كل فريم) */
+.rx-stage .rx-art,.rx-stage .rx-reaction,.rx-stage .rx-livefx{animation:rxBreathe 9s ease-in-out infinite;will-change:transform}
+@keyframes rxBreathe{0%,100%{scale:1.006}50%{scale:1.018}}
+@media(prefers-reduced-motion:reduce){.rx-stage .rx-art,.rx-stage .rx-reaction,.rx-stage .rx-livefx{animation:none}}
+/* توهج الفانوس الدافي على شاشات اللعب + ومضة تبدّل الليل والنهار: طبقات CSS على كرت الشاشة */
+#liveGlow,#liveFlash{position:fixed;inset:0;pointer-events:none;z-index:-1}
+#liveGlow{background:radial-gradient(circle at 50% 30%,rgb(255 190 110 / .1),rgb(255 190 110 / 0) 85vmax);opacity:.6;will-change:opacity;animation:liveGlowF 4.8s ease-in-out infinite}
+body[data-phase=day] #liveGlow{background:radial-gradient(circle at 50% 30%,rgb(255 190 110 / .05),rgb(255 190 110 / 0) 85vmax)}
+@keyframes liveGlowF{0%,100%{opacity:.55}22%{opacity:.9}40%{opacity:.62}61%{opacity:1}80%{opacity:.5}}
+#liveFlash{opacity:0;will-change:opacity}
+#liveFlash.go-day{background:radial-gradient(circle at 50% 25%,rgb(255 170 80 / .55),rgb(255 170 80 / 0) 100vmax);animation:liveFlashA 3.6s ease-in-out}
+#liveFlash.go-night{background:radial-gradient(circle at 50% 25%,rgb(90 120 200 / .4),rgb(90 120 200 / 0) 100vmax);animation:liveFlashA 3.6s ease-in-out}
+@keyframes liveFlashA{50%{opacity:1}}
+body.reception-mode :is(#liveGlow,#liveFlash){display:none}
+@media(prefers-reduced-motion:reduce){#liveGlow,#liveFlash{display:none}}
+/* وضع الهدوء: الحركات التزيينية تتجمد بمكانها (ما تختفي)، والمهمة (العداد، دورك، اللي يتكلم، الصوت) تظل شغالة */
+body.calm :is(.noir .smoke,.noir .grain,#liveGlow,.lamp .rig,.moon,.star,.zz b,.scene-svg *,.ch,.ch *,.flip:not(.open),.face.back .emb,.rx-stage .rx-art,.rx-stage .rx-reaction,.rx-stage .rx-livefx,.ch.rx-character,.rx-smoke path,.den .lampg,.den .ember,.den .smoke path),
+body.calm .face.back::after,body.calm button.flip:not(.open)::after,body.calm .seat.live-lit .av::after,body.calm .mate:not(.with)::after,
+body.calm .rx-scene::before,body.calm .rx-event-scene::after{animation-play-state:paused!important}
+body.calm :is(.ch .eyes,.ch .ceyes){animation:none!important} /* العيون ما تتجمد وهي مسكّرة */

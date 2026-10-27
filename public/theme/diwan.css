@@ -8,9 +8,13 @@ body[data-diwan-page]{isolation:isolate;background:#181915;color:#f6eddf}
 .diwan-scene{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:#171c23}
 .diwan-photo,.diwan-atmosphere{position:absolute;inset:0;transition:opacity 18s ease,background 18s ease}
 .diwan-photo{background-size:cover;background-position:center}
-.diwan-photo.day{background-image:url('/theme/farm-day.webp');opacity:var(--diwan-day)}
-.diwan-photo.sunset{background-image:url('/theme/farm-sunset.webp');opacity:var(--diwan-sunset)}
-.diwan-photo.night{background-image:url('/theme/farm-night.webp');opacity:var(--diwan-night)}
+.diwan-photo.day{opacity:var(--diwan-day)}
+.diwan-photo.sunset{opacity:var(--diwan-sunset)}
+.diwan-photo.night{opacity:var(--diwan-night)}
+/* تنحمل بس صورة الوقت الحين (بدل الثلاث كلهن) */
+:root:is([data-diwan-time=day],[data-diwan-time=sunrise],[data-diwan-time=dawn]) .diwan-photo.day{background-image:url('/theme/farm-day.webp')}
+:root:is([data-diwan-time=sunrise],[data-diwan-time=sunset]) .diwan-photo.sunset{background-image:url('/theme/farm-sunset.webp')}
+:root:not([data-diwan-time=day]):not([data-diwan-time=sunrise]):not([data-diwan-time=sunset]) .diwan-photo.night{background-image:url('/theme/farm-night.webp')}
 .diwan-atmosphere{background:linear-gradient(#15110d18,#110e0812 65%,#110e0845),var(--diwan-tint)}
 [data-diwan-cloud=true] .diwan-atmosphere{background:linear-gradient(#16232c66,#101d2830)}
 [data-diwan-rain=true] .diwan-atmosphere{background:linear-gradient(#16232c80,#101d2840)}

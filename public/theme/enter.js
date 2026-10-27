@@ -1,3 +1,13 @@
+/* تحميل الصفحة الجاية مسبقاً وقت الفراغ: لما تدوس، الصفحة تفتح على طول بدون انتظار */
+(()=>{
+const pg=document.body&&document.body.dataset.diwanPage,path=location.pathname;
+const next=pg==='home'?['/games/']:pg==='games'?['/mafia/','/mafia/art/reception-'+((h=>h>=6&&h<18)(new Date().getHours())?'day':'night')+'.webp']:path.startsWith('/mafia')?['/games/']:[];
+if(!next.length||(navigator.connection&&navigator.connection.saveData))return;
+const pf=(()=>{try{return document.createElement('link').relList.supports('prefetch')}catch{return false}})();
+const go=()=>next.forEach(u=>{if(pf){const l=document.createElement('link');l.rel='prefetch';l.href=u;document.head.appendChild(l)}else fetch(u,{credentials:'same-origin'}).catch(()=>{})}); // سفاري ما يدعم prefetch: نجيبها للكاش عادي
+const idle=window.requestIdleCallback||(f=>setTimeout(f,1200));
+if(document.readyState==='complete')idle(go,{timeout:3000});else addEventListener('load',()=>idle(go,{timeout:3000}),{once:true});
+})();
 /* حركات الدخول (شكل بس، ما تلمس أي بيانات):
    1) افتتاحية ديوان المدلل: مرة وحدة بكل جلسة، وتنتخطى بلمسة.
    2) صفحة الألعاب: كرت المافيا يتقلب ويكبر لين يملا الشاشة، وبعدها تفتح اللعبة.
