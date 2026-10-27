@@ -37,7 +37,10 @@ const DEMO_NAMES = ["أحمد", "يوسف", "فهد", "ناصر", "بدر", "س�
 const tok = () => crypto.randomUUID().replace(/-/g, "");
 const sid = () => crypto.randomUUID().slice(0, 8);
 const json = (o, status = 200) =>
-  new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
+  new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" } });
+// يشيل الحروف المخفية وحروف قلب الاتجاه عشان محد ينتحل اسم غيره أو يخربط السطور
+const INVIS = /[\u0000-\u001F\u007F-\u009F\u00AD\u061C\u180E\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g;
+const clean = (v, max) => String(v || "").normalize("NFKC").replace(INVIS, "").trim().replace(/\s+/g, " ").slice(0, max);
 
 /* =========== الحسابات والرصيد =========== */
 // مطفي إلا إذا BILLING = "on". وهو مطفي، اللعبة مجانية مثل قبل
@@ -251,7 +254,7 @@ export class Room extends DurableObject {
     if (m.t === "join") {
       if (s.demo) return this.err(ws, "هذي غرفة تجربة، ما ينفع أحد يدخلها.");
       if (att.pid && s.players[att.pid]) return; // هالجهاز داخل من قبل
-      const name = String(m.name || "").trim().replace(/\s+/g, " ").slice(0, 24);
+      const name = clean(m.name, 24);
       if (!name) return this.err(ws, "اكتب اسمك.");
       const spect = s.online && s.phase !== "lobby"; // الأون لاين: اللي يدخل واللعبة شغالة يتفرج لين الجولة الجاية
       if (s.phase !== "lobby" && !spect) return this.err(ws, "اللعبة بدت، انطر لين تخلص الجولة.");
@@ -907,7 +910,7 @@ export class Room extends DurableObject {
   spd() { const v = this.env && +this.env.ONLINE_SPEED; return v > 0 ? v : 1; }
   setDl(sec) { this.s.deadline = Date.now() + sec * 1000 * this.spd(); }
   chat(pid, m) {
-    const s = this.s, text = String(m.text || "").trim().slice(0, 300);
+    const s = this.s, text = clean(m.text, 300);
     if (!s.online || !text || !s.order.includes(pid) || (s.spect || []).includes(pid)) return;
     const dead = !s.alive[pid], ch = (s.chats = s.chats || { mafia: [], grave: [] });
     const msg = { id: sid(), pid, name: this.nm(pid), text, at: Date.now() };

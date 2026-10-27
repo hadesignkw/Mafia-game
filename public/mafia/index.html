@@ -1070,6 +1070,7 @@ const buzz=p=>{try{if(view==="game"&&st&&(st.phase==="night"||st.phase==="night0
 
 /* ---------- الحالة ---------- */
 let sess=lsGet("mafia.sess"); // {code, token, judge}
+if(sess&&(typeof sess!=="object"||!/^\d{4}$/.test(String(sess.code)))){sess=null;lsSet("mafia.sess",null)} // جلسة خربانة: نبدأ من جديد
 let doorSeen=false,doorState="";const SAY={wrong:"غلط! منو أنت؟",reading:"خلني أشوف…",welcome:"حياك",open:"حياك"};const nap=ms=>new Promise(r=>setTimeout(r,ms));
 let demoOpen=false,view="home", st=null, ws=null, offset=0, lastEv=null, firstState=true, retry=0, homeErr="", busy=false;
 let cardOpen=false, dealAnim=false, lastGen=null, notesSeen=null, rolesOpen=false;
@@ -1207,6 +1208,7 @@ async function createRoom(){
   busy=false;render();
 }
 /* ---------- الحساب والرصيد (يشتغل بس إذا السيرفر مفعّله) ---------- */
+const PAY_HOSTS=[]; // مواقع بوابة الدفع المسموحة (نضيفها لما نختار البوابة)
 let acctCfg=null,acctTok=lsGet("mafia.acct"),acctMe=null,acctMode="login",acctMsg="",acctBusy=false;
 const billing=()=>!!(acctCfg&&acctCfg.billing);
 const kd=n=>(+n).toLocaleString("en",{minimumFractionDigits:n%1?1:0,maximumFractionDigits:3})+" د.ك";
@@ -1224,7 +1226,7 @@ async function acctSubmit(){
   catch{acctMsg="ما قدرت أتصل، تأكد من النت."}
   acctBusy=false;render();
 }
-async function acctBuy(pack){if(acctBusy)return;acctBusy=true;render();try{const{j}=await acctFetch("buy",{pack});if(j.url){location.href=j.url;return}acctMsg=j.error||"الدفع مو متاح للحين."}catch{acctMsg="ما قدرت أتصل، تأكد من النت."}acctBusy=false;render()}
+async function acctBuy(pack){if(acctBusy)return;acctBusy=true;render();try{const{j}=await acctFetch("buy",{pack});if(j.url){let u=null;try{u=new URL(j.url)}catch{}if(u&&u.protocol==="https:"&&PAY_HOSTS.includes(u.host)){location.href=u.href;return}j.error="رابط الدفع غلط."}acctMsg=j.error||"الدفع مو متاح للحين."}catch{acctMsg="ما قدرت أتصل، تأكد من النت."}acctBusy=false;render()}
 function acctView(){
   const msg=acctMsg?`<p class="muted small" role="status">${esc(acctMsg)}</p>`:"";
   if(!acctTok||!acctMe){const up=acctMode==="signup";
@@ -1479,7 +1481,7 @@ function render(){
   else if(view==="name")app.innerHTML=nameView();
   else if(view==="acct")app.innerHTML=acctView();
   else if(view==="create")app.innerHTML=createView();
-  else if(!st)app.innerHTML=demoBar()+`<div><h1>غرفة المافيا</h1><p class="muted">قاعد أتصل بالغرفة…</p></div>`;
+  else if(!st)app.innerHTML=demoBar()+`<div><h1>غرفة المافيا</h1><p class="muted">قاعد أتصل بالغرفة…</p></div>${demo?"":`<button class="btn ghost" data-a="leave">رجوع</button>`}`;
   else{const html=st.judge?judgeView():playerView();if(changed||html!==app._html||!app.firstChild){
     // الكرت والمؤقت يبقون نفس العنصر إذا ما تغيروا، عشان حركتهم ما تعيد وتومض
     const old={};if(!changed)app.querySelectorAll("[data-keep]").forEach(e=>old[e.dataset.keep]=e);

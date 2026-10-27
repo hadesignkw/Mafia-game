@@ -34,7 +34,7 @@ export function same(a, b) { // مقارنة بوقت ثابت
 }
 export const cleanEmail = (e) => String(e || "").normalize("NFKC").trim().toLowerCase().slice(0, 120);
 export const okEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
-export const cleanName = (n) => String(n || "").normalize("NFKC").replace(/[\u0000-\u001f\u007f​-‏‪-‮⁦-⁩]/g, "").trim().replace(/\s+/g, " ").slice(0, 24);
+export const cleanName = (n) => String(n || "").normalize("NFKC").replace(/[\u0000-\u001F\u007F-\u009F\u00AD\u061C\u180E\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, "").trim().replace(/\s+/g, " ").slice(0, 24);
 const isTok = (t) => typeof t === "string" && /^[0-9a-f]{64}$/.test(t);
 
 export class Acct extends DurableObject {

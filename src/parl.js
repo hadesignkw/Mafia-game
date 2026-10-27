@@ -10,7 +10,8 @@ const MAX_PLAYERS = 30;
 const MAX_AMT = 1e7;
 const tok = () => crypto.randomUUID().replace(/-/g, "");
 const sid = () => crypto.randomUUID().slice(0, 8);
-const cleanName = (n) => String(n || "").trim().replace(/\s+/g, " ").slice(0, 24);
+// يشيل الحروف المخفية وحروف قلب الاتجاه عشان محد ينتحل اسم غيره
+const cleanName = (n) => String(n || "").normalize("NFKC").replace(/[\u0000-\u001F\u007F-\u009F\u00AD\u061C\u180E\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, "").trim().replace(/\s+/g, " ").slice(0, 24);
 const num = (v) => { const n = Math.round(Number(v)); return Number.isFinite(n) ? n : NaN; };
 
 export class Parl extends DurableObject {
