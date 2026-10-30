@@ -941,6 +941,7 @@ body[data-phase=day] .pick:not(.on):not(.res){background:rgba(255,250,239,.92);c
 .nightcard .nc .wait{font-size:1.1rem;opacity:.6}
 .nightcard .res{font-size:1rem;padding:2px 10px;border-radius:999px;margin-inline-start:6px}
 .nightcard .res.m{background:var(--blood);color:#fff}.nightcard .res.t{background:var(--town);color:#06121c}
+.pick.none{grid-column:1/-1;opacity:.85;font-size:.95em}
 </style>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ديوان المدلل">
@@ -2171,7 +2172,8 @@ function picker(k,ids,red){
   const sel=st.me.sel&&st.me.sel[k];
   const pk=[st.gen,st.phase,st.round,k,sel].join("|"),pop=sel&&!popSeen.has(pk);if(pop)popSeen.add(pk);
   if(st.adv&&(st.phase==="night"||st.phase==="night0"))ids=seedShuffle(ids,[st.me.id,st.gen,st.round,st.step,k].join("|"));
-  return`<div class="grid">${ids.map(id=>`<button class="pick ${red?"red":""} ${sel===id?"on"+(pop?" pop":""):""}" data-a="act" data-k="${k}" data-id="${id}">${id===st.me.id&&k==="fakecop"?"أنا":esc(nm(id))+(id===st.me.id?" (أنت)":"")}</button>`).join("")}</div>`;
+  const none=(k==="guess"||k==="fguess")?`<button class="pick none ${sel==="none"?"on":""}" data-a="act" data-k="${k}" data-id="none">${k==="fguess"?"ما أدري، ما عندي توقع":"ما عندي شك بأحد"}</button>`:"";
+  return`<div class="grid">${ids.map(id=>`<button class="pick ${red?"red":""} ${sel===id?"on"+(pop?" pop":""):""}" data-a="act" data-k="${k}" data-id="${id}">${id===st.me.id&&k==="fakecop"?"أنا":esc(nm(id))+(id===st.me.id?" (أنت)":"")}</button>`).join("")}${none}</div>`;
 }
 function teamPicks(){
   const t=(st.me.team||[]).filter(x=>x.id!==st.me.id&&isAlive(x.id));

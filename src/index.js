@@ -293,7 +293,8 @@ export class Room extends DurableObject {
     const att = ws.deserializeAttachment() || {};
     const s = this.s;
     // أي رقم لاعب يجي من الجهاز لازم يكون لاعب حقيقي بالغرفة (مو اسم خاصية مثل constructor أو __proto__)
-    for (const k of ["id", "by"]) if (k in m && !(typeof m[k] === "string" && Object.hasOwn(s.players, m[k]))) delete m[k];
+    // «ما عندي شك بأحد» بالتخمين بس
+    for (const k of ["id", "by"]) if (k in m && !(typeof m[k] === "string" && Object.hasOwn(s.players, m[k])) && !(k === "id" && m.t === "act" && (m.k === "guess" || m.k === "fguess") && m.id === "none")) delete m[k];
     // حالة المايك نفسها ما تغيرت: ما نرسل شي للكل
     if (m.t === "vstate" && att.pid && s.vst && s.vst[att.pid] && s.vst[att.pid].on === !!m.on && s.vst[att.pid].mute === !!m.mute) return;
 
@@ -1131,14 +1132,14 @@ export class Room extends DurableObject {
         break;
       case "guess": // تخمين: منو تشك إنه مافيا (اللي ما عنده دور بالليل بس)
         if (!canGuessRole(role)) break;
-        if (this.adv() && alive && tA && t !== pid && ((s.phase === "night" && s.step === "all") || (s.phase === "night0" && s.step === "police"))) (n.guess = n.guess || {})[pid] = t;
-        else if (!this.adv() && s.online && alive && tA && t !== pid && (s.phase === "night" || s.phase === "night0")) (n.guess = n.guess || {})[pid] = t;
+        if (this.adv() && alive && (t === "none" || (tA && t !== pid)) && ((s.phase === "night" && s.step === "all") || (s.phase === "night0" && s.step === "police"))) (n.guess = n.guess || {})[pid] = t;
+        else if (!this.adv() && s.online && alive && (t === "none" || (tA && t !== pid)) && (s.phase === "night" || s.phase === "night0")) (n.guess = n.guess || {})[pid] = t;
         break;
       case "done": // اللي يتكلم خلص قبل وقته
         if (s.online && s.phase === "day" && s.timer && s.timer.pid === pid) { s.timer = null; s.deadline = Date.now(); }
         break;
       case "fguess": // الليلة الأولى: منو تتوقع النصاب
-        if (this.adv() && alive && tA && t !== pid && canGuessRole(role) && s.phase === "night0" && s.step === "mafia") (n.fguess = n.fguess || {})[pid] = t;
+        if (this.adv() && alive && (t === "none" || (tA && t !== pid)) && canGuessRole(role) && s.phase === "night0" && s.step === "mafia") (n.fguess = n.fguess || {})[pid] = t;
         break;
       case "vote":
         if (s.phase === "vote" && alive) this.castVote(pid, t); // بالدور، والصوت ما يتغير
