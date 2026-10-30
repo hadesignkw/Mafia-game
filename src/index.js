@@ -13,6 +13,7 @@ const mafiaCount = (n) => 2 + Math.floor((n - 6) / 4); // ٦–٩:٢ · ١٠–�
 const MIN_PLAYERS = 6;
 const MAX_PLAYERS = 30;
 const TALK = 40;
+const TALK_LOCAL = 60; // القاضي الآلي: كل واحد دقيقة
 // أقصى عدد مافيا: لازم يبقى الشريف والبيطري والقناص، والمافيا أقل من الشعب
 const maxMafia = (n, c = 1, d = 1) => Math.max(1, Math.min(n - (c + d + 1), Math.floor((n - 1) / 2)));
 const DEF_SET = { mode: "default", mafia: 2, talk: TALK, cops: 1, docs: 1, cap: MAX_PLAYERS };
@@ -209,7 +210,7 @@ export class Room extends DurableObject {
     const judgeToken = tok();
     this.s = {
       code, judgeToken, createdAt: Date.now(), touched: Date.now(),
-      settings: { ...DEF_SET }, players: {}, lobby: [], order: [], phase: "lobby", step: null, round: 0, gen: 0, canVote: false,
+      settings: { ...DEF_SET, ...(online && local ? { talk: TALK_LOCAL } : {}) }, players: {}, lobby: [], order: [], phase: "lobby", step: null, round: 0, gen: 0, canVote: false,
       alive: {}, roles: {}, fakeCop: null, notes: {}, night: blankNight(), votes: {}, voteOrder: [], voteTurn: 0,
       sniperPending: null, winner: null, announce: "", timer: null, event: null, log: [], demo: !!demo,
       online: !!online, local: !!(online && local), hostPid: null, deadline: null, chats: { mafia: [], grave: [], town: [] }, offSince: {},
@@ -500,11 +501,12 @@ export class Room extends DurableObject {
   qmap() { const q = this.s.night.queried; return q && typeof q === "object" ? q : {}; }
   smap() { const v = this.s.night.save; return v && typeof v === "object" ? v : {}; }
   qUsed(id) { const u = this.s.queriesUsed; return u && typeof u === "object" ? u[id] || 0 : 0; }
-  talkSec() { const c = this.sets(); return c.mode === "custom" ? c.talk : TALK; }
+  talkSec() { const c = this.sets(); return c.mode === "custom" ? c.talk : this.s.local ? TALK_LOCAL : TALK; }
   aliveIds() { return this.s.order.filter((i) => this.s.alive[i]); }
   /* ---------- الإعدادات المتقدمة ---------- */
   adv() { return !!this.s.advOn; }
-  stepsFor(p) { return p === "night0" ? STEPS0 : this.adv() ? STEPS_ADV : STEPS; }
+  // القاضي الآلي: بعد الليلة الأولى الكل يختار بنفس الدقيقة (المافيا والبيطري والشريف)
+  stepsFor(p) { return p === "night0" ? STEPS0 : this.adv() || this.s.local ? STEPS_ADV : STEPS; }
   isStep(k) { return this.s.step === k || this.s.step === "all"; }
   // شنو باقي على اللاعب يسويه بالخطوة الحالية (عشان كل الشاشات تمشي بنفس الطريقة)
   todo(pid) {

@@ -1718,7 +1718,7 @@ function onlineLobby(){
   const hostName=nm(st.hostId);
   let h=`<div class="panel"><h3>${st.local?"غرفة بقاضي آلي":"غرفة أون لاين"}</h3><p style="font-size:2.4rem;text-align:center;letter-spacing:.2em;color:var(--brass);margin:0">${ar(st.code)}</p><p class="muted small">${ar(n)} لاعب دخل · أقل شي ${ar(st.minPlayers)}. ${st.local?"القاضي آلي، واللعبة تمشي بروحها":"ما فيه قاضي، اللعبة تمشي بروحها"}${host?"، وأنت المضيف: تبدا اللعبة وتعدّل الإعدادات.":` والمضيف ${esc(hostName)}.`}</p>
   <button class="btn share" data-a="share">ارسل رابط الغرفة</button>${host?`<button class="btn primary" data-a="cmd" data-c="start" ${n<st.minPlayers?"disabled":""}>وزّع الكروت</button>`:`<p class="muted small" style="text-align:center">ننطر ${esc(hostName)} يبدا اللعبة.</p>`}</div>
-  <div class="panel onl-tips"><h3>قبل لا تبدون</h3><ul class="notes">${st.local?`<li>القاضي آلي: هو اللي يقول منو يسولف ومتى الليل والتصويت، وكلكم تلعبون.</li><li>بالنهار الشرطة يسولفون أول، والقاضي يختار منو يبدا منهم، وبعدين الباقين واحد واحد. اللي يخلص قبل وقته يدوس «خلصت كلامي».</li><li>خلوا شاشاتكم شغالة طول اللعبة.</li><li>كل خطوة بالليل لها وقت ثابت، واللي ما يختار تروح عليه.</li>`:`<li>البسوا سماعات.</li><li>خل شاشتك شغالة طول اللعبة، ولا تطلع من الصفحة. إذا طلعت يطلع للكل إنك طلعت.</li><li>كل خطوة لها وقت، واللي ما يختار تروح عليه.</li>`}</ul></div>`;
+  <div class="panel onl-tips"><h3>قبل لا تبدون</h3><ul class="notes">${st.local?`<li>القاضي آلي: هو اللي يقول منو يسولف ومتى الليل والتصويت، وكلكم تلعبون.</li><li>بالنهار الشرطة يسولفون أول، والقاضي يختار منو يبدا منهم، وبعدين الباقين واحد واحد. اللي يخلص قبل وقته يدوس «خلصت كلامي».</li><li>خلوا شاشاتكم شغالة طول اللعبة.</li><li>بالليل الكل يختار بنفس الدقيقة: المافيا يغتالون، البيطري يفزع، والشريف يفتش. واللي ما يختار تروح عليه.</li><li>كل واحد له دقيقة يسولف فيها.</li>`:`<li>البسوا سماعات.</li><li>خل شاشتك شغالة طول اللعبة، ولا تطلع من الصفحة. إذا طلعت يطلع للكل إنك طلعت.</li><li>كل خطوة لها وقت، واللي ما يختار تروح عليه.</li>`}</ul></div>`;
   if(host)h+=settingsPanel();
   return h+`<div class="panel"><h3>منو دخل <span class="count">${ar(n)}</span></h3>${seats(!!host)}</div>`;
 }
@@ -1995,7 +1995,7 @@ function settingsPanel(){
   const step=(k,v,lab,unit,minus,plus)=>`<div class="stp"><span>${lab}</span><div class="stp-c"><button class="btn sm" data-a="set" data-k="${k}" data-v="${minus}" ${minus===null?"disabled":""} aria-label="أقل">−</button><b>${ar(v)}<small>${unit}</small></b><button class="btn sm" data-a="set" data-k="${k}" data-v="${plus}" ${plus===null?"disabled":""} aria-label="أكثر">+</button></div></div>`;
   return`<div class="panel"><h3>الإعدادات</h3><div class="seg"><button class="pick ${cu?"":"on"}" data-a="set" data-k="mode" data-v="default">افتراضي</button><button class="pick ${cu?"on":""}" data-a="set" data-k="mode" data-v="custom">مخصص</button></div>
   ${cu?step("cap",cap,"عدد اللاعبين","",cap>capMin?cap-1:null,cap<30?cap+1:null)+step("mafia",mf,"عدد المافيا","",mf>1?mf-1:null,room?mf+1:null)+step("cops",cops,"عدد الشرطة (الشريف)","",cops>1?cops-1:null,room?cops+1:null)+step("docs",docs,"عدد البياطرة","",docs>1?docs-1:null,room?docs+1:null)+step("talk",c.talk,"وقت كل واحد يتكلم"," ثانية",c.talk>10?c.talk-10:null,c.talk<300?c.talk+10:null)+`<p class="muted small">أول ${ar(cap)} يدخلون، واللي بعدهم يطلع له "العدد اكتمل". النصابين بعدد الشرطة${cops>mf?` (بس ما يزيدون عن المافيا، فبيكونون ${ar(mf)})`:""}، والباقين فداوية مع القناص.</p>`
-  :`<p class="muted small">المافيا حسب عدد اللاعبين${J.mafiaNext?` (الحين ${ar(J.mafiaNext)})`:""}، وكل واحد يتكلم ${ar(40)} ثانية.</p>`}${st.online?"":advToggle(!!c.adv)}</div>`;
+  :`<p class="muted small">المافيا حسب عدد اللاعبين${J.mafiaNext?` (الحين ${ar(J.mafiaNext)})`:""}، وكل واحد يتكلم ${ar(st.local?60:40)} ثانية.</p>`}${st.online?"":advToggle(!!c.adv)}</div>`;
 }
 /* الإعدادات المتقدمة: صح تفعّله وتشيله، و؟ يشرح الفرق */
 let advHelpOpen=false;
@@ -2226,9 +2226,10 @@ function actionView(){
     return onlineGuess(others)||nightBox();
   }
   if(p==="night"){
-    if(st.step==="mafia"&&isM(role))return`<div class="panel"><h2>منو تغتالون؟</h2><p class="muted small">كل واحد يختار، وربعك يشوفون اختيارك. الأغلبية تفوز، ${st.online?"وإذا تعادلتوا تعيدون الاختيار لين تتفقون.":"وإذا تعادلتوا القاضي يختار من اختياراتكم."}</p>${picker("kill",others,true)}${teamPicks()}${mateCard()}</div>`;
-    if(st.step==="doctor"&&role==="doctor")return`<div class="panel"><h2>منو تفزع له؟</h2><p class="muted small">تقدر تختار نفسك.</p>${picker("save",al)}</div>`;
-    if(st.step==="police"&&role==="cop")return queryBox(others);
+    const stp=k=>st.step===k||st.step==="all";
+    if(stp("mafia")&&isM(role))return`<div class="panel"><h2>منو تغتالون؟</h2><p class="muted small">كل واحد يختار، وربعك يشوفون اختيارك. الأغلبية تفوز، ${st.online?"وإذا تعادلتوا تعيدون الاختيار لين تتفقون.":"وإذا تعادلتوا القاضي يختار من اختياراتكم."}</p>${picker("kill",others,true)}${teamPicks()}${mateCard()}</div>`;
+    if(stp("doctor")&&role==="doctor")return`<div class="panel"><h2>منو تفزع له؟</h2><p class="muted small">تقدر تختار نفسك.</p>${picker("save",al)}</div>`;
+    if(stp("police")&&role==="cop")return queryBox(others);
     return onlineGuess(others)||nightBox();
   }
   if(p==="vote"){
