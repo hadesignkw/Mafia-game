@@ -397,7 +397,7 @@ export class Room extends DurableObject {
     };
     if ((s.phase === "vote" || s.phase === "result") && (s.voteOrder || []).length)
       pub.vote = { order: s.voteOrder, turn: s.voteTurn, votes: s.votes, cur: this.curVoter() };
-    pub.adv = s.phase === "lobby" ? !!this.sets().adv : this.adv();
+    pub.adv = s.phase === "lobby" ? !s.online : this.adv();
     if (s.phase === "lobby" && !s.online) pub.ready = s.ready || {};
     if (s.online) {
       pub.online = true; pub.local = !!s.local; pub.deadline = s.deadline; pub.hostId = s.hostPid; pub.watchers = (s.spect || []).filter((i) => s.players[i]).map((i) => s.players[i].name);
@@ -732,7 +732,7 @@ export class Room extends DurableObject {
     Object.assign(s, {
       gen: s.gen + 1, order: ids, roles, alive: Object.fromEntries(ids.map((i) => [i, true])),
       phase: "deal", step: null, round: 0, timer: null, sniperPending: null, winner: null, canVote: false,
-      fakeCop: null, fakesDone: [], fakesJudge: [], fakeNeed: Math.min(c, m), advOn: !!this.sets().adv && !s.online, dpts: {}, suspect: null, notes: {}, votes: {}, voteOrder: [], voteTurn: 0, voteHist: [], night: blankNight(), log: [], queryMax: m, queriesUsed: {},
+      fakeCop: null, fakesDone: [], fakesJudge: [], fakeNeed: Math.min(c, m), advOn: !s.online, // الإعدادات المتقدمة دايم موجودة بلعبة القاضي dpts: {}, suspect: null, notes: {}, votes: {}, voteOrder: [], voteTurn: 0, voteHist: [], night: blankNight(), log: [], queryMax: m, queriesUsed: {},
       announce: "كل واحد يقلب كرته ويشوف دوره.",
     });
     s.ready = {};
