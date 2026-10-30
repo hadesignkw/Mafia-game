@@ -953,6 +953,9 @@ body[data-phase=day] .pick:not(.on):not(.res){background:rgba(255,250,239,.92);c
 .jcops{display:flex;flex-wrap:wrap;gap:8px 22px;justify-content:center;font-size:1.15rem;padding:12px 16px}.jcops b{font-family:var(--display);font-size:1.3rem}.jcops b.gone{text-decoration:line-through;opacity:.55}
 .dawncops{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:22px;padding:14px 22px;border-radius:18px;background:rgba(10,12,18,.78);color:#fff;border:1px solid rgba(255,255,255,.25);position:relative;z-index:2}
 .dawncops .l{font-size:1rem;opacity:.85}.dawncops .n{font-family:var(--display);font-size:2rem}.dawncops .h{font-size:.95rem;opacity:.85}
+.qrbox{display:flex;flex-direction:column;align-items:center;gap:8px;margin:6px 0 10px}
+.qrbox .qr{width:min(220px,60vw);aspect-ratio:1;background:#fff;border-radius:16px;padding:6px;box-sizing:border-box}
+.qrbox .qr svg{display:block;width:100%;height:100%}
 </style>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ديوان المدلل">
@@ -973,6 +976,7 @@ body[data-phase=day] .pick:not(.on):not(.res){background:rgba(255,250,239,.92);c
 <script src="/mafia/theme/motion.js?v=1"></script>
 <script src="/mafia/theme/live.js" defer></script>
 <script src="/mafia/theme/voice.js" defer></script>
+<script src="/mafia/theme/qr.js" defer onload="try{if(typeof render==='function'&&st)render()}catch(e){}"></script>
 </head>
 <body>
 <script src="/theme/enter.js?v=1"></script>
@@ -1331,6 +1335,13 @@ function startRain(){
   rainStop=()=>{on=false;cancelAnimationFrame(raf)};
 }
 /* رابط الغرفة: اللي يفتحه يدخل الغرفة على طول */
+// QR للدخول: يصورونه بالكاميرا ويدخلون الغرفة على طول بدون ما يكتبون الرقم
+const qrCache={};
+function roomQR(){
+  const code=st&&st.code;if(!code||typeof qrcode!=="function")return"";
+  if(!qrCache[code]){try{const q=qrcode(0,"M");q.addData(`${location.origin}/mafia/?r=${code}`);q.make();qrCache[code]=q.createSvgTag({cellSize:6,margin:3,scalable:true,alt:"QR"})}catch{return""}}
+  return`<div class="qrbox"><div class="qr">${qrCache[code]}</div><span class="muted small">صوّروه بالكاميرا ويدخلون على طول</span></div>`;
+}
 async function shareRoom(){
   const code=st&&st.code;if(!code)return;
   const url=`${location.origin}/mafia/?r=${code}`;
@@ -1717,7 +1728,7 @@ function onlineLobby(){
   const host=st.me&&st.me.host,n=st.players.length;
   const hostName=nm(st.hostId);
   let h=`<div class="panel"><h3>${st.local?"غرفة بقاضي آلي":"غرفة أون لاين"}</h3><p style="font-size:2.4rem;text-align:center;letter-spacing:.2em;color:var(--brass);margin:0">${ar(st.code)}</p><p class="muted small">${ar(n)} لاعب دخل · أقل شي ${ar(st.minPlayers)}. ${st.local?"القاضي آلي، واللعبة تمشي بروحها":"ما فيه قاضي، اللعبة تمشي بروحها"}${host?"، وأنت المضيف: تبدا اللعبة وتعدّل الإعدادات.":` والمضيف ${esc(hostName)}.`}</p>
-  <button class="btn share" data-a="share">ارسل رابط الغرفة</button>${host?`<button class="btn primary" data-a="cmd" data-c="start" ${n<st.minPlayers?"disabled":""}>وزّع الكروت</button>`:`<p class="muted small" style="text-align:center">ننطر ${esc(hostName)} يبدا اللعبة.</p>`}</div>
+  ${roomQR()}<button class="btn share" data-a="share">ارسل رابط الغرفة</button>${host?`<button class="btn primary" data-a="cmd" data-c="start" ${n<st.minPlayers?"disabled":""}>وزّع الكروت</button>`:`<p class="muted small" style="text-align:center">ننطر ${esc(hostName)} يبدا اللعبة.</p>`}</div>
   <div class="panel onl-tips"><h3>قبل لا تبدون</h3><ul class="notes">${st.local?`<li>القاضي آلي: هو اللي يقول منو يسولف ومتى الليل والتصويت، وكلكم تلعبون.</li><li>بالنهار الشرطة يسولفون أول، والقاضي يختار منو يبدا منهم، وبعدين الباقين واحد واحد. اللي يخلص قبل وقته يدوس «خلصت كلامي».</li><li>خلوا شاشاتكم شغالة طول اللعبة.</li><li>بالليل الكل يختار بنفس الدقيقة: المافيا يغتالون، البيطري يفزع، والشريف يفتش. واللي ما يختار تروح عليه.</li><li>كل واحد له دقيقة يسولف فيها.</li>`:`<li>البسوا سماعات.</li><li>خل شاشتك شغالة طول اللعبة، ولا تطلع من الصفحة. إذا طلعت يطلع للكل إنك طلعت.</li><li>كل خطوة لها وقت، واللي ما يختار تروح عليه.</li>`}</ul></div>`;
   if(host)h+=settingsPanel();
   return h+`<div class="panel"><h3>منو دخل <span class="count">${ar(n)}</span></h3>${seats(!!host)}</div>`;
@@ -2021,6 +2032,7 @@ function judgeView(){
     const n=st.players.length;
     h+=`<div class="panel"><h3>اللاعبين يدخلون برقم الغرفة</h3><p style="font-family:var(--display);font-size:3rem;text-align:center;letter-spacing:.2em;color:var(--brass);margin:0">${ar(st.code)}</p>
     <p class="muted small">${ar(n)}${J.settings&&J.settings.mode==="custom"?` من ${ar(J.cap||30)}`:""} لاعب دخل${J.mafiaNext?` · المافيا بتكون ${ar(J.mafiaNext)}`:` · تحتاج ${ar(st.minPlayers-n)} بعد`}</p>
+    ${roomQR()}
     <button class="btn share" data-a="share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v14"/></svg>ارسل رابط الغرفة</button>
     ${(()=>{const c=J.settings||{},need=c.mode==="custom"?Math.max(st.minPlayers,(c.mafia||1)+(c.cops||1)+(c.docs||1)+1):st.minPlayers;const R=st.ready||{},notR=demo?[]:st.players.filter(p=>!R[p.id]),allR=n>=need&&!notR.length;return`${n>=need&&notR.length?`<p class="small adv-miss">ننطر يجهزون: ${notR.map(p=>`<b>${esc(p.name)}</b>${p.online?"":" (طالع)"}`).join("، ")}</p><p class="muted small">اللي طفى تلفونه أو طلع تقدر تشيله بـ × جنب اسمه تحت.</p>`:""}<button class="btn primary" data-a="cmd" data-c="start" ${allR?"":"disabled"}>${allR?"ابدا، الكل جاهز":n<need?"وزّع الكروت":"ننطر الكل يجهز"}</button>${c.mode==="custom"&&n>=st.minPlayers&&n<need?`<p class="muted small">الأدوار تبي ${ar(need)} لاعب، نقّص الأعداد أو انطر يدخلون.</p>`:""}`})()}</div>
     <button class="btn gd-open" data-a="guide"><b>؟</b> دليل القاضي: شلون تمشّي اللعبة</button>
@@ -2128,7 +2140,7 @@ function nightCard(){
   const J=st.judge,n=J.night,R=J.roles,rows=[],w=`<span class="wait">ما اختار للحين</span>`;
   const row=(cls,ic,lb,body)=>rows.push(`<div class="nc ${cls}"><span class="ic" aria-hidden="true">${ic}</span><span class="tx"><span class="lb">${lb}</span>${body}</span></div>`);
   const C=J.cops||{},cops=Object.keys(C).filter(isAlive),mc=cops.length>1;
-  cops.forEach(c=>{const q=C[c].q;row("cop","👮",mc?`الشريف ${esc(nm(c))} فتّش عن`:"الشريف فتّش عن",q?`<b>${esc(nm(q))}<span class="res ${isM(R[q])?"m":"t"}">${isM(R[q])?"مافيا":"شعب"}</span></b>`:C[c].left?w:`<span class="wait">خلصت تفتيشاته</span>`)});
+  cops.forEach(c=>{const q=C[c].q,lf=` <small>(باقي ${ar(C[c].left)} من ${ar(J.queryMax)})</small>`;row("cop","👮",(mc?`الشريف ${esc(nm(c))} فتّش عن`:"الشريف فتّش عن")+lf,q?`<b>${esc(nm(q))}<span class="res ${isM(R[q])?"m":"t"}">${isM(R[q])?"مافيا":"شعب"}</span></b>`:C[c].left?w:`<span class="wait">خلصت تفتيشاته</span>`)});
   if(st.phase==="night"){
     const S=n.save||{},docs=Object.keys(R).filter(i=>R[i]==="doctor"&&isAlive(i)),md=docs.length>1;
     docs.forEach(d=>row("save","🩺",md?`البيطري ${esc(nm(d))} فزع لـ`:"البيطري فزع لـ",S[d]?`<b>${esc(nm(S[d]))}</b>`:w));
@@ -2137,6 +2149,7 @@ function nightCard(){
   return rows.length?`<div class="nightcard">${rows.join("")}</div>`:"";
 }
 function nightStatus(){
+  // الأسماء (الشريف، البيطري، الاغتيال، النصاب) فوق بالكروت بس؛ هني اختيارات المافيا وأزرار التعادل
   const J=st.judge,n=J.night,rows=[];
   const picksRows=(map,cmd,chosen,label)=>{
     const ent=Object.entries(map||{}).filter(([a])=>isAlive(a));
@@ -2145,22 +2158,9 @@ function nightStatus(){
     const tied=Object.keys(t).filter(k=>t[k]===max);
     if(tied.length>1)rows.push(`<span class="small err">تعادلوا، اختار أنت ${label}:</span><div class="row">${tied.map(o=>`<button class="btn sm ${chosen===o?"primary":""}" data-a="cmd" data-c="${cmd}" data-id="${o}">${esc(nm(o))}</button>`).join("")}</div>`);
   };
-  if(st.phase==="night0"){
-    if(st.step==="mafia"){
-      const F=J.fakes||[],need=J.fakeNeed||1;
-      rows.push(`${need>1?`النصابين (${ar(F.length)} من ${ar(need)})`:"النصاب"}: ${F.length?F.map(f=>`<b>${esc(nm(f))}</b>`).join("، "):`<span class="muted">ما تحدد</span>`}`);
-      picksRows(n.fake,"setFake",J.fakeCop,"النصاب");
-    }
-  }else{
-    rows.push(`الاغتيال: ${n.kill?`<b class="err">${esc(nm(n.kill))}</b>`:`<span class="muted">ما تحدد</span>`}`);
-    picksRows(n.sugg,"pickKill",n.kill,"منو ينغتال");
-    {const S=n.save||{},docs=Object.keys(J.roles).filter(i=>J.roles[i]==="doctor"),mn=docs.length>1;
-    docs.forEach(d=>rows.push(`${mn?esc(nm(d))+" (البيطري)":"البيطري"} اختار: ${S[d]?`<b style="color:var(--town)">${esc(nm(S[d]))}</b>`:`<span class="muted">${isAlive(d)?"ما اختار":"طالع"}</span>`}`))}
-  }
-  {const C=J.cops||{},ids=Object.keys(C),mn=ids.length>1;
-  ids.forEach(c=>{const x=C[c],who=mn?esc(nm(c))+" (الشريف)":"الشريف";
-    rows.push(`<span class="small muted">تفتيشات ${who}: باقي ${ar(x.left)} من ${ar(J.queryMax)}</span>`);
-    rows.push(`تفتيش ${who}: ${x.q?`<b>${esc(nm(x.q))}</b> ← ${isM(J.roles[x.q])?"مافيا":"شعب"}`:`<span class="muted">${!isAlive(c)?"طالع":x.left?"ما فتّش":"خلصت تفتيشاته"}</span>`}`)})}
+  if(st.phase==="night0"){if(st.step==="mafia")picksRows(n.fake,"setFake",J.fakeCop,"النصاب")}
+  else picksRows(n.sugg,"pickKill",n.kill,"منو ينغتال");
+  if(!rows.length)return"";
   return`<div class="list">${rows.map(r=>`<div class="li"><span class="nm">${r}</span></div>`).join("")}</div>`;
 }
 function playerView(){
