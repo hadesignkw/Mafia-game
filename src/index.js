@@ -417,7 +417,7 @@ export class Room extends DurableObject {
         mafiaMax: maxMafia(Math.max(s.lobby.length, MIN_PLAYERS), this.copsFor(s.lobby.length), this.docsFor(s.lobby.length)),
         rolesMax: Math.max(1, Math.max(s.lobby.length, MIN_PLAYERS) - this.mafiaFor(Math.max(s.lobby.length, MIN_PLAYERS)) - 2),
         missing: this.adv() && (s.phase === "night" || s.phase === "night0") ? this.aliveIds().filter((i) => this.todo(i).length) : [],
-        fakeWait: s.phase === "night0" && s.step === "mafia" && this.fakesReady() ? this.aliveIds().filter((i) => isM(s.roles[i]) && (s.night.fakeOk || {})[i] !== this.fakeKey()) : [],
+        fakeWait: s.phase === "night0" && this.isStep("mafia") && this.fakesReady() ? this.aliveIds().filter((i) => isM(s.roles[i]) && (s.night.fakeOk || {})[i] !== this.fakeKey()) : [],
         cops: Object.fromEntries(s.order.filter((i) => s.roles[i] === "cop").map((i) => [i, { left: Math.max(0, (s.queryMax || 0) - this.qUsed(i)), q: this.qmap()[i] || null }])),
       };
       return pub;
@@ -506,7 +506,8 @@ export class Room extends DurableObject {
   /* ---------- الإعدادات المتقدمة ---------- */
   adv() { return !!this.s.advOn; }
   // القاضي الآلي: بعد الليلة الأولى الكل يختار بنفس الدقيقة (المافيا والبيطري والشريف)
-  stepsFor(p) { return p === "night0" ? STEPS0 : this.adv() || this.s.local ? STEPS_ADV : STEPS; }
+  // الأون لاين والقاضي الآلي: الليلة الأولى بعد خطوة وحدة (الشريف يفتش والمافيا يختارون النصاب بنفس الدقيقة)
+  stepsFor(p) { return p === "night0" ? (this.s.online ? STEPS_ADV : STEPS0) : this.adv() || this.s.online ? STEPS_ADV : STEPS; }
   isStep(k) { return this.s.step === k || this.s.step === "all"; }
   // شنو باقي على اللاعب يسويه بالخطوة الحالية (عشان كل الشاشات تمشي بنفس الطريقة)
   todo(pid) {
@@ -639,7 +640,7 @@ export class Room extends DurableObject {
         if (s.phase === "night0" && isM(s.roles[id]) && s.alive[id] && !(s.fakesDone || []).includes(id)) { s.fakeCop = id; s.night.fakeByJudge = true; this.log(`القاضي حط ${this.nm(id)} نصاب`); this.lockFake(); }
         break;
       case "fakeOkAll": // تلفون واحد من المافيا علق: القاضي يكمل بدون تأكيدهم
-        if (s.phase === "night0" && s.step === "mafia" && this.fakesReady()) { const k = this.fakeKey(); s.night.fakeOk = Object.fromEntries(this.aliveIds().filter((i) => isM(s.roles[i])).map((i) => [i, k])); }
+        if (s.phase === "night0" && this.isStep("mafia") && this.fakesReady()) { const k = this.fakeKey(); s.night.fakeOk = Object.fromEntries(this.aliveIds().filter((i) => isM(s.roles[i])).map((i) => [i, k])); }
         break;
       case "killFor": // تلفونات المافيا فيها مشكلة: القاضي يختار منو ينغتال
         if (s.phase === "night" && this.isStep("mafia") && s.alive[id]) { s.night.kill = id; s.night.killByJudge = true; this.log(`القاضي اختار الاغتيال بدال المافيا: ${this.nm(id)}`); }
@@ -1039,18 +1040,19 @@ export class Room extends DurableObject {
     if (!s.online) return;
     switch (s.phase) {
       case "deal":
-        Object.assign(s, { phase: "night0", step: "police", announce: "الليلة الأولى بدت." }); this.ev("dusk"); this.setDl(ON.police); return;
+        { const st0 = this.stepsFor("night0")[0]; Object.assign(s, { phase: "night0", step: st0, announce: "الليلة الأولى بدت." }); this.ev("dusk"); this.setDl(ON[st0]); } return;
       case "night0": case "night": {
         // بالليل ما ننطر أحد يفصل: لو وقفنا عشانه، الكل بيعرف إن عنده دور
         const n = s.night;
         if (this.isStep("mafia") && s.phase === "night") {
           const r = plurality(this.aliveIds().filter((i) => isM(s.roles[i])).map((i) => n.sugg[i]));
-          if (!n.kill && r.tied.length > 1) { s.announce = "المافيا تعادلوا، لازم يتفقون."; this.setDl(ON.tieMore); return; }
+          // الوقت يطلع مرة وحدة بس: إذا تعادلوا، اللعبة تختار عشوائي من اختياراتهم
+          if (!n.kill && r.tied.length > 1) { n.kill = r.tied[crypto.getRandomValues(new Uint32Array(1))[0] % r.tied.length]; n.killByJudge = true; }
         }
-        if (s.phase === "night0" && s.step === "mafia" && !this.fakesReady()) {
+        if (s.phase === "night0" && this.isStep("mafia") && !this.fakesReady()) {
           const mafia = this.aliveIds().filter((i) => isM(s.roles[i]));
           const r = plurality(mafia.map((i) => (n.fake || {})[i]));
-          if (r.tied.length > 1) { this.setDl(ON.tieMore); return; }
+          if (!r.winner && r.tied.length > 1) r.winner = r.tied[crypto.getRandomValues(new Uint32Array(1))[0] % r.tied.length];
           // ما اختاروا: اللعبة تختار النصاب (لازم يكون فيه نصاب)
           for (let guard = 0; !this.fakesReady() && guard < 12; guard++) {
             const left = mafia.filter((i) => !(s.fakesDone || []).includes(i));
@@ -1059,8 +1061,6 @@ export class Room extends DurableObject {
             s.night.fakeByJudge = true; this.lockFake();
           }
         }
-        // المافيا لازم يعرفون منو النصاب قبل لا يطلع الصبح: نعطيهم وقت زيادة (لين دقيقة)
-        if (s.phase === "night0" && s.step === "mafia" && this.fakesReady() && !this.fakeAcked() && (n.ackExt || 0) < 4) { n.ackExt = (n.ackExt || 0) + 1; this.setDl(15); return; }
         this.next(true); return;
       }
       case "day": {
@@ -1097,7 +1097,7 @@ export class Room extends DurableObject {
       case "doctor": return al.filter((i) => s.roles[i] === "doctor").every((i) => !!this.smap()[i]);
       case "all": {
         const keep = s.step; let ok = true;
-        for (const k of STEPS) { s.step = k; ok = ok && this.stepDone(); }
+        for (const k of s.phase === "night0" ? STEPS0 : STEPS) { s.step = k; ok = ok && this.stepDone(); }
         s.step = keep; return ok;
       }
     }
@@ -1126,7 +1126,7 @@ export class Room extends DurableObject {
     const role = s.roles[pid], alive = s.alive[pid], t = m.id, tA = s.alive[t], n = s.night;
     switch (m.k) {
       case "fakecop":
-        if (s.phase === "night0" && s.step === "mafia" && isM(role) && isM(s.roles[t]) && !(s.fakesDone || []).includes(t)) {
+        if (s.phase === "night0" && this.isStep("mafia") && isM(role) && isM(s.roles[t]) && !(s.fakesDone || []).includes(t)) {
           n.fake = n.fake || {};
           n.fake[pid] = t;
           const r = plurality(this.aliveIds().filter((i) => isM(s.roles[i])).map((i) => n.fake[i]));
@@ -1137,10 +1137,10 @@ export class Room extends DurableObject {
         }
         break;
       case "fakeok": // المافيا: عرفنا منو النصاب
-        if (s.phase === "night0" && s.step === "mafia" && alive && isM(role) && this.fakesReady()) (n.fakeOk = n.fakeOk || {})[pid] = this.fakeKey();
+        if (s.phase === "night0" && this.isStep("mafia") && alive && isM(role) && this.fakesReady()) (n.fakeOk = n.fakeOk || {})[pid] = this.fakeKey();
         break;
       case "kill":
-        if (s.phase === "night" && this.isStep("mafia") && alive && isM(role) && tA && t !== pid) {
+        if (s.phase === "night" && this.isStep("mafia") && alive && isM(role) && tA) { // المافيا يقدرون يغتالون ربعهم أو حتى نفسهم
           if (n.sugg[pid] !== t) { n.sugg[pid] = t; (n.suggAt = n.suggAt || {})[pid] = Date.now(); }
           const r = plurality(this.aliveIds().filter((i) => isM(s.roles[i])).map((i) => n.sugg[i]));
           if (r.winner) { n.kill = r.winner; n.killByJudge = false; }

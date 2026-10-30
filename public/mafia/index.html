@@ -1943,13 +1943,13 @@ const OGUIDE=[
   "كل واحد يقلب كرته ويشوف دوره بروحه.",
   "بعد شوي تبدا الليلة الأولى بروحها."]},
  {k:"night0",t:"الليلة الأولى",items:[
-  "<b>الشريف</b> يفتش أول، وبعدين <b>المافيا</b> يختارون <b>النصاب</b> بينهم.",
+  "خطوة وحدة بدقيقة: <b>الشريف</b> يفتش، و<b>المافيا</b> يختارون <b>النصاب</b> بينهم، بنفس الوقت.",
   "اللي ما عنده دور (الفداوية والقناص) يخمن «منو تشك إنه مافيا؟». التخمين سري، وكل تخمين صح يجيب نقطة محقق.",
   "المافيا عندهم <b>مكالمة وشات</b> بينهم بالليل بس.",
-  "كل خطوة لها وقت. اللي ما يختار تروح عليه."]},
+  "الوقت يطلع مرة وحدة. اللي ما يختار تروح عليه."]},
  {k:"night",t:"الليل",items:[
-  "<b>المافيا</b> يختارون منو يغتالون (دقيقة)، وإذا تعادلوا الوقت يتمدد لين يتفقون.",
-  "<b>البيطري</b> يفزع لواحد، و<b>الشريف</b> يفتش (45 ثانية لكل خطوة).",
+  "خطوة وحدة بدقيقة: <b>المافيا</b> يغتالون (حتى ربعهم أو نفسهم)، <b>البيطري</b> يفزع، و<b>الشريف</b> يفتش، كلهم بنفس الوقت.",
+  "إذا المافيا تعادلوا لين يخلص الوقت، اللعبة تختار من اختياراتهم.",
   "اللي ما عندهم دور يخمنون «منو تشك فيه؟».",
   "اللي يفصل بالليل ما ننطره، تروح عليه خطوته."]},
  {k:"day",t:"النهار والكلام",items:[
@@ -2013,7 +2013,7 @@ function advToggle(on){
 }
 /* نص الدور: بالأون لاين القاضي آلي، فالتعادل يعيدون فيه والقناص يشوف بروحه */
 function roleDesc(r){if(!(st&&st.online))return r.d;
-  return r.d.replace("وإذا تعادلتوا القاضي يختار من اختياراتكم.","وإذا تعادلتوا تعيدون الاختيار لين تتفقون.").replace("وتعرف دوره أنت والقاضي بس.","وتعرف دوره بروحك.")}
+  return r.d.replace("وإذا تعادلتوا القاضي يختار من اختياراتكم.","وإذا تعادلتوا لين يخلص الوقت، اللعبة تختار من اختياراتكم.").replace("وتعرف دوره أنت والقاضي بس.","وتعرف دوره بروحك.")}
 /* --- القاضي --- */
 function judgeView(){
   const J=st.judge;let h=header();
@@ -2119,7 +2119,7 @@ function stepFallback(){
   if(step==="all"){const keep=st.step;let h="";for(const k of ["mafia","doctor","police"]){st.step=k;h+=stepFallback()}st.step=keep;return h}
   if(step==="police"){const C=J.cops||{};return al.filter(i=>R[i]==="cop"&&C[i]&&C[i].left&&!C[i].q).map(cop=>box(`${many("cop")?esc(nm(cop))+" (الشريف)":"الشريف"} ما فتّش؟ فتّش بداله`,al.filter(i=>i!==cop),"queryFor",null,false,cop)).join("")}
   if(step==="mafia"){const m=al.filter(i=>isM(R[i]));if(!m.length)return"";
-    return p==="night0"?box((J.fakeNeed||1)>1?`المافيا ما اختاروا النصاب رقم ${ar(Math.min((J.fakes||[]).length+1,J.fakeNeed))}؟ اختار بدالهم`:"المافيا ما اختاروا النصاب؟ اختار بدالهم",m.filter(i=>!(J.fakes||[]).includes(i)||i===J.fakeCop),"setFake",J.fakeCop):box("المافيا ما اختاروا؟ اختار منو ينغتال بدالهم",al.filter(i=>!isM(R[i])),"killFor",n.kill,true)}
+    return p==="night0"?box((J.fakeNeed||1)>1?`المافيا ما اختاروا النصاب رقم ${ar(Math.min((J.fakes||[]).length+1,J.fakeNeed))}؟ اختار بدالهم`:"المافيا ما اختاروا النصاب؟ اختار بدالهم",m.filter(i=>!(J.fakes||[]).includes(i)||i===J.fakeCop),"setFake",J.fakeCop):box("المافيا ما اختاروا؟ اختار منو ينغتال بدالهم",al,"killFor",n.kill,true)}
   if(step==="doctor"){const S=n.save||{};return al.filter(i=>R[i]==="doctor").map(d=>box(`${many("doctor")?esc(nm(d))+" (البيطري)":"البيطري"} ما اختار؟ اختار بداله`,al,"saveFor",S[d]||null,false,d)).join("")}
   return"";
 }
@@ -2218,16 +2218,16 @@ function actionView(){
   const nightBox=t=>`<div class="panel nightbox"><div class="zz"><span class="leye"><i></i></span><span class="leye"><i></i></span><b>z</b><b>z</b><b>z</b></div><h2>${t||"غمّض عيونك"}</h2><p class="muted small">${st.online?"مو دورك الحين، انطر لين تجي خطوتك.":"مو دورك الحين، القاضي بيصحّيك."}</p></div>`;
   if(st.sniperPending===me.id)return`<div class="panel"><h2>أنت القناص</h2><p>اختار واحد يطلع وياك. ${st.online?"دوره يطلع لك بروحك.":"دوره يطلع لك أنت والقاضي بس."}</p>${picker("snipe",others,true)}</div>`;
   if(st.adv&&(p==="night0"||p==="night"))return advNight(others,al);
+  const stp=k=>st.step===k||st.step==="all";
   if(p==="night0"){
-    if(st.step==="mafia"&&isM(role)&&me.fakesReady)return`<div class="panel">${mafiaIdCard()}${fakeResult()}</div>`;
-    if(st.step==="mafia"&&isM(role)){const need=me.fakeNeed||1,done=me.fakesDone||[];
-      return`<div class="panel">${mafiaIdCard()}<h2>${need>1?`اختاروا النصاب رقم ${ar(Math.min(done.length+1,need))} من ${ar(need)}`:"اختاروا النصاب بينكم"}</h2><p class="muted small">كل واحد يختار من ربعه، حتى نفسه. الأغلبية تفوز، ${st.online?"وإذا تعادلتوا تعيدون الاختيار لين تتفقون.":"وإذا تعادلتوا القاضي يختار."}</p>${(me.fakeJudge||[]).length?`<p class="announce" style="font-size:1.05rem">⚖️ القاضي اختار عنكم: ${(me.fakeJudge||[]).map(f=>f===me.id?"<b>أنت</b> صرت النصاب":`صار <b>${esc(nm(f))}</b> النصاب`).join("، و")}</p>`:""}${done.length?`<p class="small">تعيّنوا: ${done.map(d=>`<b>${d===me.id?"أنت":esc(nm(d))}</b>`).join("، ")}</p>`:""}${picker("fakecop",me.team.filter(t=>isAlive(t.id)&&!done.includes(t.id)).map(t=>t.id))}${teamPicks()}${(()=>{const f=me.team.find(t=>t.fake&&!(me.fakesDone||[]).includes(t.id))||me.team.find(t=>t.fake&&t.id===me.id);return`<p class="announce" style="font-size:1.05rem">النصاب: ${f?(f.id===me.id?(st.online?"أنت! بالنهار تتكلم أول مع الشريف، سوّ نفسك الشريف 🤪":"أنت! بالنهار اسمك يطلع للكل مع الشرطة، سوّ نفسك الشريف 🤪"):esc(nm(f.id))):"ما تحدد للحين"}</p>`})()}</div>`}
-    if(st.step==="police"&&role==="cop")return queryBox(others);
+    if(stp("mafia")&&isM(role)&&me.fakesReady)return`<div class="panel">${mafiaIdCard()}${fakeResult()}</div>`;
+    if(stp("mafia")&&isM(role)){const need=me.fakeNeed||1,done=me.fakesDone||[];
+      return`<div class="panel">${mafiaIdCard()}<h2>${need>1?`اختاروا النصاب رقم ${ar(Math.min(done.length+1,need))} من ${ar(need)}`:"اختاروا النصاب بينكم"}</h2><p class="muted small">كل واحد يختار من ربعه، حتى نفسه. الأغلبية تفوز، ${st.online?"وإذا تعادلتوا لين يخلص الوقت، اللعبة تختار من اختياراتكم.":"وإذا تعادلتوا القاضي يختار."}</p>${(me.fakeJudge||[]).length?`<p class="announce" style="font-size:1.05rem">⚖️ القاضي اختار عنكم: ${(me.fakeJudge||[]).map(f=>f===me.id?"<b>أنت</b> صرت النصاب":`صار <b>${esc(nm(f))}</b> النصاب`).join("، و")}</p>`:""}${done.length?`<p class="small">تعيّنوا: ${done.map(d=>`<b>${d===me.id?"أنت":esc(nm(d))}</b>`).join("، ")}</p>`:""}${picker("fakecop",me.team.filter(t=>isAlive(t.id)&&!done.includes(t.id)).map(t=>t.id))}${teamPicks()}${(()=>{const f=me.team.find(t=>t.fake&&!(me.fakesDone||[]).includes(t.id))||me.team.find(t=>t.fake&&t.id===me.id);return`<p class="announce" style="font-size:1.05rem">النصاب: ${f?(f.id===me.id?(st.online?"أنت! بالنهار تتكلم أول مع الشريف، سوّ نفسك الشريف 🤪":"أنت! بالنهار اسمك يطلع للكل مع الشرطة، سوّ نفسك الشريف 🤪"):esc(nm(f.id))):"ما تحدد للحين"}</p>`})()}</div>`}
+    if(stp("police")&&role==="cop")return queryBox(others);
     return onlineGuess(others)||nightBox();
   }
   if(p==="night"){
-    const stp=k=>st.step===k||st.step==="all";
-    if(stp("mafia")&&isM(role))return`<div class="panel"><h2>منو تغتالون؟</h2><p class="muted small">كل واحد يختار، وربعك يشوفون اختيارك. الأغلبية تفوز، ${st.online?"وإذا تعادلتوا تعيدون الاختيار لين تتفقون.":"وإذا تعادلتوا القاضي يختار من اختياراتكم."}</p>${picker("kill",others,true)}${teamPicks()}${mateCard()}</div>`;
+    if(stp("mafia")&&isM(role))return`<div class="panel"><h2>منو تغتالون؟</h2><p class="muted small">كل واحد يختار، وربعك يشوفون اختيارك. الأغلبية تفوز، ${st.online?"وإذا تعادلتوا لين يخلص الوقت، اللعبة تختار من اختياراتكم.":"وإذا تعادلتوا القاضي يختار من اختياراتكم."}</p>${picker("kill",al,true)}${teamPicks()}${mateCard()}</div>`;
     if(stp("doctor")&&role==="doctor")return`<div class="panel"><h2>منو تفزع له؟</h2><p class="muted small">تقدر تختار نفسك.</p>${picker("save",al)}</div>`;
     if(stp("police")&&role==="cop")return queryBox(others);
     return onlineGuess(others)||nightBox();
@@ -2250,7 +2250,7 @@ function advNight(others,al){
   if(!task)return`<div class="panel nightbox advwait"><div class="zz"><span class="leye"><i></i></span><span class="leye"><i></i></span><b>z</b><b>z</b><b>z</b></div><h2>انطر الصبح</h2><p class="muted small">خلصت اختيارك. خلك ماسك تلفونك لين يطلع الصبح.</p></div>`;
   const lq=me.lastQuery,qLine=lq?`نتيجة تفتيشك: <b>${esc(nm(lq.id))}</b> طلع <b>${lq.mafia?"مافيا":"شعب"}</b>. احفظها.`:null;
   if(task==="query")return box("فتّش عن نصاب",`باقي لك ${ar(me.queriesLeft)} من ${ar(me.queryMax)}. الجواب يطلع لك بعد ما تختار.`,picker("query",others)+camo("guess",1));
-  if(task==="kill")return box("منو تغتالون؟","ربعك يشوفون اختيارك، والأغلبية تفوز.",picker("kill",others)+mateCamo());
+  if(task==="kill")return box("منو تغتالون؟","ربعك يشوفون اختيارك، والأغلبية تفوز.",picker("kill",al)+mateCamo());
   if(task==="save")return box("منو تفزع له؟","تقدر تختار نفسك.",picker("save",al)+camo("guess",1));
   if(task==="fake"&&me.fakesReady)return`<div class="panel advp">${mafiaIdCard()}${fakeResult()}</div>`;
   if(task==="fake"){const need=me.fakeNeed||1,done=me.fakesDone||[];
