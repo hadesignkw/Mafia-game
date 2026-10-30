@@ -950,6 +950,9 @@ body[data-phase=day] .pick:not(.on):not(.res){background:rgba(255,250,239,.92);c
 .fakecard .ok{font-size:1rem;color:var(--town)}
 .copsup{display:flex;flex-direction:column;gap:8px;text-align:center}.copsup .lab{font-size:1rem;opacity:.8}
 .copsup .cnames{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}.copsup .cnames span{font-family:var(--display);font-size:1.5rem;padding:6px 16px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16)}
+.jcops{display:flex;flex-wrap:wrap;gap:8px 22px;justify-content:center;font-size:1.15rem;padding:12px 16px}.jcops b{font-family:var(--display);font-size:1.3rem}.jcops b.gone{text-decoration:line-through;opacity:.55}
+.dawncops{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:22px;padding:14px 22px;border-radius:18px;background:rgba(10,12,18,.78);color:#fff;border:1px solid rgba(255,255,255,.25);position:relative;z-index:2}
+.dawncops .l{font-size:1rem;opacity:.85}.dawncops .n{font-family:var(--display);font-size:2rem}.dawncops .h{font-size:.95rem;opacity:.85}
 </style>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ديوان المدلل">
@@ -1133,11 +1136,13 @@ function onMsg(m){
     const prev=st;st=m;view="game";
     if(st.me&&st.gen!==lastGen){if(lastGen!==null||st.phase==="night0")cardOpen=false;lastGen=st.gen}
     handleEvent(prev);
+    fxInfoCheck();
     voteFx(prev);
     if(st.me&&st.me.notes){const n=st.me.notes.length;
       if(notesSeen!==null&&n>notesSeen&&!/^الليلة/.test(st.me.notes[n-1])){const t=st.me.notes[n-1];
         // اختيار النصاب بدال المافيا له شاشته (مو شاشة جواب التفتيش اللي تكتب «شعب»)
-        fxQ.push({id:"a"+Date.now(),type:/اخت(ار|ارت) عنكم/.test(t)?"fakepick":"answer",text:t});cardOpen=false;playNext()}
+        const fp=/اخت(ار|ارت) عنكم/.test(t);
+        if(!fp||st.phase==="night0"){fxQ.push({id:"a"+Date.now(),type:fp?"fakepick":"answer",text:t});cardOpen=false;playNext()}}
       notesSeen=n}
     render();
   }
@@ -1402,6 +1407,13 @@ function demoBar(){
 const fxQ=[];let fxBusy=false,fxTimer=null,confettiStop=null;
 const STICKY=new Set(["kill","saved","nokill","out","tie","snipe"]);
 const isSticky=t=>STICKY.has(t)&&!(st&&st.online); // بالأون لاين ما فيه قاضي يسكرها، تسكر بروحها
+// شاشات الخبر: ما تنشال بالدوس، تظل لين اللعبة تمشي للخطوة الجاية
+const INFO=new Set(["fakepick","answer"]);
+const fxStepKey=()=>st?[st.gen,st.phase,st.step].join("|"):"";
+function fxInfoCheck(){
+  if(!curFx||!INFO.has(curFx.type))return;
+  if(curFx.key!==fxStepKey()||(curFx.type==="fakepick"&&st.me&&st.me.fakeOk))closeFx();
+}
 let curFx=null;
 const fxClosed=id=>{const e=st&&st.event;return!!e&&((e.id===id&&e.closed)||(e.after&&e.after.id===id&&e.after.closed))};
 function handleEvent(prev){
@@ -1424,15 +1436,15 @@ function playNext(){
   fxBusy=true;curFx=e;sceneSound(e);
   const night=e.type==="dusk", isMe=st&&st.me&&st.me.inGame;
   let cls="",html="",dur=3200;
-  const tap=`<div class="tap">دوس عشان تكمل</div>`;
+  const tap="";
   if(e.type==="fakepick"){const mine=/أنت صرت النصاب/.test(e.text);cls="fx-answer fx-answer-m";dur=8000;
-    html=`<div class="big">${mine?"أنت النصاب 🤪":"تعيّن النصاب"}</div><div class="sub">${esc(ar(e.text))}</div><div class="bar"><i></i></div><div class="muted small">${mine?(st&&st.online?"بالنهار تتكلم أول مع الشريف، سوّ نفسك الشريف":"بالنهار اسمك يطلع للكل مع الشرطة، سوّ نفسك الشريف"):"ربعك صار النصاب، ساعدوه يقنع الشعب"}</div>`}
+    html=`<div class="big">${mine?"أنت النصاب 🤪":"تعيّن النصاب"}</div><div class="sub">${esc(ar(e.text))}</div><div class="bar"><i></i></div><div class="muted small">${mine?(st&&st.online?"بالنهار تتكلم أول مع الشريف، سوّ نفسك الشريف":"بالنهار اسمك يطلع للكل مع الشرطة، سوّ نفسك الشريف"):"ربعك صار النصاب، ساعدوه يقنع الشعب"}</div>${st&&st.me&&st.me.fakesReady&&!st.me.fakeOk?`<button class="btn primary" data-a="act" data-k="fakeok" style="margin-top:14px">${mine?"تمام، عرفت إني النصاب (الشريف المزيف) ✓":"عرفت منو النصاب ✓"}</button>`:""}`}
   else if(e.type==="answer"){const bad=/مافيا/.test(e.text);cls="fx-answer "+(bad?"fx-answer-m":"fx-answer-t");dur=10000;
     html=`<div class="big">${bad?"مافيا!":"شعب"}</div><div class="sub">${esc(ar(e.text))}</div><div class="bar"><i></i></div><div class="muted small">احفظها، ما بترجع تطلع لك</div>`;buzz(bad?[60,40,60]:40)}
   else if(e.type==="doors"){cls="fx-doors";dur=1700;html=`<div class="dr l"><i></i></div><div class="dr r"><i></i></div><div class="big">سكّرنا الباب</div><div class="sub">محد يطلع ولا يدخل</div>`}
   else if(e.type==="deal"){cls="fx-deal";dur=2400;html=`<div class="fan">${[-30,-15,0,15,30].map((r,i)=>`<i style="transform:rotate(${r}deg);animation-delay:${i*.06}s"></i>`).join("")}</div><div class="big">توزعت الكروت</div><div class="sub">${isMe?"اقلب كرتك وغطّ الشاشة عن اللي جنبك":"كل واحد يشوف دوره بتلفونه"}</div>`;dealAnim=true;buzz(60)}
   else if(e.type==="dusk"){cls="fx-dusk mv-sky";dur=7000;html=(window.MV?MV.sky("dusk"):"")+stars(20)+`<div class="rx-event-scene dusk" aria-hidden="true"></div>`+`<div class="big">الليل</div><div class="sub">كل واحد يتابع تلفونه</div>`}
-  else if(e.type==="dawn"){cls="fx-dawn mv-sky";dur=7000;html=(window.MV?MV.sky("dawn"):"")+`<div class="rx-event-scene dawn" aria-hidden="true"></div>`+`<div class="big">الصبح</div><div class="sub">بدا النهار</div>`}
+  else if(e.type==="dawn"){cls="fx-dawn mv-sky";dur=7000;html=(window.MV?MV.sky("dawn"):"")+`<div class="rx-event-scene dawn" aria-hidden="true"></div>`+`<div class="big">الصبح</div><div class="sub">بدا النهار</div>${(()=>{const c=((st&&st.copsUp)||[]).filter(isAlive);return c.length?`<div class="dawncops"><span class="l">👮 الشرطة</span><span class="n">${c.map(i=>esc(nm(i))).join(" و ")}</span><span class="h">${c.length===2?"واحد حقيقي وواحد مزيف، ومحد يدري منو":c.length>2?"فيهم الحقيقي وفيهم المزيف، ومحد يدري منو":""}</span></div>`:""})()}`;dur=9000}
   else if(e.type==="kill"){cls="fx-kill"+(window.MV&&!MV.reduced()?" mv":"");dur=12000;const tape="مسرح جريمة · لا تقرب · ".repeat(8);html=(cls.includes(" mv")?MV.scope(e.who):"")+`<div class="tape t1"><span>${tape}</span></div><div class="tape t2"><span>${tape}</span></div>${polaroid(e.who,"x")}<div class="big">اغتيال</div><div class="sub">تم اغتيال ${esc(e.who)}</div><div class="sub" style="animation-delay:1.3s">صيدة سهلة والبيطري مدوّج 😴</div>${e.sniper?`<div class="chip m" style="font-size:1rem">قناص! بيسحب واحد وياه</div>`:""}`;buzz([80,60,200])}
   else if(e.type==="saved"){cls="fx-saved";dur=12000;html=(window.MV?MV.life():"")+`<svg class="cross" viewBox="0 0 64 64" fill="currentColor"><path d="M24 6h16v18h18v16H40v18H24V40H6V24h18z"/></svg><svg class="ecg" viewBox="0 0 320 90"><path d="M0 50 H90 L105 20 L120 80 L140 8 L158 70 L172 50 H320"/></svg><div class="big">اغتيال شامط</div><div class="sub">البيطري موجووووود 🔥</div>`;buzz([40,80,40])}
   else if(e.type==="nokill"){cls="fx-dawn mv-sky";dur=12000;html=(window.MV?MV.sky("dawn"):"")+`<div class="rx-event-scene dawn" aria-hidden="true"></div>`+`<div class="big">خرمس</div><div class="sub">المافيا ما عرفوا يغتالون أحد</div>`}
@@ -1455,7 +1467,8 @@ function playNext(){
   const demoH=demo&&st&&!st.judge?`<div class="democlose"><button class="btn sm" data-fx="judge">رجوع لشاشة القاضي</button></div>`:"";
   fx.className="fx-enter "+cls+(sticky?" sticky":"");fx.innerHTML=html+tapH+demoH;fx.hidden=false;fxShownAt=Date.now();
   if(e.type==="win"){const s1=confetti(fx,e.winner==="town"?["#d4e2f4","#72b096","#f4ffef","#d2a74c"]:["#cf5c55","#7a1d1f","#ffb4ab","#2a0a0b"],e.winner!=="town"),s2=e.winner==="town"&&window.MV?MV.fireworks(fx):null;confettiStop=s1||s2?()=>{s1&&s1();s2&&s2()}:null}
-  clearTimeout(fxTimer);if(!sticky)fxTimer=setTimeout(closeFx,matchMedia("(prefers-reduced-motion: reduce)").matches?Math.min(dur,1800):dur);
+  if(INFO.has(e.type))curFx.key=fxStepKey();
+  clearTimeout(fxTimer);if(!sticky&&!INFO.has(e.type))fxTimer=setTimeout(closeFx,matchMedia("(prefers-reduced-motion: reduce)").matches?Math.min(dur,1800):dur);
   if(night)document.body.dataset.phase="night";
 }
 /* كشف الأدوار بالنهاية: الكروت تتقلب وحدة وحدة بعد ما تسكر شاشة الفوز */
@@ -1479,9 +1492,7 @@ function closeFx(){
 $("#fx").addEventListener("click",e=>{
   if(e.target.closest("[data-fx=close]")){send({t:"closeFx"});closeFx();return}
   if(e.target.closest("[data-fx=judge]")){switchPersona(0);return}
-  if(curFx&&isSticky(curFx.type))return; // صورة النتيجة يسكرها القاضي بس
-  if($("#fx").classList.contains("fx-leave"))return;
-  closeFx();
+  // ما فيه «دوس عشان تكمل»: الشاشات تروح بروحها، والخبر يظل لين الخطوة الجاية
 });
 function stars(n){let h="";for(let i=0;i<n;i++)h+=`<span class="star" style="top:${Math.random()*70}%;left:${Math.random()*100}%;animation-delay:${(Math.random()*1.6).toFixed(2)}s;opacity:.${2+Math.floor(Math.random()*7)}"></span>`;return h}
 function confetti(host,colors,embers){
@@ -2015,9 +2026,16 @@ function judgeView(){
     <div class="panel"><h3>منو دخل <span class="count">${ar(n)}</span></h3>${n?seats(true):`<p class="muted">ما أحد دخل للحين.</p>`}</div>`;
     return h;
   }
-  h+=`<div class="jmain">`+judgeControls()+`</div><div class="jside">`+rolesBoard();
+  h+=`<div class="jmain">`+judgeCops()+judgeControls()+`</div><div class="jside">`+rolesBoard();
   if(J.log.length)h+=`<details class="panel"><summary class="muted">شنو صار باللعبة؟</summary><ul class="notes">${J.log.slice().reverse().map(l=>`<li>${esc(l)}</li>`).join("")}</ul></details>`;
   return h+`</div>`;
+}
+// القاضي يشوف دايم منو الشريف ومنو النصاب
+function judgeCops(){
+  const J=st.judge,R=J.roles||{},cops=Object.keys(R).filter(i=>R[i]==="cop"),F=J.fakes||[];
+  if(!cops.length||st.phase==="over")return"";
+  const nmx=i=>`<b class="${isAlive(i)?"":"gone"}">${esc(nm(i))}</b>`;
+  return`<div class="panel jcops"><span>👮 الشريف: ${cops.map(nmx).join("، ")}</span><span>🤪 النصاب: ${F.length?F.map(nmx).join("، "):`<i class="muted">ما تحدد للحين</i>`}</span></div>`;
 }
 function rolesBoard(){
   const J=st.judge,ids=Object.keys(J.roles);
@@ -2246,8 +2264,8 @@ function fakeResult(){
   const me=st.me,L=me.fakeList||[],mine=L.includes(me.id),others=L.filter(f=>f!==me.id);
   const who=[mine?"<b>أنت</b>":"",...others.map(f=>`<b>${esc(nm(f))}</b>`)].filter(Boolean).join(" و");
   const tip=mine?(st.online?"بالنهار اسمك يطلع للكل مع الشرطة. سوّ نفسك الشريف وانتبه لا تنكشف 🤪":"بالنهار اسمك يطلع للكل مع الشرطة. سوّ نفسك الشريف 🤪"):"ساعدوه يقنع الشعب إنه الشريف.";
-  return`<div class="fakecard ${mine?"me":""}"><span class="lab">${L.length>1?"النصابين":"النصاب"}</span><span class="who">${who}</span><span class="tip">${tip}</span>
-  ${me.fakeOk?`<span class="ok">✓ عرفت، ننطر ربعك</span>`:`<button class="btn primary" data-a="act" data-k="fakeok">عرفت منو النصاب ✓</button>`}</div>`;
+  return`<div class="fakecard ${mine?"me":""}"><span class="lab">${mine?"دورك بين ربعك":L.length>1?"النصابين":"النصاب"}</span><span class="who">${mine&&L.length===1?"أنت النصاب 🤪":who}</span>${mine?`<span class="tip"><b>يعني أنت الشريف المزيف</b></span>`:`<span class="tip">${L.length>1?"هم":"هو"} الشريف المزيف</span>`}<span class="tip">${tip}</span>
+  ${me.fakeOk?`<span class="ok">✓ ${mine?"تمام، ننطر ربعك":"عرفت، ننطر ربعك"}</span>`:`<button class="btn primary" data-a="act" data-k="fakeok">${mine?"تمام، عرفت إني النصاب (الشريف المزيف) ✓":"عرفت منو النصاب ✓"}</button>`}</div>`;
 }
 // الصندوق اللي تحت على اليسار: نفس الشكل عند الكل
 function camo(kind,look){ // look: يطلع بس بدون ضغط (للي عنده دور)
