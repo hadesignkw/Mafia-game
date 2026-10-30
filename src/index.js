@@ -456,7 +456,7 @@ export class Room extends DurableObject {
         pub.me.chat = { town: { msgs: (ch.town || []).slice(-CHAT_MAX), write: !dead && ["day", "vote", "result"].includes(s.phase) } };
         if (isM(role) || dead) pub.me.chat.mafia = { msgs: (ch.mafia || []).slice(-CHAT_MAX), write: isM(role) && !dead && (s.phase === "night" || s.phase === "night0") };
         if (dead) pub.me.chat.grave = { msgs: (ch.grave || []).slice(-CHAT_MAX), write: s.phase !== "over" };
-        if (!this.adv() && (s.phase === "night" || s.phase === "night0") && !dead) pub.me.canGuess = true;
+        if (!this.adv() && (s.phase === "night" || s.phase === "night0") && !dead && canGuessRole(role)) pub.me.canGuess = true;
       }
       if (this.adv() && (s.phase === "night" || s.phase === "night0")) {
         pub.me.todo = this.todo(pid);
@@ -496,16 +496,16 @@ export class Room extends DurableObject {
   todo(pid) {
     const s = this.s, n = s.night, r = s.roles[pid], out = [];
     if (!this.adv() || !s.alive[pid] || !(s.phase === "night" || s.phase === "night0")) return out;
-    const g = n.guess || {}, fg = n.fguess || {};
+    const g = n.guess || {}, fg = n.fguess || {}, free = canGuessRole(r);
     if (s.phase === "night0") {
-      if (s.step === "police") { if (r === "cop" && !this.qmap()[pid] && this.qUsed(pid) < (s.queryMax || 0)) out.push("query"); if (!g[pid]) out.push("guess"); }
-      else if (s.step === "mafia") { if (isM(r)) { if (!this.stepDone()) out.push("fake"); } else if (!fg[pid]) out.push("fguess"); }
+      if (s.step === "police") { if (r === "cop" && !this.qmap()[pid] && this.qUsed(pid) < (s.queryMax || 0)) out.push("query"); if (free && !g[pid]) out.push("guess"); }
+      else if (s.step === "mafia") { if (isM(r)) { if (!this.stepDone()) out.push("fake"); } else if (free && !fg[pid]) out.push("fguess"); }
       return out;
     }
     if (isM(r) && !(n.kill && (n.killByJudge || n.sugg[pid] === n.kill))) out.push("kill");
     if (r === "doctor" && !this.smap()[pid]) out.push("save");
     if (r === "cop" && !this.qmap()[pid] && this.qUsed(pid) < (s.queryMax || 0)) out.push("query");
-    if (!g[pid]) out.push("guess");
+    if (free && !g[pid]) out.push("guess");
     return out;
   }
   // أكثر واحد مختار بخريطة تخمينات
@@ -1129,7 +1129,8 @@ export class Room extends DurableObject {
       case "query":
         if (alive && role === "cop") this.doQuery(pid, t);
         break;
-      case "guess": // تخمين: منو تشك إنه مافيا
+      case "guess": // تخمين: منو تشك إنه مافيا (اللي ما عنده دور بالليل بس)
+        if (!canGuessRole(role)) break;
         if (this.adv() && alive && tA && t !== pid && ((s.phase === "night" && s.step === "all") || (s.phase === "night0" && s.step === "police"))) (n.guess = n.guess || {})[pid] = t;
         else if (!this.adv() && s.online && alive && tA && t !== pid && (s.phase === "night" || s.phase === "night0")) (n.guess = n.guess || {})[pid] = t;
         break;
@@ -1137,7 +1138,7 @@ export class Room extends DurableObject {
         if (s.online && s.phase === "day" && s.timer && s.timer.pid === pid) { s.timer = null; s.deadline = Date.now(); }
         break;
       case "fguess": // الليلة الأولى: منو تتوقع النصاب
-        if (this.adv() && alive && tA && t !== pid && !isM(role) && s.phase === "night0" && s.step === "mafia") (n.fguess = n.fguess || {})[pid] = t;
+        if (this.adv() && alive && tA && t !== pid && canGuessRole(role) && s.phase === "night0" && s.step === "mafia") (n.fguess = n.fguess || {})[pid] = t;
         break;
       case "vote":
         if (s.phase === "vote" && alive) this.castVote(pid, t); // بالدور، والصوت ما يتغير
@@ -1148,5 +1149,9 @@ export class Room extends DurableObject {
     }
   }
 }
+
+// التخمين بالليل («منو تشك إنه مافيا؟») للي ما عنده دور بالليل بس: الفداوي والقناص.
+// الشريف والبيطري والمافيا (والنصاب) يطلع لهم دورهم بس.
+function canGuessRole(r) { return r === "citizen" || r === "sniper"; }
 
 function blankNight() { return { sugg: {}, suggAt: {}, fake: {}, kill: null, save: {}, queried: {}, guess: {}, fguess: {}, killByJudge: false, fakeByJudge: false }; }

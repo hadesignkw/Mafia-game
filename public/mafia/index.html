@@ -929,6 +929,18 @@ body[data-phase=day] .pick:not(.on):not(.res){background:rgba(255,250,239,.92);c
 .gd-s ol,.gd-s ul{margin:0;padding:10px 32px 14px 14px;line-height:1.9;font-size:.92rem;color:#dfe6f0}
 .gd-s li{margin:3px 0}.gd-s b{color:#fff}
 .gd-s .tip{margin:0 14px 14px;padding:10px 12px;border-radius:10px;background:#1d2a3c;color:#cfe0f5;font-size:.85rem;line-height:1.7}
+/* كرت القاضي الكبير: شنو صار بالليل */
+.nightcard{display:flex;flex-direction:column;gap:10px;margin:0 0 14px}
+.nightcard .nc{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12)}
+.nightcard .nc .ic{font-size:1.7rem;line-height:1;flex:0 0 auto}
+.nightcard .nc .tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.nightcard .nc .lb{font-size:.9rem;opacity:.75}
+.nightcard .nc b{font-size:1.45rem;font-family:var(--display)}
+.nightcard .nc.kill{border-color:color-mix(in srgb,var(--blood) 55%,transparent);background:color-mix(in srgb,var(--blood) 14%,transparent)}
+.nightcard .nc.save{border-color:color-mix(in srgb,var(--town) 55%,transparent);background:color-mix(in srgb,var(--town) 12%,transparent)}
+.nightcard .nc .wait{font-size:1.1rem;opacity:.6}
+.nightcard .res{font-size:1rem;padding:2px 10px;border-radius:999px;margin-inline-start:6px}
+.nightcard .res.m{background:var(--blood);color:#fff}.nightcard .res.t{background:var(--town);color:#06121c}
 </style>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ديوان المدلل">
@@ -1833,11 +1845,11 @@ const GUIDE=[
  {k:"adv",t:"الإعدادات المتقدمة",items:[
   "تشتغل بس إذا حطيت صح على <b>«تبي إعدادات متقدمة؟»</b> قبل التوزيع، مع افتراضي أو مخصص.",
   "الفكرة: محد يقعد بدون شي بالليل. الكل ماسك تلفونه ويختار، فما يبين منو عنده دور ومنو فداوي.",
-  "<b>الليلة الأولى</b> بنفس ترتيبها: وقت تفتيش الشريف الباقين يجاوبون «منو تشك إنه مافيا؟»، ووقت اختيار النصاب الشعب يجاوبون «منو تتوقع النصاب؟».",
-  "<b>من الليلة الثانية</b> الكل يختار بنفس الوقت بخطوة وحدة: المافيا يغتالون، البيطري يفزع، الشريف يفتش، وبعدها الكل يخمن «منو تشك فيه؟» حتى المافيا.",
+  "<b>الليلة الأولى</b> بنفس ترتيبها: وقت تفتيش الشريف اللي ما عندهم دور يجاوبون «منو تشك إنه مافيا؟»، ووقت اختيار النصاب يجاوبون «منو تتوقع النصاب؟».",
+  "<b>من الليلة الثانية</b> الكل يختار بنفس الوقت بخطوة وحدة: المافيا يغتالون، البيطري يفزع، الشريف يفتش، واللي ما عندهم دور (الفداوية والقناص) يخمنون «منو تشك فيه؟».",
   "زر «الصبح» يشتغل أول ما المافيا والبيطري والشريف يخلصون. اللي ما خلصوا تخمينهم تشوف أسماءهم فوق الزر، وتقدر تنطرهم أو تكمل.",
   "<b>الصبح</b> يطلع للكل نسبة شك الشعب على كل لاعب، بدون ما يبين منو خمّن منو. تقدر تفتح فيها النقاش.",
-  "<b>نقاط المحقق</b>: كل تخمين صح لواحد من الشعب بنقطة. ما تبين وسط اللعبة، وبالنهاية يطلع «أحسن محقق».",
+  "<b>نقاط المحقق</b>: كل تخمين صح لواحد ما عنده دور بنقطة. ما تبين وسط اللعبة، وبالنهاية يطلع «أحسن محقق».",
   "شاشات اللاعبين بالليل نفسها للكل: نفس الشكل والصندوق تحت، والأسماء مخلوطة بترتيب غير بكل تلفون، والشاشة تغمق بنفس الدرجة."],
   tip:"قول للربع قبل لا تبدون: «بالليل الكل يمسك تلفونه ويختار لين يطلع الصبح»."},
  {k:"over",t:"نهاية اللعبة",items:[
@@ -1912,13 +1924,13 @@ const OGUIDE=[
   "بعد شوي تبدا الليلة الأولى بروحها."]},
  {k:"night0",t:"الليلة الأولى",items:[
   "<b>الشريف</b> يفتش أول، وبعدين <b>المافيا</b> يختارون <b>النصاب</b> بينهم.",
-  "اللي ما عنده شي يسويه يخمن «منو تشك إنه مافيا؟». التخمين سري، وكل تخمين صح يجيب نقطة محقق.",
+  "اللي ما عنده دور (الفداوية والقناص) يخمن «منو تشك إنه مافيا؟». التخمين سري، وكل تخمين صح يجيب نقطة محقق.",
   "المافيا عندهم <b>مكالمة وشات</b> بينهم بالليل بس.",
   "كل خطوة لها وقت. اللي ما يختار تروح عليه."]},
  {k:"night",t:"الليل",items:[
   "<b>المافيا</b> يختارون منو يغتالون (دقيقة)، وإذا تعادلوا الوقت يتمدد لين يتفقون.",
   "<b>البيطري</b> يفزع لواحد، و<b>الشريف</b> يفتش (45 ثانية لكل خطوة).",
-  "الباقين يخمنون «منو تشك فيه؟».",
+  "اللي ما عندهم دور يخمنون «منو تشك فيه؟».",
   "اللي يفصل بالليل ما ننطره، تروح عليه خطوته."]},
  {k:"day",t:"النهار والكلام",items:[
   "الصبح ينعلن منو انغتال أو إن البيطري لحّق.",
@@ -1968,9 +1980,9 @@ let advHelpOpen=false;
 function advToggle(on){
   return`<div class="adv-row"><button class="adv-chk ${on?"on":""}" data-a="set" data-k="adv" data-v="${on?0:1}" role="checkbox" aria-checked="${on}"><span class="box">${on?"✓":""}</span><span>تبي إعدادات متقدمة؟</span></button><button class="adv-q" data-a="advHelp" aria-expanded="${advHelpOpen}" aria-label="شنو الإعدادات المتقدمة؟">؟</button></div>
   ${advHelpOpen?`<div class="adv-help"><b>الفرق عن العادي:</b> بالعادي اللي ما عنده دور يقعد بدون شي بالليل، فيبين إنه شعب. بالمتقدمة الكل ماسك تلفونه ويسوي نفس الشي، فمحد ينكشف.<ul>
-  <li>بعد الليلة الأولى <b>الكل يختار بنفس الوقت</b>: المافيا يغتالون، البيطري يفزع، الشريف يفتش، والباقين يخمنون.</li>
-  <li>الليلة الأولى بترتيبها، بس الكل عنده سؤال بكل خطوة: <b>منو تشك فيه؟</b> وقت التفتيش، و<b>منو تتوقع النصاب؟</b> وقت اختيار النصاب.</li>
-  <li>المافيا بعد الاغتيال يخمنون مثل الباقين.</li>
+  <li>بعد الليلة الأولى <b>الكل يختار بنفس الوقت</b>: المافيا يغتالون، البيطري يفزع، الشريف يفتش، واللي ما عندهم دور يخمنون.</li>
+  <li>الليلة الأولى بترتيبها، واللي ما عندهم دور عندهم سؤال بكل خطوة: <b>منو تشك فيه؟</b> وقت التفتيش، و<b>منو تتوقع النصاب؟</b> وقت اختيار النصاب.</li>
+  <li>اللي عنده دور (الشريف، البيطري، المافيا والنصاب) يطلع له دوره بس، بدون تخمين.</li>
   <li><b>نقاط المحقق:</b> كل تخمين صح للشعب بنقطة، وتطلع بنهاية اللعبة "أحسن محقق".</li>
   <li><b>شك الشعب:</b> الصبح يطلع للكل نسبة الشك على كل لاعب، بدون ما يبين منو شك بمنو.</li>
   <li>نفس الشاشة للكل: صندوق تحت على اليسار عند الكل، الأسماء مرتبة غير عند كل تلفون، ونفس شاشة "انطر الصبح" لما تخلص.</li>
@@ -2034,9 +2046,9 @@ function judgeControls(){
     h+=`<p class="script"><b>كل واحد يشوف دوره</b> بكرته. لما يخلصون دوس «ابدا اللعبة» والكروت تنشال من تلفوناتهم.</p><button class="btn primary" data-a="cmd" data-c="begin">ابدا اللعبة</button>`;
   }else if(p==="night0"||p==="night"){
     const say={night0:{police:"<b>الشريف</b> يفتش من تلفونه عن نصاب.",mafia:"<b>المافيا</b> يتعرفون على بعض ويختارون النصاب من تلفوناتهم."},
-      night:{mafia:"<b>المافيا</b> يختارون منو يغتالون.",doctor:"<b>البيطري</b> يختار منو يفزع له.",police:"<b>الشريف</b> يفتش من تلفونه.",all:"<b>الكل يختار بنفس الوقت:</b> المافيا يغتالون، البيطري يفزع، الشريف يفتش، والباقين يخمنون."}}[p][st.step];
+      night:{mafia:"<b>المافيا</b> يختارون منو يغتالون.",doctor:"<b>البيطري</b> يختار منو يفزع له.",police:"<b>الشريف</b> يفتش من تلفونه.",all:"<b>الكل يختار بنفس الوقت:</b> المافيا يغتالون، البيطري يفزع، الشريف يفتش، واللي ما عندهم دور يخمنون."}}[p][st.step];
     const S=stepsOf(p),i=S.indexOf(st.step),last=i===S.length-1;
-    h+=`<div class="steps">${S.map((s,k)=>`<span class="${k===i?"cur":k<i?"done":""}">${STEP_N[s]}</span>`).join("")}</div><p class="script">${say}</p>${nightStatus()}`;
+    h+=nightCard()+`<div class="steps">${S.map((s,k)=>`<span class="${k===i?"cur":k<i?"done":""}">${STEP_N[s]}</span>`).join("")}</div><p class="script">${say}</p>${nightStatus()}`;
     h+=stepFallback();
     if(st.adv&&(J.missing||[]).length)h+=`<p class="small adv-miss">ما خلصوا اختيارهم للحين: ${J.missing.map(i=>`<b>${esc(nm(i))}</b>`).join("، ")}</p>`;
     if(!st.stepDone)h+=`<p class="small err">ما تقدر تكمل لين ${({police:"الشريف يفتش",mafia:p==="night0"?"المافيا يختارون النصاب":"المافيا يختارون منو يغتالون",doctor:"البيطري يفزع",all:"المافيا والبيطري والشريف يخلصون"})[st.step]}، أو اختار أنت بداله.</p>`;
@@ -2080,6 +2092,19 @@ function stepFallback(){
     return p==="night0"?box((J.fakeNeed||1)>1?`المافيا ما اختاروا النصاب رقم ${ar(Math.min((J.fakes||[]).length+1,J.fakeNeed))}؟ اختار بدالهم`:"المافيا ما اختاروا النصاب؟ اختار بدالهم",m.filter(i=>!(J.fakes||[]).includes(i)||i===J.fakeCop),"setFake",J.fakeCop):box("المافيا ما اختاروا؟ اختار منو ينغتال بدالهم",al.filter(i=>!isM(R[i])),"killFor",n.kill,true)}
   if(step==="doctor"){const S=n.save||{};return al.filter(i=>R[i]==="doctor").map(d=>box(`${many("doctor")?esc(nm(d))+" (البيطري)":"البيطري"} ما اختار؟ اختار بداله`,al,"saveFor",S[d]||null,false,d)).join("")}
   return"";
+}
+// كرت كبير للقاضي: الشريف فتش عن منو، البيطري فزع لمنو، المافيا اغتالوا منو
+function nightCard(){
+  const J=st.judge,n=J.night,R=J.roles,rows=[],w=`<span class="wait">ما اختار للحين</span>`;
+  const row=(cls,ic,lb,body)=>rows.push(`<div class="nc ${cls}"><span class="ic" aria-hidden="true">${ic}</span><span class="tx"><span class="lb">${lb}</span>${body}</span></div>`);
+  const C=J.cops||{},cops=Object.keys(C).filter(isAlive),mc=cops.length>1;
+  cops.forEach(c=>{const q=C[c].q;row("cop","👮",mc?`الشريف ${esc(nm(c))} فتّش عن`:"الشريف فتّش عن",q?`<b>${esc(nm(q))}<span class="res ${isM(R[q])?"m":"t"}">${isM(R[q])?"مافيا":"شعب"}</span></b>`:C[c].left?w:`<span class="wait">خلصت تفتيشاته</span>`)});
+  if(st.phase==="night"){
+    const S=n.save||{},docs=Object.keys(R).filter(i=>R[i]==="doctor"&&isAlive(i)),md=docs.length>1;
+    docs.forEach(d=>row("save","🩺",md?`البيطري ${esc(nm(d))} فزع لـ`:"البيطري فزع لـ",S[d]?`<b>${esc(nm(S[d]))}</b>`:w));
+    row("kill","🎯","المافيا اغتالوا",n.kill?`<b>${esc(nm(n.kill))}</b>`:`<span class="wait">ما اتفقوا للحين</span>`);
+  }
+  return rows.length?`<div class="nightcard">${rows.join("")}</div>`:"";
 }
 function nightStatus(){
   const J=st.judge,n=J.night,rows=[];
@@ -2188,21 +2213,23 @@ function actionView(){
 function advNight(others,al){
   const me=st.me,todo=me.todo||[],task=todo[0];
   const box=(title,line,body)=>`<div class="panel advp"><h2>${title}</h2><p class="muted small">${line}</p>${body}</div>`;
+  if(!task&&me.role==="cop")return queryBox(others);
   if(!task)return`<div class="panel nightbox advwait"><div class="zz"><span class="leye"><i></i></span><span class="leye"><i></i></span><b>z</b><b>z</b><b>z</b></div><h2>انطر الصبح</h2><p class="muted small">خلصت اختيارك. خلك ماسك تلفونك لين يطلع الصبح.</p></div>`;
   const lq=me.lastQuery,qLine=lq?`نتيجة تفتيشك: <b>${esc(nm(lq.id))}</b> طلع <b>${lq.mafia?"مافيا":"شعب"}</b>. احفظها.`:null;
-  if(task==="query")return box("فتّش عن نصاب",`باقي لك ${ar(me.queriesLeft)} من ${ar(me.queryMax)}. الجواب يطلع لك بعد ما تختار.`,picker("query",others)+camo("guess"));
+  if(task==="query")return box("فتّش عن نصاب",`باقي لك ${ar(me.queriesLeft)} من ${ar(me.queryMax)}. الجواب يطلع لك بعد ما تختار.`,picker("query",others)+camo("guess",1));
   if(task==="kill")return box("منو تغتالون؟","ربعك يشوفون اختيارك، والأغلبية تفوز.",picker("kill",others)+mateCamo());
-  if(task==="save")return box("منو تفزع له؟","تقدر تختار نفسك.",picker("save",al)+camo("guess"));
+  if(task==="save")return box("منو تفزع له؟","تقدر تختار نفسك.",picker("save",al)+camo("guess",1));
   if(task==="fake"){const need=me.fakeNeed||1,done=me.fakesDone||[];
     return box(need>1?`اختاروا النصاب رقم ${ar(Math.min(done.length+1,need))}`:"اختاروا النصاب بينكم","كل واحد يختار من ربعه، حتى نفسه. الأغلبية تفوز.",picker("fakecop",me.team.filter(t=>isAlive(t.id)&&!done.includes(t.id)).map(t=>t.id))+mateCamo("fake"))}
   if(task==="fguess")return box("منو تتوقع النصاب؟",qLine||"خمّن منو المافيا بيخلونه يسوي نفسه شريف. الصح يجيب لك نقطة.",picker("fguess",others)+camo("fguess"));
   return box("منو تشك إنه مافيا؟",qLine||"تخمينك سري. الصح يجيب لك نقطة محقق تطلع بنهاية اللعبة.",picker("guess",others)+camo("guess"));
 }
 // الصندوق اللي تحت على اليسار: نفس الشكل عند الكل
-function camo(kind){
+function camo(kind,look){ // look: يطلع بس بدون ضغط (للي عنده دور)
   const top=st.me.nightTop&&st.me.nightTop[kind],sel=st.me.sel[kind];
   const ttl=kind==="fguess"?"أكثر واحد يتوقعونه نصاب":"الشعب يشك أكثر شي في";
   if(!top||top.id===st.me.id)return`<button class="mate camo" disabled><span class="ttl">${ttl}</span><span class="who">محد اختار</span><span class="how">أول ما يختارون يطلع هني</span></button>`;
+  if(look)return`<button class="mate camo" disabled><span class="ttl">${ttl}</span><span class="who">${esc(nm(top.id))}</span><span class="how">اختيارهم إلى الحين</span></button>`;
   const w=sel===top.id;
   return`<button class="mate camo ${w?"with":""}" ${w?"disabled":`data-a="act" data-k="${kind}" data-id="${top.id}"`}><span class="ttl">${ttl}</span><span class="who">${esc(nm(top.id))}</span><span class="how">${w?"اخترت نفسهم ✓":"دوس هني واختار نفسهم"}</span></button>`;
 }
