@@ -443,8 +443,8 @@ export class Room extends DurableObject {
       if (role === "cop") Object.assign(pub.me, { queriesLeft: Math.max(0, (s.queryMax || 0) - this.qUsed(pid)), queryMax: s.queryMax || 0, queryMafia: this.qmap()[pid] ? isM(s.roles[this.qmap()[pid]]) : null });
       if (isM(role)) Object.assign(pub.me, { fakesDone: s.fakesDone || [], fakeNeed: s.fakeNeed || 1, fakeJudge: s.phase === "night0" ? this.judgeFakes() : [] });
       if (isM(role) && s.phase === "night0") Object.assign(pub.me, { fakesReady: this.fakesReady(), fakeList: this.fakes(), fakeOk: (s.night.fakeOk || {})[pid] === this.fakeKey() });
-      // المقبرة (القاضي والقاضي الآلي): اللي طلع يشوف كل شي باللعبة، بس ما يسوي شي
-      if (!s.alive[pid] && (!s.online || s.local) && s.phase !== "over") pub.me.grave = {
+      // المقبرة (خيار جانبي بالقاضي والقاضي الآلي): اللي طلع يشوف كل شي باللعبة، بس ما يسوي شي
+      if (this.sets().grave && !s.alive[pid] && (!s.online || s.local) && s.phase !== "over") pub.me.grave = {
         roles: s.roles, fakes: this.fakes(), queryMax: s.queryMax || 0,
         night: { kill: s.night.kill, save: this.smap(), sugg: s.night.sugg || {}, fake: s.night.fake || {} },
         cops: Object.fromEntries(s.order.filter((i) => s.roles[i] === "cop").map((i) => [i, { left: Math.max(0, (s.queryMax || 0) - this.qUsed(i)), q: this.qmap()[i] || null }])),
@@ -615,7 +615,7 @@ export class Room extends DurableObject {
           const cops = Math.max(1, Math.min(MAX_PLAYERS, parseInt(m.cops, 10) || 1));
           const docs = Math.max(1, Math.min(MAX_PLAYERS, parseInt(m.docs, 10) || 1));
           const cap = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, parseInt(m.cap, 10) || MAX_PLAYERS));
-          s.settings = { mode, mafia, talk, cops, docs, cap, adv: !!(+m.adv) };
+          s.settings = { mode, mafia, talk, cops, docs, cap, adv: !!(+m.adv), grave: !!(+m.grave) };
         }
         break;
       case "start": return this.paidStart();
