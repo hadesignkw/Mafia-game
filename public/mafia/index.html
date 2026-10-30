@@ -956,6 +956,7 @@ body[data-phase=day] .pick:not(.on):not(.res){background:rgba(255,250,239,.92);c
 .qrbox{display:flex;flex-direction:column;align-items:center;gap:8px;margin:6px 0 10px}
 .qrbox .qr{width:min(220px,60vw);aspect-ratio:1;background:#fff;border-radius:16px;padding:6px;box-sizing:border-box}
 .qrbox .qr svg{display:block;width:100%;height:100%}
+.grave h2{margin-top:0}.grave .nightcard{margin-top:10px}
 </style>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ديوان المدلل">
@@ -2051,6 +2052,19 @@ function judgeCops(){
   const nmx=i=>`<b class="${isAlive(i)?"":"gone"}">${esc(nm(i))}</b>`;
   return`<div class="panel jcops"><span>👮 الشريف: ${cops.map(nmx).join("، ")}</span><span>🤪 النصاب: ${F.length?F.map(nmx).join("، "):`<i class="muted">ما تحدد للحين</i>`}</span></div>`;
 }
+// المقبرة: اللي طلع يشوف الأدوار وشنو يصير بالليل، بس ما يسوي شي
+function graveView(){
+  const G=st.me.grave,R=G.roles||{},ids=Object.keys(R),F=G.fakes||[];
+  const order=["mafia","cop","doctor","sniper","citizen"];
+  const cell=i=>{const p=P(i),r=R[i];return`<div class="li ${p.alive?"":"out"}"><span class="nm">${esc(p.name||"لاعب")}${i===st.me.id?" (أنت)":""}</span><span class="chip ${ROLE[r].team}">${ROLE[r].n}${F.includes(i)?" · نصاب":""}</span>${p.alive?"":`<span class="small muted">طالع</span>`}</div>`};
+  const group=(t,title)=>`<div><h3 style="color:var(--${t==="m"?"blood":"town"})">${title}</h3><div class="list">${order.filter(r=>ROLE[r].team===t).flatMap(r=>ids.filter(i=>R[i]===r)).map(cell).join("")}</div></div>`;
+  const night=(st.phase==="night"||st.phase==="night0")?nightCard(G):"";
+  const mp=night?Object.entries(st.phase==="night0"?G.night.fake:G.night.sugg).filter(([a])=>isAlive(a)):[];
+  return`<div class="panel grave"><h2>⚰️ المقبرة</h2><p class="muted small">طلعت من اللعبة. تشوف كل شي، بس لا تتكلم ولا تأشر لين تخلص.</p>
+  ${night}${mp.length?`<p class="small muted">اختيارات المافيا: ${mp.map(([a,b])=>esc(nm(a))+" ← "+esc(nm(b))).join("، ")}</p>`:""}
+  ${group("m","المافيا")}${group("t","الشعب")}
+  ${(G.log||[]).length?`<details><summary class="muted small">شنو صار باللعبة؟</summary><ul class="notes">${G.log.slice().reverse().map(l=>`<li>${esc(l)}</li>`).join("")}</ul></details>`:""}</div>`;
+}
 function rolesBoard(){
   const J=st.judge,ids=Object.keys(J.roles);
   const order=["mafia","cop","doctor","sniper","citizen"];
@@ -2136,8 +2150,8 @@ function stepFallback(){
   return"";
 }
 // كرت كبير للقاضي: الشريف فتش عن منو، البيطري فزع لمنو، المافيا اغتالوا منو
-function nightCard(){
-  const J=st.judge,n=J.night,R=J.roles,rows=[],w=`<span class="wait">ما اختار للحين</span>`;
+function nightCard(G){
+  const J=G||st.judge,n=J.night,R=J.roles,rows=[],w=`<span class="wait">ما اختار للحين</span>`;
   const row=(cls,ic,lb,body)=>rows.push(`<div class="nc ${cls}"><span class="ic" aria-hidden="true">${ic}</span><span class="tx"><span class="lb">${lb}</span>${body}</span></div>`);
   const C=J.cops||{},cops=Object.keys(C).filter(isAlive),mc=cops.length>1;
   cops.forEach(c=>{const q=C[c].q,lf=` <small>(باقي ${ar(C[c].left)} من ${ar(J.queryMax)})</small>`;row("cop","👮",(mc?`الشريف ${esc(nm(c))} فتّش عن`:"الشريف فتّش عن")+lf,q?`<b>${esc(nm(q))}<span class="res ${isM(R[q])?"m":"t"}">${isM(R[q])?"مافيا":"شعب"}</span></b>`:C[c].left?w:`<span class="wait">خلصت تفتيشاته</span>`)});
@@ -2178,6 +2192,7 @@ function playerView(){
   if(st.phase==="over")return h+overView();
   const alive=P(me.id).alive;
   if(st.phase==="deal")return h+cardView()+`<div class="panel nightbox"><div class="moon"></div><h2>احفظ دورك</h2><p class="muted">${st.online?"أول ما يخلص الوقت الكرت ينشال.":"أول ما يبدا القاضي اللعبة الكرت ينشال."}</p></div>`;
+  if(!alive&&st.sniperPending!==me.id&&me.grave)return h+graveView()+(st.vote?voteStage():"")+aliveList();
   if(!alive&&st.sniperPending!==me.id)return h+`<div class="panel"><h2>طلعت من اللعبة</h2><p class="muted">${st.online&&!st.local?"صرت بالمقبرة: تسولف ويا الطالعين، وتقرا شات المافيا بس ما تكتب فيه.":"لا تتكلم ولا تأشر، تابع لين تخلص."}</p></div>`+chatPanels()+(st.vote?voteStage():"")+aliveList();
   return h+actionView()+chatPanels()+hostPanel();
 }
