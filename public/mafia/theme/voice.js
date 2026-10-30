@@ -115,7 +115,7 @@ async function sync(){
 
 function tick(){
   const st=G('st'),view=G('view');
-  const active=st&&st.online&&view==="game"&&st.me&&st.me.voice;
+  const active=st&&st.online&&!st.local&&view==="game"&&st.me&&st.me.voice;
   if(!active){if(V)stop();paint();return}
   const v=st.me.voice;
   if(V&&V.talk){
@@ -132,7 +132,7 @@ setInterval(tick,400);
 /* الشريط تحت: زر تشغيل الصوت، وحالة المايك، ومنو تسمع */
 function paint(){
   const st=G('st'),view=G('view');
-  const show=st&&st.online&&view==="game"&&st.me;
+  const show=st&&st.online&&!st.local&&view==="game"&&st.me;
   if(!show){if(bar)bar.hidden=true;return}
   if(!bar){
     bar=document.createElement("div");bar.id="voiceBar";bar.setAttribute("role","status");

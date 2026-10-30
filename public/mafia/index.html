@@ -1230,13 +1230,13 @@ async function handOver(){
   fly.remove();
 }
 async function welcomeIn(){setDen("welcome");buzz(30);await nap(1500);setDen("open");await nap(1000)}
-let onlineCreate=false;
+let onlineCreate=false,autoCreate=false; // autoCreate: قاضي آلي وانتو قاعدين مع بعض
 async function createRoom(){
-  if(busy)return;const online=onlineCreate;
+  if(busy)return;const local=autoCreate&&!onlineCreate,online=onlineCreate||local;
   // الحسابات: إذا مفعّلة لازم يكون داخل وعنده رصيد
   if(billing()&&!acctTok){acctMsg="سجّل دخول أو سوّ حساب عشان تفتح غرفة.";view="acct";render();return}
   busy=true;render(); // الزر يتعطل ويبين إنه شغال على طول
-  try{const r=await fetch("/api/create"+(online?"?online=1":""),{method:"POST",headers:billing()?{authorization:"Bearer "+acctTok}:{}});const j=await r.json();
+  try{const r=await fetch("/api/create"+(local?"?local=1":online?"?online=1":""),{method:"POST",headers:billing()?{authorization:"Bearer "+acctTok}:{}});const j=await r.json();
     if(r.status===401&&billing()){acctOut(true);acctMsg=j.error||"سجّل دخول.";busy=false;view="acct";render();return}
     if(r.status===402&&billing()){acctMsg=j.error||"رصيدك خلص.";busy=false;view="acct";acctRefresh();render();return}
     if(!r.ok)throw new Error(j.error);
@@ -1580,9 +1580,9 @@ function rxDemo(h){if(!demoOpen)return h;return h.replace('<form class="rx-form"
 function demoPanel(){return`<div class="panel demoset"><div class="demo-intro"><b>شلون تمشي اللعبة؟</b><span>هالتجربة تبين لك اللعبة من منظور كل لاعب: تتنقل بين شاشة القاضي وشاشة كل لاعب، وتختار بدالهم بنفسك.</span><span>تفيدك إذا بتدير اللعبة كقاضي، أو تبي تاخذ فكرة عنها وشلون تمشي قبل لا تلعب مع الربع. اللاعبين وهميين، والتجربة مجانية.</span></div><label class="muted small" for="demoN">عدد اللاعبين</label><select id="demoN">${[6,7,8,9,10,11,12,13,14,15].map(n=>`<option value="${n}" ${n===8?"selected":""}>${n} لاعبين، ${2+Math.floor((n-6)/4)} مافيا</option>`).join("")}</select><button class="btn" data-a="demo" ${busy?"disabled":""}>ابدا التجربة</button></div>`}
 function createView(){return`<div><h1>غرفة جديدة</h1>${billing()?`<p class="muted">رصيدك ${ar(acctMe?acctMe.credits:0)} ${acctMe&&acctMe.credits===1?"لعبة":"ألعاب"}. تنخصم لعبة وحدة لما تبدون اللعبة، مو الحين.</p>`:""}</div>
   <div class="panel">${homeErr?`<p class="err small" role="alert">${esc(homeErr)}</p>`:""}
-    <button class="lnk onl-t ${onlineCreate?"on":""}" data-a="onlineToggle" role="checkbox" aria-checked="${onlineCreate}" style="align-self:flex-start"><span class="onl-box">${onlineCreate?"✓":""}</span>تبيها أون لاين؟</button>
-    <p class="muted small">${onlineCreate?"كل واحد يلعب من تلفونه وهو بمكانه، والقاضي آلي.":"تجتمعون بمكان واحد، وأنت القاضي من تلفونك."}</p>
-    <button class="btn primary" data-a="create" ${busy?"disabled":""}>${busy?"نفتح الغرفة…":onlineCreate?"افتح غرفة أون لاين":"افتح غرفة للقاضي"}</button></div>
+    ${(()=>{const m=onlineCreate?"online":autoCreate?"auto":"judge";const o=(k,t,d)=>`<button class="lnk onl-t ${m===k?"on":""}" data-a="createMode" data-v="${k}" role="radio" aria-checked="${m===k}" style="align-self:flex-start"><span class="onl-box">${m===k?"✓":""}</span><span>${t}<br><small class="muted">${d}</small></span></button>`;
+      return o("judge","أنا القاضي","تجتمعون بمكان واحد، وأنت تدير اللعبة من تلفونك.")+o("auto","قاضي آلي","تجتمعون بمكان واحد، وأنت تلعب ويانا، واللعبة تمشي بروحها.")+o("online","أون لاين","كل واحد يلعب من تلفونه وهو بمكانه، بالصوت.")})()}
+    <button class="btn primary" data-a="create" ${busy?"disabled":""}>${busy?"نفتح الغرفة…":onlineCreate?"افتح غرفة أون لاين":autoCreate?"افتح غرفة بقاضي آلي":"افتح غرفة للقاضي"}</button></div>
   <button class="btn ghost" data-a="acctBack">رجوع</button>`}
 function homeView(){if(billing())return homeViewPaid();return rxDemo(receptionMarkup())+`${homeErr?`<p class="rx-error" role="alert">${esc(homeErr)}</p>`:""}<div class="rx-footer"><p class="rx-who">عندك رقم من القاضي؟ اكتبه فوق وادخل. <b>أنت القاضي؟</b></p><button class="rx-open" data-a="createOpen">افتح غرفة</button><button class="lnk" data-a="demoOpen" aria-expanded="${demoOpen}">جرّب اللعبة</button>${billing()?`<button class="lnk" data-a="acctOpen">${acctMe?`حسابي · ${ar(acctMe.credits)} ${acctMe.credits===1?"لعبة":"ألعاب"}`:"تسجيل الدخول"}</button>`:""}</div>`}
 function syncReception(){
@@ -1697,7 +1697,7 @@ function legacyHomeView(){
     <button class="btn primary" ${busy?"disabled":""}>تمام</button>
   </form>
   <div class="links">
-    <button class="lnk onl-t ${onlineCreate?"on":""}" data-a="onlineToggle" role="checkbox" aria-checked="${onlineCreate}"><span class="onl-box">${onlineCreate?"✓":""}</span>تبيها أون لاين؟</button><button class="lnk" data-a="create" ${busy?"disabled":""}>${busy?"نفتح الغرفة…":onlineCreate?"افتح غرفة أون لاين":"افتح غرفة للقاضي"}</button>
+    <button class="lnk onl-t ${onlineCreate?"on":""}" data-a="onlineToggle" role="checkbox" aria-checked="${onlineCreate}"><span class="onl-box">${onlineCreate?"✓":""}</span>تبيها أون لاين؟</button><button class="lnk onl-t ${autoCreate&&!onlineCreate?"on":""}" data-a="createMode" data-v="${autoCreate&&!onlineCreate?"judge":"auto"}" role="checkbox" aria-checked="${autoCreate&&!onlineCreate}"><span class="onl-box">${autoCreate&&!onlineCreate?"✓":""}</span>قاضي آلي؟</button><button class="lnk" data-a="create" ${busy?"disabled":""}>${busy?"نفتح الغرفة…":onlineCreate?"افتح غرفة أون لاين":autoCreate?"افتح غرفة بقاضي آلي":"افتح غرفة للقاضي"}</button>
     <button class="lnk" data-a="demoOpen" aria-expanded="${demoOpen}">جرّب اللعبة</button>
   </div>
   ${demoOpen?`<div class="panel demoset"><div class="demo-intro"><b>شلون تمشي اللعبة؟</b><span>هالتجربة تبين لك اللعبة من منظور كل لاعب: تتنقل بين شاشة القاضي وشاشة كل لاعب، وتختار بدالهم بنفسك.</span><span>تفيدك إذا بتدير اللعبة كقاضي، أو تبي تاخذ فكرة عنها وشلون تمشي قبل لا تلعب مع الربع. اللاعبين وهميين، والتجربة مجانية.</span></div>
@@ -1716,9 +1716,9 @@ function hostPanel(){
 function onlineLobby(){
   const host=st.me&&st.me.host,n=st.players.length;
   const hostName=nm(st.hostId);
-  let h=`<div class="panel"><h3>غرفة أون لاين</h3><p style="font-size:2.4rem;text-align:center;letter-spacing:.2em;color:var(--brass);margin:0">${ar(st.code)}</p><p class="muted small">${ar(n)} لاعب دخل · أقل شي ${ar(st.minPlayers)}. ما فيه قاضي، اللعبة تمشي بروحها${host?"، وأنت المضيف: تبدا اللعبة وتعدّل الإعدادات.":` والمضيف ${esc(hostName)}.`}</p>
+  let h=`<div class="panel"><h3>${st.local?"غرفة بقاضي آلي":"غرفة أون لاين"}</h3><p style="font-size:2.4rem;text-align:center;letter-spacing:.2em;color:var(--brass);margin:0">${ar(st.code)}</p><p class="muted small">${ar(n)} لاعب دخل · أقل شي ${ar(st.minPlayers)}. ${st.local?"القاضي آلي، واللعبة تمشي بروحها":"ما فيه قاضي، اللعبة تمشي بروحها"}${host?"، وأنت المضيف: تبدا اللعبة وتعدّل الإعدادات.":` والمضيف ${esc(hostName)}.`}</p>
   <button class="btn share" data-a="share">ارسل رابط الغرفة</button>${host?`<button class="btn primary" data-a="cmd" data-c="start" ${n<st.minPlayers?"disabled":""}>وزّع الكروت</button>`:`<p class="muted small" style="text-align:center">ننطر ${esc(hostName)} يبدا اللعبة.</p>`}</div>
-  <div class="panel onl-tips"><h3>قبل لا تبدون</h3><ul class="notes"><li>البسوا سماعات.</li><li>خل شاشتك شغالة طول اللعبة، ولا تطلع من الصفحة. إذا طلعت يطلع للكل إنك طلعت.</li><li>كل خطوة لها وقت، واللي ما يختار تروح عليه.</li></ul></div>`;
+  <div class="panel onl-tips"><h3>قبل لا تبدون</h3><ul class="notes">${st.local?`<li>القاضي آلي: هو اللي يقول منو يسولف ومتى الليل والتصويت، وكلكم تلعبون.</li><li>بالنهار الشرطة يسولفون أول، والقاضي يختار منو يبدا منهم، وبعدين الباقين واحد واحد. اللي يخلص قبل وقته يدوس «خلصت كلامي».</li><li>خلوا شاشاتكم شغالة طول اللعبة.</li><li>كل خطوة بالليل لها وقت ثابت، واللي ما يختار تروح عليه.</li>`:`<li>البسوا سماعات.</li><li>خل شاشتك شغالة طول اللعبة، ولا تطلع من الصفحة. إذا طلعت يطلع للكل إنك طلعت.</li><li>كل خطوة لها وقت، واللي ما يختار تروح عليه.</li>`}</ul></div>`;
   if(host)h+=settingsPanel();
   return h+`<div class="panel"><h3>منو دخل <span class="count">${ar(n)}</span></h3>${seats(!!host)}</div>`;
 }
@@ -1805,9 +1805,9 @@ const MIC_SVG=`<span class="micv" aria-hidden="true"><svg class="m-on" viewBox="
 function seats(judge){
   return`<div class="seats">${st.players.map(p=>{
     const me=st.me&&p.id===st.me.id,c=seatColor(p.name);
-    const muted=st.online&&p.mic&&p.mic.on&&p.mic.mute;
+    const muted=st.online&&!st.local&&p.mic&&p.mic.on&&p.mic.mute;
     return`<div class="seat ${p.online?"":"off"} ${me?"me":""} ${muted?"muted":""} ${st.ready&&st.ready[p.id]?"rdy":""} ${rowCls((judge?"j":"p")+p.id)}" data-pid="${p.id}" style="--c:${c}"><i class="bulb" aria-hidden="true"></i>
-      <span class="av"><b class="lt">${esc([...p.name][0]||"؟")}</b>${st.online?MIC_SVG:""}<i class="on" title="${p.online?"موجود":"طلع من الموقع"}"></i></span>
+      <span class="av"><b class="lt">${esc([...p.name][0]||"؟")}</b>${st.online&&!st.local?MIC_SVG:""}<i class="on" title="${p.online?"موجود":"طلع من الموقع"}"></i></span>
       <span class="sn">${esc(p.name)}</span><span class="st ${st.ready&&st.ready[p.id]?"rdy":""}">${muted?"مكتوم · ":""}${!p.online?"طلع":st.ready&&!demo?(st.ready[p.id]?"جاهز ✓":"مو جاهز"):me?"أنت":"موجود"}</span>
       ${judge&&!me?`<button class="kick" data-a="cmd" data-c="kick" data-id="${p.id}" aria-label="شيل ${esc(p.name)}">×</button>`:""}</div>`}).join("")}</div>`;
 }
@@ -1972,12 +1972,14 @@ const OGUIDE=[
 ];
 function openGuide(){
   let g=document.getElementById("guide");
-  const ON=!!(st&&st.online),PL=!ON&&!(st&&st.judge),LIST=ON?OGUIDE:PL?PGUIDE:GUIDE;
+  const ON=!!(st&&st.online),LOC=ON&&!!st.local,PL=!ON&&!(st&&st.judge);
+  // القاضي الآلي: نفس دليل الأون لاين بدون الصوت والشات
+  const LIST=LOC?OGUIDE.filter(x=>x.k!=="grave").map(x=>({...x,items:x.items.filter(t=>!/سماعات|شغّل الصوت|مكالمة|شات|يطلع للكل إنك طلعت|يفصل/.test(t)),tip:x.tip&&/الصوت|شات/.test(x.tip)?"":x.tip})):ON?OGUIDE:PL?PGUIDE:GUIDE;
   const cur=PL?(({result:"vote"})[st&&st.phase]||GUIDE_AT[st&&st.phase]||"roles"):ON?((st.me&&(st.me.spectator||(st.me.inGame&&!isAlive(st.me.id))))?"grave":({result:"vote"})[st.phase]||st.phase):st&&st.sniperPending?"sniper":(st&&st.adv&&(st.phase==="night"||st.phase==="night0"))?"adv":GUIDE_AT[st&&st.phase]||"lobby";
   if(!g){g=document.createElement("div");g.id="guide";g.className="gd";g.setAttribute("role","dialog");g.setAttribute("aria-modal","true");document.body.append(g);
     g.addEventListener("click",e=>{if(e.target===g||e.target.closest(".gd-x"))closeGuide()});
     document.addEventListener("keydown",e=>{if(e.key==="Escape")closeGuide()});}
-  g.innerHTML=`<div class="gd-sh"><div class="gd-hd"><h2>${ON?"شلون نلعب أون لاين":PL?"شلون نلعب":"دليل القاضي"}</h2><button class="gd-x">سكّر</button></div><div class="gd-bd">
+  g.innerHTML=`<div class="gd-sh"><div class="gd-hd"><h2>${LOC?"شلون نلعب بالقاضي الآلي":ON?"شلون نلعب أون لاين":PL?"شلون نلعب":"دليل القاضي"}</h2><button class="gd-x">سكّر</button></div><div class="gd-bd">
   <p class="lead">${PL?"تلعبون مع بعض بمكان واحد، والقاضي يمشّي اللعبة. اقرا الأدوار أول، والخطوة اللي أنتوا فيها الحين مفتوحة.":ON?"ما فيه قاضي: اللعبة تمشي بروحها بأوقات، وكل واحد يتابع تلفونه. الخطوة اللي أنتوا فيها الحين مفتوحة.":"أنت اللي تمشّي اللعبة: تفتح الغرفة، تقول للكل متى يسكرون عيونهم ومتى يفتحونها، وتدوس الأزرار عشان اللعبة تتقدم. كل خطوة هني بالترتيب، والخطوة اللي أنت فيها الحين مفتوحة."}</p>
   ${LIST.map((x,i)=>`<details class="gd-s ${x.k===cur?"cur":""}" ${x.k===cur?"open":""}><summary><span class="n">${ar(i+1)}</span>${x.t}${x.k===cur?`<span class="now">أنت هني</span>`:""}</summary><ol>${x.items.map(t=>`<li>${t}</li>`).join("")}</ol>${x.tip?`<p class="tip">${x.tip}</p>`:""}</details>`).join("")}
   </div></div>`;
@@ -2176,7 +2178,7 @@ function playerView(){
   if(st.phase==="over")return h+overView();
   const alive=P(me.id).alive;
   if(st.phase==="deal")return h+cardView()+`<div class="panel nightbox"><div class="moon"></div><h2>احفظ دورك</h2><p class="muted">${st.online?"أول ما يخلص الوقت الكرت ينشال.":"أول ما يبدا القاضي اللعبة الكرت ينشال."}</p></div>`;
-  if(!alive&&st.sniperPending!==me.id)return h+`<div class="panel"><h2>طلعت من اللعبة</h2><p class="muted">${st.online?"صرت بالمقبرة: تسولف ويا الطالعين، وتقرا شات المافيا بس ما تكتب فيه.":"لا تتكلم ولا تأشر، تابع لين تخلص."}</p></div>`+chatPanels()+(st.vote?voteStage():"")+aliveList();
+  if(!alive&&st.sniperPending!==me.id)return h+`<div class="panel"><h2>طلعت من اللعبة</h2><p class="muted">${st.online&&!st.local?"صرت بالمقبرة: تسولف ويا الطالعين، وتقرا شات المافيا بس ما تكتب فيه.":"لا تتكلم ولا تأشر، تابع لين تخلص."}</p></div>`+chatPanels()+(st.vote?voteStage():"")+aliveList();
   return h+actionView()+chatPanels()+hostPanel();
 }
 function cardView(){
@@ -2209,7 +2211,7 @@ function teamPicks(){
 }
 function aliveList(){
   return`<div class="panel"><h3>اللاعبين</h3><div class="list">${st.players.map(p=>{const sp=st.timer&&st.timer.pid===p.id,done=st.talked&&st.talked[p.id]&&!sp;
-    return`<div class="li ${p.alive?"":"out"} ${sp?"speak":""} ${done?"said":""} ${st.online&&p.mic&&p.mic.on&&p.mic.mute?"muted":""}" data-pid="${p.id}">${dot(p)}${st.online?MIC_SVG:""}<span class="nm">${esc(p.name)}${p.id===st.me.id?" (أنت)":""}</span>${sp?`<span class="chip b">يتكلم</span>`:done?`<span class="chip t">✓ سولف</span>`:""}</div>`}).join("")}</div></div>`;
+    return`<div class="li ${p.alive?"":"out"} ${sp?"speak":""} ${done?"said":""} ${st.online&&p.mic&&p.mic.on&&p.mic.mute?"muted":""}" data-pid="${p.id}">${dot(p)}${st.online&&!st.local?MIC_SVG:""}<span class="nm">${esc(p.name)}${p.id===st.me.id?" (أنت)":""}</span>${sp?`<span class="chip b">يتكلم</span>`:done?`<span class="chip t">✓ سولف</span>`:""}</div>`}).join("")}</div></div>`;
 }
 function actionView(){
   const p=st.phase,me=st.me,role=me.role,al=aliveIds(),others=al.filter(i=>i!==me.id);
@@ -2376,7 +2378,8 @@ document.addEventListener("click",e=>{
     if(rolesOpen&&body){body.classList.add("closing");document.querySelector(".chev").classList.remove("up");setTimeout(()=>{rolesOpen=false;render()},230)}
     else{rolesOpen=true;rolesJust=true;render();rolesJust=false}}
   else if(a==="advHelp"){advHelpOpen=!advHelpOpen;render()}
-  else if(a==="onlineToggle"){onlineCreate=!onlineCreate;render()}
+  else if(a==="onlineToggle"){onlineCreate=!onlineCreate;if(onlineCreate)autoCreate=false;render()}
+  else if(a==="createMode"){const v=b.dataset.v;onlineCreate=v==="online";autoCreate=v==="auto";render()}
   else if(a==="hostToggle"){hostOpen=!hostOpen}
   else if(a==="kickMid"){if(confirm(`تطرد ${nm(id)} من اللعبة؟ ما يقدر يرجع لها.`))send({t:"kick",id})}
   else if(a==="cancelGame"){if(confirm("تلغي اللعبة وترجع الكل للانتظار؟ اللي يبي يدخل يقدر يدخل بعدها."))send({t:"newGame"})}

@@ -142,7 +142,9 @@ export default {
       }
       for (let i = 0; i < 25; i++) {
         const code = String(1000 + Math.floor(Math.random() * 9000));
-        const r = await env.ROOM.get(env.ROOM.idFromName(code)).create(code, demo, !demo && url.searchParams.get("online") === "1", acct);
+        // القاضي الآلي (وجه لوجه): نفس محرك الأون لاين بس بدون صوت ولا شات
+        const local = !demo && url.searchParams.get("local") === "1";
+        const r = await env.ROOM.get(env.ROOM.idFromName(code)).create(code, demo, !demo && (local || url.searchParams.get("online") === "1"), acct, local);
         if (r) return json(r);
       }
       return json({ error: "ما قدرت أفتح غرفة، جرّب مرة ثانية." }, 503);
@@ -202,7 +204,7 @@ export class Room extends DurableObject {
   alive() { return !!this.s && Date.now() - (this.s.touched || 0) < ROOM_TTL; }
   async exists() { return this.alive(); }
 
-  async create(code, demo = 0, online = false, acct = null) {
+  async create(code, demo = 0, online = false, acct = null, local = false) {
     if (this.alive()) return null;
     const judgeToken = tok();
     this.s = {
@@ -210,7 +212,7 @@ export class Room extends DurableObject {
       settings: { ...DEF_SET }, players: {}, lobby: [], order: [], phase: "lobby", step: null, round: 0, gen: 0, canVote: false,
       alive: {}, roles: {}, fakeCop: null, notes: {}, night: blankNight(), votes: {}, voteOrder: [], voteTurn: 0,
       sniperPending: null, winner: null, announce: "", timer: null, event: null, log: [], demo: !!demo,
-      online: !!online, hostPid: null, deadline: null, chats: { mafia: [], grave: [], town: [] }, offSince: {},
+      online: !!online, local: !!(online && local), hostPid: null, deadline: null, chats: { mafia: [], grave: [], town: [] }, offSince: {},
       acct: acct || null, // صاحب الغرفة: منه تنخصم الألعاب
       hostKey: online ? tok() : null, // الأون لاين: مفتاح المضيف (مو مفتاح القاضي)
     };
@@ -303,7 +305,7 @@ export class Room extends DurableObject {
       const pid = Object.keys(s.players).find((id) => s.players[id].token === m.token);
       if (m.token && pid && s.players[pid].kicked) { this.send(ws, { t: "kicked" }); return; }
       if (m.token && pid && s.online && pid === s.hostPid && s.hostIdleSince) { s.hostIdleSince = null; ws.serializeAttachment({ pid }); await this.schedule(); } // المضيف رجع: نوقف العداد
-      if (m.token && pid) { ws.serializeAttachment({ pid }); if (s.offSince && s.offSince[pid]) { delete s.offSince[pid]; if (s.online && s.phase !== "lobby") this.notice(`${this.nm(pid)} رجع للعبة`); } return this.broadcast(); }
+      if (m.token && pid) { ws.serializeAttachment({ pid }); if (s.offSince && s.offSince[pid]) { delete s.offSince[pid]; if (s.online && !s.local && s.phase !== "lobby") this.notice(`${this.nm(pid)} رجع للعبة`); } return this.broadcast(); }
       this.send(ws, { t: "need-name", phase: s.phase });
       return;
     }
@@ -397,7 +399,7 @@ export class Room extends DurableObject {
     pub.adv = s.phase === "lobby" ? !!this.sets().adv : this.adv();
     if (s.phase === "lobby" && !s.online) pub.ready = s.ready || {};
     if (s.online) {
-      pub.online = true; pub.deadline = s.deadline; pub.hostId = s.hostPid; pub.watchers = (s.spect || []).filter((i) => s.players[i]).map((i) => s.players[i].name);
+      pub.online = true; pub.local = !!s.local; pub.deadline = s.deadline; pub.hostId = s.hostPid; pub.watchers = (s.spect || []).filter((i) => s.players[i]).map((i) => s.players[i].name);
     }
     // الشرطة (الشريف والنصاب) تطلع للكل بالنهار، مرتبين بالاسم عشان محد يعرف منو الحقيقي
     if (["day", "vote", "result"].includes(s.phase)) pub.copsUp = this.aliveIds().filter((i) => s.roles[i] === "cop" || this.isFake(i)).sort((a, b) => this.nm(a).localeCompare(this.nm(b), "ar"));
@@ -430,8 +432,8 @@ export class Room extends DurableObject {
         mafiaMax: maxMafia(Math.max(s.lobby.length, MIN_PLAYERS), this.copsFor(s.lobby.length), this.docsFor(s.lobby.length)),
       };
     }
-    if (s.online && pub.me.spectator && s.phase !== "lobby") pub.me.chat = { town: { msgs: ((s.chats || {}).town || []).slice(-CHAT_MAX), write: false } };
-    if (s.online && s.players[pid]) {
+    if (s.online && !s.local && pub.me.spectator && s.phase !== "lobby") pub.me.chat = { town: { msgs: ((s.chats || {}).town || []).slice(-CHAT_MAX), write: false } };
+    if (s.online && !s.local && s.players[pid]) {
       const allow = this.rtcAllowed(pid);
       pub.me.voice = { on: !!this.rtcCfg(), talk: this.rtcCanTalk(pid), mafia: this.rtcCanMafia(pid), hear: allow.map((k) => k.split(":")[0]), key: allow.join(",") };
     }
@@ -456,10 +458,13 @@ export class Room extends DurableObject {
         fguess: (n.fguess || {})[pid] || null,
       };
       if (s.online && pub.me.inGame) {
-        const ch = s.chats || {}, dead = !s.alive[pid];
+        const dead = !s.alive[pid];
+        if (!s.local) {
+        const ch = s.chats || {};
         pub.me.chat = { town: { msgs: (ch.town || []).slice(-CHAT_MAX), write: !dead && ["day", "vote", "result"].includes(s.phase) } };
         if (isM(role) || dead) pub.me.chat.mafia = { msgs: (ch.mafia || []).slice(-CHAT_MAX), write: isM(role) && !dead && (s.phase === "night" || s.phase === "night0") };
         if (dead) pub.me.chat.grave = { msgs: (ch.grave || []).slice(-CHAT_MAX), write: s.phase !== "over" };
+        }
         if (!this.adv() && (s.phase === "night" || s.phase === "night0") && !dead && canGuessRole(role)) pub.me.canGuess = true;
       }
       if (this.adv() && (s.phase === "night" || s.phase === "night0")) {
@@ -862,16 +867,16 @@ export class Room extends DurableObject {
   // يتكلم بالمايك العام: قبل اللعبة وبعدها الكل، ووسط اللعبة بس صاحب الدور
   rtcCanTalk(pid) {
     const s = this.s;
-    if (!s.online) return false;
+    if (!s.online || s.local) return false;
     if (s.phase === "lobby" || s.phase === "over") return true;
     return s.phase === "day" && !!s.timer && s.timer.pid === pid && !!s.alive[pid];
   }
   // مكالمة المافيا: بالليل بس، للمافيا الأحياء
-  rtcCanMafia(pid) { const s = this.s; return !!s.online && (s.phase === "night" || s.phase === "night0") && isM(s.roles[pid]) && !!s.alive[pid]; }
+  rtcCanMafia(pid) { const s = this.s; return !!s.online && !s.local && (s.phase === "night" || s.phase === "night0") && isM(s.roles[pid]) && !!s.alive[pid]; }
   // منو يسمع منو: "pid:talk" أو "pid:mafia"
   rtcAllowed(pid) {
     const s = this.s, rtc = s.rtc || {}, out = [];
-    if (!s.online || !s.players[pid] || s.players[pid].kicked) return out;
+    if (!s.online || s.local || !s.players[pid] || s.players[pid].kicked) return out;
     const has = (p, n) => rtc[p] && rtc[p].prod && rtc[p].live && (rtc[p].pub || []).includes(n);
     const ids = s.phase === "lobby" ? s.lobby : s.order;
     if (s.phase === "lobby" || s.phase === "over") { for (const p of ids) if (p !== pid && has(p, "talk")) out.push(p + ":talk"); return out; }
@@ -914,7 +919,7 @@ export class Room extends DurableObject {
   async rtc(req) {
     const s = this.s;
     if (!s || !this.alive()) return json({ error: "gone" }, 410);
-    if (!s.online) return json({ error: "not online" }, 400);
+    if (!s.online || s.local) return json({ error: "not online" }, 400);
     if (!this.rtcCfg()) return json({ error: "voice off" }, 503);
     let m; try { m = await req.json(); } catch { return json({ error: "bad json" }, 400); }
     const pid = Object.keys(s.players).find((id) => s.players[id].token === m.token);
@@ -981,7 +986,7 @@ export class Room extends DurableObject {
   setDl(sec) { this.s.deadline = Date.now() + sec * 1000 * this.spd(); }
   chat(pid, m) {
     const s = this.s, text = clean(m.text, 300);
-    if (!s.online || !text || !s.order.includes(pid) || (s.spect || []).includes(pid)) return;
+    if (!s.online || s.local || !text || !s.order.includes(pid) || (s.spect || []).includes(pid)) return;
     const dead = !s.alive[pid], ch = (s.chats = s.chats || { mafia: [], grave: [] });
     const msg = { id: sid(), pid, name: this.nm(pid), text, at: Date.now() };
     if (m.ch === "mafia" && isM(s.roles[pid]) && !dead && (s.phase === "night" || s.phase === "night0")) { ch.mafia.push(msg); if (ch.mafia.length > CHAT_MAX) ch.mafia.shift(); }
@@ -1007,7 +1012,7 @@ export class Room extends DurableObject {
   // يتقدم بروحه أول ما الكل يخلص (عشان محد ينطر)
   autoAdvance() {
     const s = this.s;
-    if ((s.phase === "night" || s.phase === "night0") && this.stepDone() && (!this.adv() || this.aliveIds().every((i) => !this.todo(i).length))) { const d = Date.now() + 1500; if (!s.deadline || s.deadline > d) s.deadline = d; }
+    if ((s.phase === "night" || s.phase === "night0") && !s.local && this.stepDone() && (!this.adv() || this.aliveIds().every((i) => !this.todo(i).length))) { const d = Date.now() + 1500; if (!s.deadline || s.deadline > d) s.deadline = d; }
     if (s.phase === "vote" && !this.curVoter() && s.deadline > Date.now() + 1500) s.deadline = Date.now() + 1500;
     if (s.phase === "result" && s.sniperPending === null && s.event && s.event.type === "snipe") { /* handled in resolveSnipe */ }
   }
@@ -1052,6 +1057,8 @@ export class Room extends DurableObject {
             s.night.fakeByJudge = true; this.lockFake();
           }
         }
+        // المافيا لازم يعرفون منو النصاب قبل لا يطلع الصبح: نعطيهم وقت زيادة (لين دقيقة)
+        if (s.phase === "night0" && s.step === "mafia" && this.fakesReady() && !this.fakeAcked() && (n.ackExt || 0) < 4) { n.ackExt = (n.ackExt || 0) + 1; this.setDl(15); return; }
         this.next(true); return;
       }
       case "day": {
@@ -1110,7 +1117,7 @@ export class Room extends DurableObject {
     if (m.t === "ready") { if (s.phase === "lobby" && !s.online && s.lobby.includes(pid)) (s.ready = s.ready || {})[pid] = !!m.v; return; }
     if (m.t === "away") {
       const key = `${s.gen}:${s.round}:${s.phase}`; s.awayN = s.awayN || {};
-      if (s.online && m.v && s.phase !== "lobby" && s.phase !== "over" && s.order.includes(pid) && s.awayN[pid] !== key) { s.awayN[pid] = key; this.notice(`${this.nm(pid)} طلع من اللعبة، وممكن يغش 👀`); }
+      if (s.online && !s.local && m.v && s.phase !== "lobby" && s.phase !== "over" && s.order.includes(pid) && s.awayN[pid] !== key) { s.awayN[pid] = key; this.notice(`${this.nm(pid)} طلع من اللعبة، وممكن يغش 👀`); }
       return;
     }
     if (m.t !== "act" || m.gen !== s.gen) return;
