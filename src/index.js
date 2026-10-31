@@ -732,7 +732,7 @@ export class Room extends DurableObject {
     Object.assign(s, {
       gen: s.gen + 1, order: ids, roles, alive: Object.fromEntries(ids.map((i) => [i, true])),
       phase: "deal", step: null, round: 0, timer: null, sniperPending: null, winner: null, canVote: false,
-      fakeCop: null, fakesDone: [], fakesJudge: [], fakeNeed: Math.min(c, m), advOn: !s.online, // الإعدادات المتقدمة دايم موجودة بلعبة القاضي dpts: {}, suspect: null, notes: {}, votes: {}, voteOrder: [], voteTurn: 0, voteHist: [], night: blankNight(), log: [], queryMax: m, queriesUsed: {},
+      fakeCop: null, fakesDone: [], fakesJudge: [], fakeNeed: Math.min(c, m), advOn: !s.online /* الإعدادات المتقدمة دايم موجودة بلعبة القاضي */, dpts: {}, suspect: null, notes: {}, votes: {}, voteOrder: [], voteTurn: 0, voteHist: [], night: blankNight(), log: [], queryMax: m, queriesUsed: {},
       announce: "كل واحد يقلب كرته ويشوف دوره.",
     });
     s.ready = {};
