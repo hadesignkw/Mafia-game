@@ -442,7 +442,7 @@ export class Room extends DurableObject {
       Object.assign(pub.me, { role, fake: this.isFake(pid), notes: s.notes[pid] || [] });
       if (role === "cop") Object.assign(pub.me, { queriesLeft: Math.max(0, (s.queryMax || 0) - this.qUsed(pid)), queryMax: s.queryMax || 0, queryMafia: this.qmap()[pid] ? isM(s.roles[this.qmap()[pid]]) : null });
       if (isM(role)) Object.assign(pub.me, { fakesDone: s.fakesDone || [], fakeNeed: s.fakeNeed || 1, fakeJudge: s.phase === "night0" ? this.judgeFakes() : [] });
-      if (isM(role) && s.phase === "night0") Object.assign(pub.me, { fakesReady: this.fakesReady(), fakeList: this.fakes(), fakeOk: (s.night.fakeOk || {})[pid] === this.fakeKey() });
+      if (isM(role) && s.phase === "night0") Object.assign(pub.me, { fakesReady: this.fakesReady(), fakeList: this.fakes(), fakeOk: (s.night.fakeOk || {})[pid] === this.fakeKey(), fakeCands: this.fakeCands(), fakeNo: s.night.fakeNo || [], canRefuse: pid === s.fakeCop && this.fakeCands().filter((i) => i !== pid).length > 0 });
       // المقبرة (خيار جانبي بالقاضي والقاضي الآلي): اللي طلع يشوف كل شي باللعبة، بس ما يسوي شي
       if (this.sets().grave && !s.alive[pid] && s.sniperPending !== pid && (!s.online || s.local) && s.phase !== "over") pub.me.grave = {
         roles: s.roles, fakes: this.fakes(), queryMax: s.queryMax || 0,
@@ -504,6 +504,13 @@ export class Room extends DurableObject {
     // النصاب الأخير ما يتثبت إلا لما كل المافيا يختارون (أو القاضي / خلص الوقت)، عشان أول واحد يدوس ما يقرر بروحه
     if (s.fakeCop && !s.night.fakeByJudge && !maf.every((i) => (s.night.fake || {})[i])) return false;
     return true;
+  }
+  // المرشحين للنصاب: المافيا الأحياء اللي ما تعيّنوا، وبدون اللي رفض (إلا إذا ما بقى غيره)
+  fakeCands() {
+    const s = this.s, no = s.night.fakeNo || [];
+    const c = this.aliveIds().filter((i) => isM(s.roles[i]) && !(s.fakesDone || []).includes(i));
+    const ok = c.filter((i) => !no.includes(i));
+    return ok.length ? ok : c;
   }
   // كل المافيا الأحياء أكدوا إنهم عرفوا منو النصاب (عشان الصفحة ما تروح قبل لا يدرون)
   fakeKey() { return this.fakes().join(","); }
@@ -1070,7 +1077,7 @@ export class Room extends DurableObject {
           if (!r.winner && r.tied.length > 1) r.winner = r.tied[crypto.getRandomValues(new Uint32Array(1))[0] % r.tied.length];
           // ما اختاروا: اللعبة تختار النصاب (لازم يكون فيه نصاب)
           for (let guard = 0; !this.fakesReady() && guard < 12; guard++) {
-            const left = mafia.filter((i) => !(s.fakesDone || []).includes(i));
+            const left = this.fakeCands();
             if (!left.length) break;
             s.fakeCop = guard === 0 && r.winner && left.includes(r.winner) ? r.winner : left[crypto.getRandomValues(new Uint32Array(1))[0] % left.length];
             s.night.fakeByJudge = true; this.lockFake();
@@ -1141,7 +1148,7 @@ export class Room extends DurableObject {
     const role = s.roles[pid], alive = s.alive[pid], t = m.id, tA = s.alive[t], n = s.night;
     switch (m.k) {
       case "fakecop":
-        if (s.phase === "night0" && this.isStep("mafia") && isM(role) && isM(s.roles[t]) && !(s.fakesDone || []).includes(t)) {
+        if (s.phase === "night0" && this.isStep("mafia") && isM(role) && isM(s.roles[t]) && !(s.fakesDone || []).includes(t) && this.fakeCands().includes(t)) {
           n.fake = n.fake || {};
           n.fake[pid] = t;
           const r = plurality(this.aliveIds().filter((i) => isM(s.roles[i])).map((i) => n.fake[i]));
@@ -1149,6 +1156,12 @@ export class Room extends DurableObject {
           else if (!(n.fakeByJudge && r.tied.includes(s.fakeCop))) { s.fakeCop = null; n.fakeByJudge = false; }
           // أكثر من نصاب: إذا الكل اختار وفيه فايز، يتثبت وينتقلون للنصاب اللي بعده
           if (s.fakeCop && this.aliveIds().filter((i) => isM(s.roles[i])).every((i) => n.fake[i])) this.lockFake();
+        }
+        break;
+      case "fakeno": // اللي طلع عليه النصاب رفض: يرجع الاختيار بين المافيا من جديد (بدونه)
+        if (s.phase === "night0" && this.isStep("mafia") && alive && pid === s.fakeCop && this.fakeCands().filter((i) => i !== pid).length) {
+          n.fakeNo = [...(n.fakeNo || []), pid]; n.fake = {}; n.fakeOk = {}; s.fakeCop = null; n.fakeByJudge = false;
+          this.log(`${this.nm(pid)} رفض يصير النصاب، والمافيا يختارون من جديد`);
         }
         break;
       case "fakeok": // المافيا: عرفنا منو النصاب
