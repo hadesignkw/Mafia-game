@@ -13,7 +13,8 @@ const mafiaCount = (n) => 2 + Math.floor((n - 6) / 4); // ٦–٩:٢ · ١٠–�
 const MIN_PLAYERS = 6;
 const MAX_PLAYERS = 30;
 const TALK = 40;
-const TALK_LOCAL = 60; // القاضي الآلي: كل واحد دقيقة
+const TALK_LOCAL = 60;
+const SNIPE_SEC = 60, SNIPE_ASK = 5; // القناص: دقيقة يختار، بعدها «تحتاج وقت؟» ٥ ثواني // القاضي الآلي: كل واحد دقيقة
 // أقصى عدد مافيا: لازم يبقى الشريف والبيطري والقناص، والمافيا أقل من الشعب
 const maxMafia = (n, c = 1, d = 1) => Math.max(1, Math.min(n - (c + d + 1), Math.floor((n - 1) / 2)));
 const DEF_SET = { mode: "default", mafia: 2, talk: TALK, cops: 1, docs: 1, cap: MAX_PLAYERS };
@@ -241,6 +242,11 @@ export class Room extends DurableObject {
       await this.closeRoom("المضيف انقطع أكثر من ٥ دقايق، والغرفة تسكّرت.");
       return;
     }
+    if (this.s && this.s.snipeDl && Date.now() >= this.s.snipeDl - 80) {
+      try { this.snipeTick(); } catch (e) { console.log("snipe", e && e.stack); }
+      await this.save(); this.broadcast(); await this.schedule();
+      return;
+    }
     if (this.s && this.s.online && this.s.deadline && Date.now() >= this.s.deadline - 80) {
       this.s.deadline = null;
       try { this.tick(); } catch (e) { console.log("tick", e && e.stack); }
@@ -271,6 +277,7 @@ export class Room extends DurableObject {
     if (s.hostIdleSince !== was) await this.ctx.storage.put("s", s);
     const at = [ttl];
     if (s.online && s.deadline) at.push(s.deadline);
+    if (s.snipeDl) at.push(s.snipeDl);
     if (s.hostIdleSince) at.push(s.hostIdleSince + HOST_GRACE);
     await this.ctx.storage.setAlarm(Math.min(...at));
   }
@@ -388,7 +395,7 @@ export class Room extends DurableObject {
     const ids = s.phase === "lobby" ? s.lobby : s.order;
     const pub = {
       code: s.code, phase: s.phase, step: s.step, round: s.round, gen: s.gen, canVote: s.canVote,
-      announce: s.announce, sniperPending: s.sniperPending, winner: s.winner, now: Date.now(),
+      announce: s.announce, sniperPending: s.sniperPending, snipe: s.sniperPending ? { dl: s.snipeDl, ask: s.snipeAsk } : null, winner: s.winner, now: Date.now(),
       timer: s.timer, event: s.event, minPlayers: MIN_PLAYERS, stepDone: s.phase === "night" || s.phase === "night0" ? this.stepDone() : true, talked: s.phase === "day" ? s.talked || {} : {},
       players: ids.filter((id) => s.players[id]).map((id) => ({
         id, name: s.players[id].name, alive: s.phase === "lobby" ? true : !!s.alive[id], online: on.has(id),
@@ -801,7 +808,7 @@ export class Room extends DurableObject {
       this.eliminate(k, "اغتيال");
       msg = `${s.roles[k] === "sniper" ? `ودّع ${this.nm(k)}` : `تم اغتيال ${this.nm(k)}`} وطلع من اللعبة. صيدة سهلة والبيطري مدوّج 😴`;
       const sniper = s.roles[k] === "sniper";
-      if (sniper) { msg += ` ${this.nm(k)} قناص، بيسحب واحد وياه.`; s.sniperPending = k; }
+      if (sniper) { msg += ` ${this.nm(k)} قناص، بيسحب واحد وياه.`; s.sniperPending = k; this.snipeStart(); }
       this.ev("kill", { who: this.nm(k), sniper });
     }
     Object.assign(s, { phase: "day", step: null, round: s.round + 1, canVote: true, talked: {}, announce: msg, timer: null });
@@ -823,7 +830,7 @@ export class Room extends DurableObject {
       this.eliminate(o, "تصويت");
       msg = `${this.nm(o)} طلع بالتصويت (${max} صوت).`;
       const sniper = s.roles[o] === "sniper";
-      if (sniper) { msg += ` ${this.nm(o)} قناص، بيسحب واحد وياه.`; s.sniperPending = o; }
+      if (sniper) { msg += ` ${this.nm(o)} قناص، بيسحب واحد وياه.`; s.sniperPending = o; this.snipeStart(); }
       this.ev("out", { who: this.nm(o), votes: max, sniper });
     }
     s.announce = msg;
@@ -832,8 +839,24 @@ export class Room extends DurableObject {
     if (s.online && s.phase === "result") this.setDl(s.sniperPending ? ON.sniper : ON.result);
   }
 
+  // عداد القناص (كل الأوضاع): دقيقة، بعدها يسأله «تحتاج وقت؟»، وإذا ما رد بخمس ثواني تروح عليه
+  snipeStart() { const s = this.s; s.snipeAsk = null; s.snipeDl = Date.now() + SNIPE_SEC * 1000 * this.spd(); }
+  snipeMore(pid) { const s = this.s; if (s.sniperPending === pid && s.snipeAsk) { s.snipeAsk = null; s.snipeDl = Date.now() + SNIPE_SEC * 1000 * this.spd(); } }
+  snipeTick() {
+    const s = this.s;
+    if (!s.sniperPending) { s.snipeDl = null; s.snipeAsk = null; return; }
+    if (!s.snipeAsk) { s.snipeAsk = Date.now() + SNIPE_ASK * 1000 * Math.max(this.spd(), 0.6); s.snipeDl = s.snipeAsk; return; }
+    // ما رد: تروح عليه السحبة
+    this.log(`القناص ${this.nm(s.sniperPending)} ما اختار`);
+    s.announce = (s.announce || "") + " القناص ما سحب أحد.";
+    s.sniperPending = null; s.snipeDl = null; s.snipeAsk = null;
+    this.checkWin();
+    if (s.online && s.phase === "day" && !s.timer) this.setDl(ON.pre);
+    if (s.online && s.phase === "result") this.setDl(ON.result);
+  }
   resolveSnipe(sn, t) {
     const s = this.s;
+    s.snipeDl = null; s.snipeAsk = null;
     this.eliminate(t, "سحبه القناص");
     this.note(sn, `سحبت ${this.nm(t)} وياك، دوره: ${ROLE_N[s.roles[t]]}${this.isFake(t) ? " (النصاب)" : ""}`);
     s.sniperPending = null;
@@ -1088,7 +1111,7 @@ export class Room extends DurableObject {
         this.next(true); return;
       }
       case "day": {
-        if (s.sniperPending) { this.log(`القناص ${this.nm(s.sniperPending)} ما اختار`); s.sniperPending = null; this.checkWin(); if (s.phase !== "day") return; }
+        if (s.sniperPending) { this.setDl(10); return; } // ننطر القناص (عنده عداده)
         s.timer = null;
         const q = (s.talkQ = (s.talkQ || []).filter((i) => s.alive[i]));
         if (q.length) {
@@ -1106,7 +1129,7 @@ export class Room extends DurableObject {
         this.closeVote(); return;
       }
       case "result":
-        if (s.sniperPending) { this.log(`القناص ${this.nm(s.sniperPending)} ما اختار`); s.sniperPending = null; this.checkWin(); if (s.phase !== "result") return; }
+        if (s.sniperPending) { this.setDl(10); return; } // ننطر القناص (عنده عداده)
         this.goNight(); return;
     }
   }
@@ -1196,6 +1219,9 @@ export class Room extends DurableObject {
         break;
       case "vote":
         if (s.phase === "vote" && alive) this.castVote(pid, t); // بالدور، والصوت ما يتغير
+        break;
+      case "snipeMore": // القناص: «إيه، أحتاج وقت»
+        this.snipeMore(pid);
         break;
       case "snipe":
         if (s.sniperPending === pid && tA && t !== pid) this.resolveSnipe(pid, t);
