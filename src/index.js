@@ -540,7 +540,7 @@ export class Room extends DurableObject {
       if (this.isStep("police") && r === "cop" && !this.qmap()[pid] && this.qUsed(pid) < (s.queryMax || 0)) out.push("query");
       if (this.isStep("mafia") && isM(r) && (!this.fakesReady() || !this.fakeAcked())) out.push("fake");
       if (this.isStep("police") && free && !g[pid]) out.push("guess");
-      if (this.isStep("mafia") && !isM(r) && free && !fg[pid]) out.push("fguess");
+      if (this.isStep("mafia") && !isM(r) && r !== "cop" && free && !fg[pid]) out.push("fguess"); // الشريف ما يخمن النصاب
       return out;
     }
     if (isM(r) && !(n.kill && (n.killByJudge || n.sugg[pid] === n.kill))) out.push("kill");
@@ -1192,7 +1192,7 @@ export class Room extends DurableObject {
         if (s.online && s.phase === "day" && s.timer && s.timer.pid === pid) { s.timer = null; s.deadline = Date.now(); }
         break;
       case "fguess": // الليلة الأولى: منو تتوقع النصاب
-        if (this.adv() && alive && (t === "none" || (tA && t !== pid)) && !isM(role) && s.phase === "night0" && this.isStep("mafia")) (n.fguess = n.fguess || {})[pid] = t;
+        if (this.adv() && alive && (t === "none" || (tA && t !== pid)) && !isM(role) && role !== "cop" && s.phase === "night0" && this.isStep("mafia")) (n.fguess = n.fguess || {})[pid] = t;
         break;
       case "vote":
         if (s.phase === "vote" && alive) this.castVote(pid, t); // بالدور، والصوت ما يتغير
