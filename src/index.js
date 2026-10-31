@@ -397,7 +397,7 @@ export class Room extends DurableObject {
     };
     if ((s.phase === "vote" || s.phase === "result") && (s.voteOrder || []).length)
       pub.vote = { order: s.voteOrder, turn: s.voteTurn, votes: s.votes, cur: this.curVoter() };
-    pub.adv = s.phase === "lobby" ? !s.online : this.adv();
+    pub.adv = s.phase === "lobby" ? true : this.adv();
     if (s.phase === "lobby" && !s.online) pub.ready = s.ready || {};
     if (s.online) {
       pub.online = true; pub.local = !!s.local; pub.deadline = s.deadline; pub.hostId = s.hostPid; pub.watchers = (s.spect || []).filter((i) => s.players[i]).map((i) => s.players[i].name);
@@ -444,7 +444,7 @@ export class Room extends DurableObject {
       if (isM(role)) Object.assign(pub.me, { fakesDone: s.fakesDone || [], fakeNeed: s.fakeNeed || 1, fakeJudge: s.phase === "night0" ? this.judgeFakes() : [] });
       if (isM(role) && s.phase === "night0") Object.assign(pub.me, { fakesReady: this.fakesReady(), fakeList: this.fakes(), fakeOk: (s.night.fakeOk || {})[pid] === this.fakeKey(), fakeCands: this.fakeCands(), fakeNo: s.night.fakeNo || [], canRefuse: pid === s.fakeCop && this.fakeCands().filter((i) => i !== pid).length > 0 });
       // المقبرة (خيار جانبي بالقاضي والقاضي الآلي): اللي طلع يشوف كل شي باللعبة، بس ما يسوي شي
-      if (this.sets().grave && !s.alive[pid] && s.sniperPending !== pid && (!s.online || s.local) && s.phase !== "over") pub.me.grave = {
+      if (false && this.sets().grave && !s.alive[pid] && s.sniperPending !== pid && (!s.online || s.local) && s.phase !== "over") pub.me.grave = {
         roles: s.roles, fakes: this.fakes(), queryMax: s.queryMax || 0,
         night: { kill: s.night.kill, save: this.smap(), sugg: s.night.sugg || {}, fake: s.night.fake || {} },
         cops: Object.fromEntries(s.order.filter((i) => s.roles[i] === "cop").map((i) => [i, { left: Math.max(0, (s.queryMax || 0) - this.qUsed(i)), q: this.qmap()[i] || null }])),
@@ -749,7 +749,7 @@ export class Room extends DurableObject {
     Object.assign(s, {
       gen: s.gen + 1, order: ids, roles, alive: Object.fromEntries(ids.map((i) => [i, true])),
       phase: "deal", step: null, round: 0, timer: null, sniperPending: null, winner: null, canVote: false,
-      fakeCop: null, fakesDone: [], fakesJudge: [], fakeNeed: Math.min(c, m), advOn: !s.online /* الإعدادات المتقدمة دايم موجودة بلعبة القاضي */, dpts: {}, suspect: null, notes: {}, votes: {}, voteOrder: [], voteTurn: 0, voteHist: [], night: blankNight(), log: [], queryMax: m, queriesUsed: {},
+      fakeCop: null, fakesDone: [], fakesJudge: [], fakeNeed: Math.min(c, m), advOn: true /* نفس طريقة اللعب بكل الأوضاع: الإعدادات المتقدمة دايم */, dpts: {}, suspect: null, notes: {}, votes: {}, voteOrder: [], voteTurn: 0, voteHist: [], night: blankNight(), log: [], queryMax: m, queriesUsed: {},
       announce: "كل واحد يقلب كرته ويشوف دوره.",
     });
     s.ready = {};
@@ -1039,8 +1039,7 @@ export class Room extends DurableObject {
   // يتقدم بروحه أول ما الكل يخلص (عشان محد ينطر)
   autoAdvance() {
     const s = this.s;
-    const mafiaVoted = s.phase !== "night" || this.aliveIds().filter((i) => isM(s.roles[i])).every((i) => (s.night.sugg || {})[i]);
-    if ((s.phase === "night" || s.phase === "night0") && !s.local && mafiaVoted && this.stepDone() && (!this.adv() || this.aliveIds().every((i) => !this.todo(i).length))) { const d = Date.now() + 1500; if (!s.deadline || s.deadline > d) s.deadline = d; }
+    // الليل بكل الأوضاع وقته ثابت (دقيقة): ما يخلص بدري حتى لو الكل اختار، عشان السرعة ما تكشف شي
     if (s.phase === "vote" && !this.curVoter() && s.deadline > Date.now() + 1500) s.deadline = Date.now() + 1500;
     if (s.phase === "result" && s.sniperPending === null && s.event && s.event.type === "snipe") { /* handled in resolveSnipe */ }
   }

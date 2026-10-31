@@ -2011,7 +2011,7 @@ function settingsPanel(){
   const step=(k,v,lab,unit,minus,plus)=>`<div class="stp"><span>${lab}</span><div class="stp-c"><button class="btn sm" data-a="set" data-k="${k}" data-v="${minus}" ${minus===null?"disabled":""} aria-label="أقل">−</button><b>${ar(v)}<small>${unit}</small></b><button class="btn sm" data-a="set" data-k="${k}" data-v="${plus}" ${plus===null?"disabled":""} aria-label="أكثر">+</button></div></div>`;
   return`<div class="panel"><h3>الإعدادات</h3><div class="seg"><button class="pick ${cu?"":"on"}" data-a="set" data-k="mode" data-v="default">افتراضي</button><button class="pick ${cu?"on":""}" data-a="set" data-k="mode" data-v="custom">مخصص</button></div>
   ${cu?step("cap",cap,"عدد اللاعبين","",cap>capMin?cap-1:null,cap<30?cap+1:null)+step("mafia",mf,"عدد المافيا","",mf>1?mf-1:null,room?mf+1:null)+step("cops",cops,"عدد الشرطة (الشريف)","",cops>1?cops-1:null,room?cops+1:null)+step("docs",docs,"عدد البياطرة","",docs>1?docs-1:null,room?docs+1:null)+step("talk",c.talk,"وقت كل واحد يتكلم"," ثانية",c.talk>10?c.talk-10:null,c.talk<300?c.talk+10:null)+`<p class="muted small">أول ${ar(cap)} يدخلون، واللي بعدهم يطلع له "العدد اكتمل". النصابين بعدد الشرطة${cops>mf?` (بس ما يزيدون عن المافيا، فبيكونون ${ar(mf)})`:""}، والباقين فداوية مع القناص.</p>`
-  :`<p class="muted small">المافيا حسب عدد اللاعبين${J.mafiaNext?` (الحين ${ar(J.mafiaNext)})`:""}، وكل واحد يتكلم ${ar(st.local?60:40)} ثانية.</p>`}${!st.online||st.local?graveToggle(!!c.grave):""}</div>`;
+  :`<p class="muted small">المافيا حسب عدد اللاعبين${J.mafiaNext?` (الحين ${ar(J.mafiaNext)})`:""}، وكل واحد يتكلم ${ar(st.local?60:40)} ثانية.</p>`}</div>`;
 }
 /* الإعدادات المتقدمة: صح تفعّله وتشيله، و؟ يشرح الفرق */
 let advHelpOpen=false;
