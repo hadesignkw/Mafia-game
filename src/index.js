@@ -514,7 +514,8 @@ export class Room extends DurableObject {
   adv() { return !!this.s.advOn; }
   // القاضي الآلي: بعد الليلة الأولى الكل يختار بنفس الدقيقة (المافيا والبيطري والشريف)
   // الأون لاين والقاضي الآلي: الليلة الأولى بعد خطوة وحدة (الشريف يفتش والمافيا يختارون النصاب بنفس الدقيقة)
-  stepsFor(p) { return p === "night0" ? (this.s.online ? STEPS_ADV : STEPS0) : this.adv() || this.s.online ? STEPS_ADV : STEPS; }
+  // كل الأوضاع: كل ليلة خطوة وحدة، الكل يختار بنفس الوقت (الليلة الأولى: الشريف يفتش والمافيا يختارون النصاب)
+  stepsFor(p) { return p === "night0" ? STEPS_ADV : this.adv() || this.s.online ? STEPS_ADV : STEPS; }
   isStep(k) { return this.s.step === k || this.s.step === "all"; }
   // شنو باقي على اللاعب يسويه بالخطوة الحالية (عشان كل الشاشات تمشي بنفس الطريقة)
   todo(pid) {
@@ -522,8 +523,8 @@ export class Room extends DurableObject {
     if (!this.adv() || !s.alive[pid] || !(s.phase === "night" || s.phase === "night0")) return out;
     const g = n.guess || {}, fg = n.fguess || {}, free = canGuessRole(r);
     if (s.phase === "night0") {
-      if (s.step === "police") { if (r === "cop" && !this.qmap()[pid] && this.qUsed(pid) < (s.queryMax || 0)) out.push("query"); if (free && !g[pid]) out.push("guess"); }
-      else if (s.step === "mafia") { if (isM(r)) { if (!this.stepDone()) out.push("fake"); } else if (free && !fg[pid]) out.push("fguess"); }
+      if (this.isStep("police")) { if (r === "cop" && !this.qmap()[pid] && this.qUsed(pid) < (s.queryMax || 0)) out.push("query"); if (free && !g[pid]) out.push("guess"); }
+      if (this.isStep("mafia")) { if (isM(r)) { if (!this.fakesReady() || !this.fakeAcked()) out.push("fake"); } else if (free && !fg[pid]) out.push("fguess"); }
       return out;
     }
     if (isM(r) && !(n.kill && (n.killByJudge || n.sugg[pid] === n.kill))) out.push("kill");
@@ -621,7 +622,7 @@ export class Room extends DurableObject {
       case "start": return this.paidStart();
       case "begin":
         // القاضي يبدا اللعبة بعد ما شاف الكل أدوارهم، والكروت تنشال
-        if (s.phase === "deal") { Object.assign(s, { phase: "night0", step: "police", announce: "الليلة الأولى بدت." }); this.ev("dusk"); }
+        if (s.phase === "deal") { Object.assign(s, { phase: "night0", step: this.stepsFor("night0")[0], announce: "الليلة الأولى بدت." }); this.ev("dusk"); }
         break;
       case "next": return this.next();
       case "night": return this.goNight();
@@ -1162,14 +1163,14 @@ export class Room extends DurableObject {
         break;
       case "guess": // تخمين: منو تشك إنه مافيا (اللي ما عنده دور بالليل بس)
         if (!canGuessRole(role)) break;
-        if (this.adv() && alive && (t === "none" || (tA && t !== pid)) && ((s.phase === "night" && s.step === "all") || (s.phase === "night0" && s.step === "police"))) (n.guess = n.guess || {})[pid] = t;
+        if (this.adv() && alive && (t === "none" || (tA && t !== pid)) && ((s.phase === "night" && s.step === "all") || (s.phase === "night0" && this.isStep("police")))) (n.guess = n.guess || {})[pid] = t;
         else if (!this.adv() && s.online && alive && (t === "none" || (tA && t !== pid)) && (s.phase === "night" || s.phase === "night0")) (n.guess = n.guess || {})[pid] = t;
         break;
       case "done": // اللي يتكلم خلص قبل وقته
         if (s.online && s.phase === "day" && s.timer && s.timer.pid === pid) { s.timer = null; s.deadline = Date.now(); }
         break;
       case "fguess": // الليلة الأولى: منو تتوقع النصاب
-        if (this.adv() && alive && (t === "none" || (tA && t !== pid)) && canGuessRole(role) && s.phase === "night0" && s.step === "mafia") (n.fguess = n.fguess || {})[pid] = t;
+        if (this.adv() && alive && (t === "none" || (tA && t !== pid)) && canGuessRole(role) && s.phase === "night0" && this.isStep("mafia")) (n.fguess = n.fguess || {})[pid] = t;
         break;
       case "vote":
         if (s.phase === "vote" && alive) this.castVote(pid, t); // بالدور، والصوت ما يتغير
