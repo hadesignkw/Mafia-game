@@ -1470,7 +1470,7 @@ function playNext(){
     const me=st&&st.me&&st.me.id;
     {const later=fxQ.some(x=>x.type==="cast"),cur=st&&st.phase==="vote"&&st.vote?st.vote.cur:null;
      if(later){e.next=null;e.nextMe=false;e.skipNext=true}else{e.next=cur?nm(cur):null;e.nextMe=!!(cur&&me&&cur===me)}}
-    html=`<div class="voter">${e.v===me?"أنت صوّتت على":esc(e.voter)+" صوّت على"}</div><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v15M5 12l7 7 7-7"/></svg><div class="target">${e.t===me?"أنت":esc(e.target)}</div>${e.skipNext?"":e.next?`<div class="nextup">${e.nextMe?"<b>دورك الحين!</b>":"الدور على "+esc(e.next)}</div>`:`<div class="nextup">الكل صوّت</div>`}`;
+    html=`<div class="voter">${e.v===me?"أنت صوّتت على":esc(e.voter)+" صوّت على"}</div><svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v15M5 12l7 7 7-7"/></svg><div class="target">${e.t==="none"?"ولا أحد":e.t===me?"أنت":esc(e.target)}</div>${e.skipNext?"":e.next?`<div class="nextup">${e.nextMe?"<b>دورك الحين!</b>":"الدور على "+esc(e.next)}</div>`:`<div class="nextup">الكل صوّت</div>`}`;
     buzz(e.t===me?[60,40,120]:30)}
   else if(e.type==="win"){const t=e.winner==="town";cls="fx-win fx-win-"+(t?"town":"mafia");dur=6000;
     const pic=t?`<svg viewBox="0 0 110 90" fill="#d4e2f4"><path d="M10 70 4 18l26 22L55 6l25 34 26-22-6 52z"/><rect x="10" y="74" width="90" height="10" rx="3"/></svg>`:`<svg viewBox="0 0 64 64" fill="#ff6b62">${ICON.mafia.replace(/<\/?svg[^>]*>/g,"")}</svg>`;
@@ -1802,15 +1802,16 @@ function voteStage(opts={}){
   if(opts.picker)h+=opts.picker;
   // المافيا يشوفون أصوات ربعهم بس
   if(st.me&&st.me.team){const tm=st.me.team.filter(x=>x.id!==st.me.id&&V.votes[x.id]);
-    if(tm.length)h+=`<p class="teamv">${tm.map(x=>`تيمك ${esc(nm(x.id))} صوّت على <b>${esc(nm(V.votes[x.id]))}</b>`).join(" · ")}</p>`;}
+    if(tm.length)h+=`<p class="teamv">${tm.map(x=>V.votes[x.id]==="none"?`تيمك ${esc(nm(x.id))} ما صوّت على أحد`:`تيمك ${esc(nm(x.id))} صوّت على <b>${esc(nm(V.votes[x.id]))}</b>`).join(" · ")}</p>`;}
   // كرت لكل واحد انصوّت عليه، وتحته أسماء اللي صوّتوا عليه
-  const t={},by={};V.order.forEach(v=>{const x=V.votes[v];if(x){t[x]=(t[x]||0)+1;(by[x]=by[x]||[]).push(v)}});
+  const t={},by={};V.order.forEach(v=>{const x=V.votes[v];if(x&&x!=="none"){t[x]=(t[x]||0)+1;(by[x]=by[x]||[]).push(v)}});
+  const skip=V.order.filter(v=>V.votes[v]==="none");
   const rows=Object.entries(t).sort((a,b)=>b[1]-a[1]);
   const key=st.gen+"|"+st.round,top=rows.length?rows[0][1]:0;
   h+=`<div class="panel"><h3>الأصوات</h3>${rows.length?`<div class="vcards">${rows.map(([id,c])=>{
     const k=key+"|"+id,bump=(lastTally[k]||0)<c;lastTally[k]=c;
     return`<div class="vcard ${c===top?"top":""} ${bump?"bump":""}" data-id="${id}" style="--c:${seatColor(nm(id))}"><div class="vh"><span class="av">${esc([...nm(id)][0]||"؟")}</span><span class="sn">${esc(nm(id))}${st.me&&id===st.me.id?" (أنت)":""}</span><span class="chips" aria-hidden="true">${Array.from({length:Math.min(c,8)},(_,i)=>`<i class="${bump&&i===Math.min(c,8)-1?"drop":""}"></i>`).join("")}</span><span class="vn">${ar(c)}</span></div>
-      <div class="vby"><span class="muted small">صوّتوا عليه:</span>${by[id].map(v=>{const kk=key+"|"+v,n=!seenCast.has(kk);seenCast.add(kk);return`<span class="vv ${n?"new":""}">${esc(nm(v))}${st.me&&v===st.me.id?" (أنت)":""}</span>`}).join("")}</div></div>`}).join("")}</div>`:`<p class="muted small">ما أحد صوّت للحين.</p>`}</div>`;
+      <div class="vby"><span class="muted small">صوّتوا عليه:</span>${by[id].map(v=>{const kk=key+"|"+v,n=!seenCast.has(kk);seenCast.add(kk);return`<span class="vv ${n?"new":""}">${esc(nm(v))}${st.me&&v===st.me.id?" (أنت)":""}</span>`}).join("")}</div></div>`}).join("")}</div>`:`<p class="muted small">${skip.length?"ما أحد صوّت على أحد للحين.":"ما أحد صوّت للحين."}</p>`}${skip.length?`<p class="muted small">ما صوّتوا على أحد: ${skip.map(v=>esc(nm(v))+(st.me&&v===st.me.id?" (أنت)":"")).join("، ")}</p>`:""}</div>`;
   return h;
 }
 /* اللاعبين بالانتظار: كرت لكل واحد بأول حرف من اسمه */
@@ -1880,11 +1881,11 @@ const GUIDE=[
  {k:"adv",t:"الإعدادات المتقدمة",items:[
   "دايم شغالة بلعبة القاضي، مع افتراضي أو مخصص.",
   "الفكرة: محد يقعد بدون شي بالليل. الكل ماسك تلفونه ويختار، فما يبين منو عنده دور ومنو فداوي.",
-  "<b>الليلة الأولى</b> بنفس ترتيبها: وقت تفتيش الشريف اللي ما عندهم دور يجاوبون «منو تشك إنه مافيا؟»، ووقت اختيار النصاب يجاوبون «منو تتوقع النصاب؟».",
-  "<b>من الليلة الثانية</b> الكل يختار بنفس الوقت بخطوة وحدة: المافيا يغتالون، البيطري يفزع، الشريف يفتش، واللي ما عندهم دور (الفداوية والقناص) يخمنون «منو تشك فيه؟».",
+  "<b>الليلة الأولى</b> خطوة وحدة: الشريف يفتش والمافيا يختارون النصاب، وبعدين الكل يجاوب «منو تشك إنه مافيا؟»، واللي مو مافيا يجاوبون بعد «منو تتوقع النصاب؟».",
+  "<b>من الليلة الثانية</b> الكل يختار بنفس الوقت بخطوة وحدة: المافيا يغتالون، البيطري يفزع، الشريف يفتش، وكل واحد بعد ما يخلص دوره يخمن «منو تشك فيه؟».",
   "زر «الصبح» يشتغل أول ما المافيا والبيطري والشريف يخلصون. اللي ما خلصوا تخمينهم تشوف أسماءهم فوق الزر، وتقدر تنطرهم أو تكمل.",
   "<b>الصبح</b> يطلع للكل نسبة شك الشعب على كل لاعب، بدون ما يبين منو خمّن منو. تقدر تفتح فيها النقاش.",
-  "<b>نقاط المحقق</b>: كل تخمين صح لواحد ما عنده دور بنقطة. ما تبين وسط اللعبة، وبالنهاية يطلع «أحسن محقق».",
+  "<b>نقاط المحقق</b>: كل تخمين صح لواحد من الشعب بنقطة. ما تبين وسط اللعبة، وبالنهاية يطلع «أحسن محقق».",
   "شاشات اللاعبين بالليل نفسها للكل: نفس الشكل والصندوق تحت، والأسماء مخلوطة بترتيب غير بكل تلفون، والشاشة تغمق بنفس الدرجة."],
   tip:"قول للربع قبل لا تبدون: «بالليل الكل يمسك تلفونه ويختار لين يطلع الصبح»."},
  {k:"over",t:"نهاية اللعبة",items:[
@@ -1959,13 +1960,13 @@ const OGUIDE=[
   "بعد شوي تبدا الليلة الأولى بروحها."]},
  {k:"night0",t:"الليلة الأولى",items:[
   "خطوة وحدة بدقيقة: <b>الشريف</b> يفتش، و<b>المافيا</b> يختارون <b>النصاب</b> بينهم، بنفس الوقت.",
-  "اللي ما عنده دور (الفداوية والقناص) يخمن «منو تشك إنه مافيا؟». التخمين سري، وكل تخمين صح يجيب نقطة محقق.",
+  "كل واحد بعد ما يخلص دوره يخمن «منو تشك إنه مافيا؟». التخمين سري، وكل تخمين صح يجيب نقطة محقق.",
   "المافيا عندهم <b>مكالمة وشات</b> بينهم بالليل بس.",
   "الوقت يطلع مرة وحدة. اللي ما يختار تروح عليه."]},
  {k:"night",t:"الليل",items:[
   "خطوة وحدة بدقيقة: <b>المافيا</b> يغتالون (حتى ربعهم أو نفسهم)، <b>البيطري</b> يفزع، و<b>الشريف</b> يفتش، كلهم بنفس الوقت.",
   "إذا المافيا تعادلوا لين يخلص الوقت، اللعبة تختار من اختياراتهم.",
-  "اللي ما عندهم دور يخمنون «منو تشك فيه؟».",
+  "كل واحد يخلص دوره أول (الاغتيال، الفزعة، التفتيش)، وبعدين الكل يخمن «منو تشك فيه؟».",
   "اللي يفصل بالليل ما ننطره، تروح عليه خطوته."]},
  {k:"day",t:"النهار والكلام",items:[
   "الصبح ينعلن منو انغتال أو إن البيطري لحّق.",
@@ -2022,9 +2023,9 @@ function graveToggle(on){
 function advToggle(on){
   return`<div class="adv-row"><button class="adv-chk ${on?"on":""}" data-a="set" data-k="adv" data-v="${on?0:1}" role="checkbox" aria-checked="${on}"><span class="box">${on?"✓":""}</span><span>تبي إعدادات متقدمة؟</span></button><button class="adv-q" data-a="advHelp" aria-expanded="${advHelpOpen}" aria-label="شنو الإعدادات المتقدمة؟">؟</button></div>
   ${advHelpOpen?`<div class="adv-help"><b>الفرق عن العادي:</b> بالعادي اللي ما عنده دور يقعد بدون شي بالليل، فيبين إنه شعب. بالمتقدمة الكل ماسك تلفونه ويسوي نفس الشي، فمحد ينكشف.<ul>
-  <li>بعد الليلة الأولى <b>الكل يختار بنفس الوقت</b>: المافيا يغتالون، البيطري يفزع، الشريف يفتش، واللي ما عندهم دور يخمنون.</li>
-  <li>الليلة الأولى بترتيبها، واللي ما عندهم دور عندهم سؤال بكل خطوة: <b>منو تشك فيه؟</b> وقت التفتيش، و<b>منو تتوقع النصاب؟</b> وقت اختيار النصاب.</li>
-  <li>اللي عنده دور (الشريف، البيطري، المافيا والنصاب) يطلع له دوره بس، بدون تخمين.</li>
+  <li>كل ليلة <b>الكل يختار بنفس الوقت</b>: المافيا يغتالون، البيطري يفزع، الشريف يفتش، وبعدها الكل يخمن.</li>
+  <li>الكل يخلص دوره أول، وبعدين يجاوب <b>منو تشك فيه؟</b> (واللي مو مافيا بالليلة الأولى: <b>منو تتوقع النصاب؟</b>).</li>
+
   <li><b>نقاط المحقق:</b> كل تخمين صح للشعب بنقطة، وتطلع بنهاية اللعبة "أحسن محقق".</li>
   <li><b>شك الشعب:</b> الصبح يطلع للكل نسبة الشك على كل لاعب، بدون ما يبين منو شك بمنو.</li>
   <li>نفس الشاشة للكل: صندوق تحت على اليسار عند الكل، الأسماء مرتبة غير عند كل تلفون، ونفس شاشة "انطر الصبح" لما تخلص.</li>
@@ -2086,7 +2087,7 @@ function roleChip(id){const J=st.judge,r=J.roles[id];if(!r)return"";return`<span
 function judgeRow(p){
   const J=st.judge,speaking=st.timer&&st.timer.pid===p.id;let extra="";
   if(p.alive&&st.phase==="day")extra=speaking?`<button class="btn sm" data-a="cmd" data-c="stopT">وقّف</button>`:`<button class="btn sm" data-a="cmd" data-c="talk" data-id="${p.id}">40 ث</button>`;
-  if(st.phase==="vote"&&p.alive){const v=J.votes[p.id];extra=`<span class="small muted">${v?"صوّت ← "+esc(nm(v)):st.vote&&st.vote.cur===p.id?"دوره الحين":"ما صوّت"}</span>`}
+  if(st.phase==="vote"&&p.alive){const v=J.votes[p.id];extra=`<span class="small muted">${v?(v==="none"?"ما صوّت على أحد":"صوّت ← "+esc(nm(v))):st.vote&&st.vote.cur===p.id?"دوره الحين":"ما صوّت"}</span>`}
   if(st.sniperPending&&p.alive&&p.id!==st.sniperPending)extra=`<button class="btn sm ghost" data-a="cmd" data-c="snipeFor" data-id="${p.id}">القناص سحبه</button>`;
   return`<div class="li ${p.alive?"":"out"} ${speaking?"speak":""}">${dot(p)}<span class="nm">${esc(p.name)}</span>${roleChip(p.id)}${extra}</div>`;
 }
@@ -2108,8 +2109,8 @@ function judgeControls(){
   if(p==="deal"){
     h+=`<p class="script"><b>كل واحد يشوف دوره</b> بكرته. لما يخلصون دوس «ابدا اللعبة» والكروت تنشال من تلفوناتهم.</p><button class="btn primary" data-a="cmd" data-c="begin">ابدا اللعبة</button>`;
   }else if(p==="night0"||p==="night"){
-    const say={night0:{police:"<b>الشريف</b> يفتش من تلفونه عن نصاب.",mafia:"<b>المافيا</b> يتعرفون على بعض ويختارون النصاب من تلفوناتهم.",all:"<b>الكل يختار بنفس الوقت:</b> الشريف يفتش، والمافيا يتعرفون على بعض ويختارون النصاب، واللي ما عندهم دور يخمنون."},
-      night:{mafia:"<b>المافيا</b> يختارون منو يغتالون.",doctor:"<b>البيطري</b> يختار منو يفزع له.",police:"<b>الشريف</b> يفتش من تلفونه.",all:"<b>الكل يختار بنفس الوقت:</b> المافيا يغتالون، البيطري يفزع، الشريف يفتش، واللي ما عندهم دور يخمنون."}}[p][st.step];
+    const say={night0:{police:"<b>الشريف</b> يفتش من تلفونه عن نصاب.",mafia:"<b>المافيا</b> يتعرفون على بعض ويختارون النصاب من تلفوناتهم.",all:"<b>الكل يختار بنفس الوقت:</b> الشريف يفتش، والمافيا يتعرفون على بعض ويختارون النصاب، والكل بعد ما يخلص دوره يخمن."},
+      night:{mafia:"<b>المافيا</b> يختارون منو يغتالون.",doctor:"<b>البيطري</b> يختار منو يفزع له.",police:"<b>الشريف</b> يفتش من تلفونه.",all:"<b>الكل يختار بنفس الوقت:</b> المافيا يغتالون، البيطري يفزع، الشريف يفتش، والكل بعد ما يخلص دوره يخمن."}}[p][st.step];
     const S=stepsOf(p),i=S.indexOf(st.step),last=i===S.length-1;
     h+=nightCard()+`<div class="steps">${S.map((s,k)=>`<span class="${k===i?"cur":k<i?"done":""}">${STEP_N[s]}</span>`).join("")}</div><p class="script">${say}</p>${nightStatus()}`;
     h+=stepFallback();
@@ -2133,7 +2134,7 @@ function judgeControls(){
   }else if(p==="vote"){
     const V=st.vote||{order:[],votes:{}},al=aliveIds(),done=al.filter(v=>V.votes[v]).length,cur=V.cur;
     /* كرت فوق: صوّت عن اللي عليه الدور، ويتغير الاسم أول ما يصوّت هو */
-    if(cur)h+=`<div class="proxy" data-keep="proxy|${cur}"><div class="proxy-h"><span class="small muted">الدور على</span><b>${esc(nm(cur))}</b><span class="small muted">تلفونه علق أو طفى؟ صوّت عنه:</span></div><div class="grid">${al.filter(i=>i!==cur).map(i=>`<button class="pick red" data-a="cmd" data-c="voteFor" data-id="${i}">${esc(nm(i))}</button>`).join("")}</div></div>`;
+    if(cur)h+=`<div class="proxy" data-keep="proxy|${cur}"><div class="proxy-h"><span class="small muted">الدور على</span><b>${esc(nm(cur))}</b><span class="small muted">تلفونه علق أو طفى؟ صوّت عنه:</span></div><div class="grid">${al.filter(i=>i!==cur).map(i=>`<button class="pick red" data-a="cmd" data-c="voteFor" data-id="${i}">${esc(nm(i))}</button>`).join("")}<button class="pick none" data-a="cmd" data-c="voteFor" data-id="none">ما يبي يصوّت على أحد</button></div></div>`;
     h+=`<p class="script"><b>التصويت بالدور</b> والترتيب عشوائي. كل واحد يصوّت من تلفونه والكل يشوف صوته.</p><p>صوّت <span class="tally">${ar(done)}</span> من ${ar(al.length)}</p>`;
     h+=`<button class="btn primary" data-a="cmd" data-c="closeVote" ${cur?"disabled":""}>${cur?"ننطر الكل يصوّت":"طلّع النتيجة"}</button></div>`+voteStage()+`<div style="display:none">`;
   }else if(p==="result"){
@@ -2224,7 +2225,7 @@ function picker(k,ids,red){
   const sel=st.me.sel&&st.me.sel[k];
   const pk=[st.gen,st.phase,st.round,k,sel].join("|"),pop=sel&&!popSeen.has(pk);if(pop)popSeen.add(pk);
   if(st.adv&&(st.phase==="night"||st.phase==="night0"))ids=seedShuffle(ids,[st.me.id,st.gen,st.round,st.step,k].join("|"));
-  const none=(k==="guess"||k==="fguess")?`<button class="pick none ${sel==="none"?"on":""}" data-a="act" data-k="${k}" data-id="none">${k==="fguess"?"ما أدري، ما عندي توقع":"ما عندي شك بأحد"}</button>`:"";
+  const none=(k==="guess"||k==="fguess"||k==="vote")?`<button class="pick none ${sel==="none"?"on":""}" data-a="act" data-k="${k}" data-id="none">${k==="fguess"?"ما أدري، ما عندي توقع":k==="vote"?"ما أبي أصوّت على أحد":"ما عندي شك بأحد"}</button>`:"";
   return`<div class="grid">${ids.map(id=>`<button class="pick ${red?"red":""} ${sel===id?"on"+(pop?" pop":""):""}" data-a="act" data-k="${k}" data-id="${id}">${id===st.me.id&&k==="fakecop"?"أنا":esc(nm(id))+(id===st.me.id?" (أنت)":"")}</button>`).join("")}${none}</div>`;
 }
 // اختيارات ربعك المافيا: كل واحد وش يرشح، من بيانات السيرفر مباشرة
@@ -2246,21 +2247,21 @@ function actionView(){
   if(st.adv&&(p==="night0"||p==="night"))return advNight(others,al);
   const stp=k=>st.step===k||st.step==="all";
   if(p==="night0"){
-    if(stp("mafia")&&isM(role)&&me.fakesReady)return`<div class="panel">${mafiaIdCard()}${fakeResult()}</div>`;
+    if(stp("mafia")&&isM(role)&&me.fakesReady)return`<div class="panel">${mafiaIdCard()}${fakeResult()}</div>`+(me.fakeOk?onlineGuess(others):"");
     if(stp("mafia")&&isM(role)){const need=me.fakeNeed||1,done=me.fakesDone||[];
       return`<div class="panel">${mafiaIdCard()}${(me.fakeNo||[]).length?`<p class="announce" style="font-size:1rem">${me.fakeNo.map(x=>x===me.id?"أنت رفضت":esc(nm(x))+" رفض").join("، و")} يصير النصاب، اختاروا من جديد.</p>`:""}<h2>${need>1?`اختاروا النصاب رقم ${ar(Math.min(done.length+1,need))} من ${ar(need)}`:"اختاروا النصاب بينكم"}</h2><p class="muted small">كل واحد يختار من ربعه، حتى نفسه. الأغلبية تفوز، ${st.online?"وإذا تعادلتوا لين يخلص الوقت، اللعبة تختار من اختياراتكم.":"وإذا تعادلتوا القاضي يختار."}</p>${(me.fakeJudge||[]).length?`<p class="announce" style="font-size:1.05rem">⚖️ القاضي اختار عنكم: ${(me.fakeJudge||[]).map(f=>f===me.id?"<b>أنت</b> صرت النصاب":`صار <b>${esc(nm(f))}</b> النصاب`).join("، و")}</p>`:""}${done.length?`<p class="small">تعيّنوا: ${done.map(d=>`<b>${d===me.id?"أنت":esc(nm(d))}</b>`).join("، ")}</p>`:""}${picker("fakecop",me.fakeCands||me.team.filter(t=>isAlive(t.id)&&!done.includes(t.id)).map(t=>t.id))}${teamPicks()}${(()=>{const f=me.team.find(t=>t.fake&&!(me.fakesDone||[]).includes(t.id))||me.team.find(t=>t.fake&&t.id===me.id);return`<p class="announce" style="font-size:1.05rem">النصاب: ${f?(f.id===me.id?(st.online?"أنت! بالنهار تتكلم أول مع الشريف، سوّ نفسك الشريف 🤪":"أنت! بالنهار اسمك يطلع للكل مع الشرطة، سوّ نفسك الشريف 🤪"):esc(nm(f.id))):"ما تحدد للحين"}</p>`})()}</div>`}
-    if(stp("police")&&role==="cop")return queryBox(others);
+    if(stp("police")&&role==="cop")return queryBox(others)+((me.sel.query||!me.queriesLeft)?onlineGuess(others):"");
     return onlineGuess(others)||nightBox();
   }
   if(p==="night"){
-    if(stp("mafia")&&isM(role))return`<div class="panel"><h2>منو تغتالون؟</h2><p class="muted small">كل واحد يختار، وربعك يشوفون اختيارك. الأغلبية تفوز، ${st.online?"وإذا تعادلتوا لين يخلص الوقت، اللعبة تختار من اختياراتكم.":"وإذا تعادلتوا القاضي يختار من اختياراتكم."}</p>${picker("kill",al,true)}${teamPicks()}${mateCard()}</div>`;
-    if(stp("doctor")&&role==="doctor")return`<div class="panel"><h2>منو تفزع له؟</h2><p class="muted small">تقدر تختار نفسك.</p>${picker("save",al)}</div>`;
-    if(stp("police")&&role==="cop")return queryBox(others);
+    if(stp("mafia")&&isM(role))return`<div class="panel"><h2>منو تغتالون؟</h2><p class="muted small">كل واحد يختار، وربعك يشوفون اختيارك. الأغلبية تفوز، ${st.online?"وإذا تعادلتوا لين يخلص الوقت، اللعبة تختار من اختياراتكم.":"وإذا تعادلتوا القاضي يختار من اختياراتكم."}</p>${picker("kill",al,true)}${teamPicks()}${mateCard()}</div>`+(me.sel.kill?onlineGuess(others):"");
+    if(stp("doctor")&&role==="doctor")return`<div class="panel"><h2>منو تفزع له؟</h2><p class="muted small">تقدر تختار نفسك.</p>${picker("save",al)}</div>`+(me.sel.save?onlineGuess(others):"");
+    if(stp("police")&&role==="cop")return queryBox(others)+((me.sel.query||!me.queriesLeft)?onlineGuess(others):"");
     return onlineGuess(others)||nightBox();
   }
   if(p==="vote"){
     const mine=st.vote&&st.vote.cur===me.id,v=me.sel.vote;
-    const pk=mine?`<div class="panel">${picker("vote",others,true)}<p class="muted small">أول ما تدوس الاسم ينحسب صوتك وما يتغير.</p></div>`:v?`<p class="muted small" style="text-align:center">صوتك راح على <b>${esc(nm(v))}</b> ✓</p>`:"";
+    const pk=mine?`<div class="panel">${picker("vote",others,true)}<p class="muted small">أول ما تدوس الاسم ينحسب صوتك وما يتغير.</p></div>`:v?`<p class="muted small" style="text-align:center">${v==="none"?"ما صوّتت على أحد ✓":`صوتك راح على <b>${esc(nm(v))}</b> ✓`}</p>`:"";
     return voteStage({picker:pk});
   }
   if(p==="result"&&st.vote)return voteStage()+aliveList();

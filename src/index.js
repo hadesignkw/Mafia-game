@@ -297,7 +297,7 @@ export class Room extends DurableObject {
     const s = this.s;
     // أي رقم لاعب يجي من الجهاز لازم يكون لاعب حقيقي بالغرفة (مو اسم خاصية مثل constructor أو __proto__)
     // «ما عندي شك بأحد» بالتخمين بس
-    for (const k of ["id", "by"]) if (k in m && !(typeof m[k] === "string" && Object.hasOwn(s.players, m[k])) && !(k === "id" && m.t === "act" && (m.k === "guess" || m.k === "fguess") && m.id === "none")) delete m[k];
+    for (const k of ["id", "by"]) if (k in m && !(typeof m[k] === "string" && Object.hasOwn(s.players, m[k])) && !(k === "id" && m.id === "none" && ((m.t === "act" && (m.k === "guess" || m.k === "fguess" || m.k === "vote")) || m.t === "voteFor"))) delete m[k];
     // حالة المايك نفسها ما تغيرت: ما نرسل شي للكل
     if (m.t === "vstate" && att.pid && s.vst && s.vst[att.pid] && s.vst[att.pid].on === !!m.on && s.vst[att.pid].mute === !!m.mute) return;
 
@@ -536,8 +536,11 @@ export class Room extends DurableObject {
     if (!this.adv() || !s.alive[pid] || !(s.phase === "night" || s.phase === "night0")) return out;
     const g = n.guess || {}, fg = n.fguess || {}, free = canGuessRole(r);
     if (s.phase === "night0") {
-      if (this.isStep("police")) { if (r === "cop" && !this.qmap()[pid] && this.qUsed(pid) < (s.queryMax || 0)) out.push("query"); if (free && !g[pid]) out.push("guess"); }
-      if (this.isStep("mafia")) { if (isM(r)) { if (!this.fakesReady() || !this.fakeAcked()) out.push("fake"); } else if (free && !fg[pid]) out.push("fguess"); }
+      // الدور أول، وبعدين التخمين
+      if (this.isStep("police") && r === "cop" && !this.qmap()[pid] && this.qUsed(pid) < (s.queryMax || 0)) out.push("query");
+      if (this.isStep("mafia") && isM(r) && (!this.fakesReady() || !this.fakeAcked())) out.push("fake");
+      if (this.isStep("police") && free && !g[pid]) out.push("guess");
+      if (this.isStep("mafia") && !isM(r) && free && !fg[pid]) out.push("fguess");
       return out;
     }
     if (isM(r) && !(n.kill && (n.killByJudge || n.sugg[pid] === n.kill))) out.push("kill");
@@ -583,7 +586,7 @@ export class Room extends DurableObject {
   }
   castVote(v, t) {
     const s = this.s;
-    if (!v || v !== this.curVoter() || !s.alive[t] || t === v) return;
+    if (!v || v !== this.curVoter() || (t !== "none" && (!s.alive[t] || t === v))) return; // "none" = ما يبي يصوّت على أحد
     s.votes[v] = t;
     s.voteTurn++;
     this.curVoter();
@@ -1190,7 +1193,7 @@ export class Room extends DurableObject {
         if (s.online && s.phase === "day" && s.timer && s.timer.pid === pid) { s.timer = null; s.deadline = Date.now(); }
         break;
       case "fguess": // الليلة الأولى: منو تتوقع النصاب
-        if (this.adv() && alive && (t === "none" || (tA && t !== pid)) && canGuessRole(role) && s.phase === "night0" && this.isStep("mafia")) (n.fguess = n.fguess || {})[pid] = t;
+        if (this.adv() && alive && (t === "none" || (tA && t !== pid)) && !isM(role) && s.phase === "night0" && this.isStep("mafia")) (n.fguess = n.fguess || {})[pid] = t;
         break;
       case "vote":
         if (s.phase === "vote" && alive) this.castVote(pid, t); // بالدور، والصوت ما يتغير
@@ -1202,8 +1205,7 @@ export class Room extends DurableObject {
   }
 }
 
-// التخمين بالليل («منو تشك إنه مافيا؟») للي ما عنده دور بالليل بس: الفداوي والقناص.
-// الشريف والبيطري والمافيا (والنصاب) يطلع لهم دورهم بس.
-function canGuessRole(r) { return r === "citizen" || r === "sniper"; }
+// التخمين بالليل («منو تشك إنه مافيا؟»): الكل، بس بعد ما يخلص دوره.
+function canGuessRole(r) { return !!r; } // الكل يخمن بعد ما يخلص دوره (المافيا والبيطري والشريف بعد)
 
 function blankNight() { return { sugg: {}, suggAt: {}, fake: {}, kill: null, save: {}, queried: {}, guess: {}, fguess: {}, killByJudge: false, fakeByJudge: false }; }
