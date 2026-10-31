@@ -1147,7 +1147,7 @@ function onMsg(m){
       if(notesSeen!==null&&n>notesSeen&&!/^الليلة/.test(st.me.notes[n-1])){const t=st.me.notes[n-1];
         // اختيار النصاب بدال المافيا له شاشته (مو شاشة جواب التفتيش اللي تكتب «شعب»)
         const fp=/اخت(ار|ارت) عنكم/.test(t);
-        if(!fp||st.phase==="night0"){fxQ.push({id:"a"+Date.now(),type:fp?"fakepick":"answer",text:t});cardOpen=false;playNext()}}
+        fxQ.push({id:"a"+Date.now(),type:fp?"fakepick":"answer",text:t,day:st.phase!=="night0"&&st.phase!=="night"});cardOpen=false;playNext()}
       notesSeen=n}
     render();
   }
@@ -1398,9 +1398,12 @@ function demoNeeds(){
   const ids=Object.keys(R).filter(alive);
   if(J.sniperPending)need.add(J.sniperPending);
   else if(J.phase==="night0"||J.phase==="night"){
-    if(J.step==="police")ids.filter(i=>R[i]==="cop").forEach(i=>{const c=(J.judge.cops||{})[i];if(c&&!c.q&&c.left)need.add(i)});
-    if(J.step==="mafia")ids.filter(i=>isM(R[i])).forEach(i=>{const m=J.phase==="night0"?J.judge.night.fake:J.judge.night.sugg;if(!(m&&m[i]))need.add(i)});
-    if(J.step==="doctor")ids.filter(i=>R[i]==="doctor").forEach(i=>{if(!(J.judge.night.save||{})[i])need.add(i)});
+    const has=k=>J.step===k||J.step==="all";
+    if(J.adv&&(J.judge.missing||[]).length)J.judge.missing.forEach(i=>need.add(i));
+    (J.judge.fakeWait||[]).forEach(i=>need.add(i));
+    if(has("police"))ids.filter(i=>R[i]==="cop").forEach(i=>{const c=(J.judge.cops||{})[i];if(c&&!c.q&&c.left)need.add(i)});
+    if(has("mafia"))ids.filter(i=>isM(R[i])).forEach(i=>{const m=J.phase==="night0"?J.judge.night.fake:J.judge.night.sugg;if(!(m&&m[i]))need.add(i)});
+    if(has("doctor")&&J.phase==="night")ids.filter(i=>R[i]==="doctor").forEach(i=>{if(!(J.judge.night.save||{})[i])need.add(i)});
   }else if(J.phase==="vote"&&J.vote&&J.vote.cur)need.add(J.vote.cur);
   if(!J.players.length||J.phase==="lobby")need.clear();
   return need;
@@ -1423,7 +1426,7 @@ const isSticky=t=>STICKY.has(t)&&!(st&&st.online); // بالأون لاين ما
 const INFO=new Set(["fakepick","answer"]);
 const fxStepKey=()=>st?[st.gen,st.phase,st.step].join("|"):"";
 function fxInfoCheck(){
-  if(!curFx||!INFO.has(curFx.type))return;
+  if(!curFx||!INFO.has(curFx.type)||!curFx.key)return;
   if(curFx.key!==fxStepKey()||(curFx.type==="fakepick"&&st.me&&st.me.fakeOk))closeFx();
 }
 let curFx=null;
@@ -1479,8 +1482,9 @@ function playNext(){
   const demoH=demo&&st&&!st.judge?`<div class="democlose"><button class="btn sm" data-fx="judge">رجوع لشاشة القاضي</button></div>`:"";
   fx.className="fx-enter "+cls+(sticky?" sticky":"");fx.innerHTML=html+tapH+demoH;fx.hidden=false;fxShownAt=Date.now();
   if(e.type==="win"){const s1=confetti(fx,e.winner==="town"?["#d4e2f4","#72b096","#f4ffef","#d2a74c"]:["#cf5c55","#7a1d1f","#ffb4ab","#2a0a0b"],e.winner!=="town"),s2=e.winner==="town"&&window.MV?MV.fireworks(fx):null;confettiStop=s1||s2?()=>{s1&&s1();s2&&s2()}:null}
-  if(INFO.has(e.type))curFx.key=fxStepKey();
-  clearTimeout(fxTimer);if(!sticky&&!INFO.has(e.type))fxTimer=setTimeout(closeFx,matchMedia("(prefers-reduced-motion: reduce)").matches?Math.min(dur,1800):dur);
+  const info=INFO.has(e.type)&&!e.day; // بالليل يظل لين الخطوة الجاية، وبالنهار يروح بوقته
+  if(info)curFx.key=fxStepKey();else if(curFx)curFx.key=null;
+  clearTimeout(fxTimer);if(!sticky&&!info)fxTimer=setTimeout(closeFx,matchMedia("(prefers-reduced-motion: reduce)").matches?Math.min(dur,1800):dur);
   if(night)document.body.dataset.phase="night";
 }
 /* كشف الأدوار بالنهاية: الكروت تتقلب وحدة وحدة بعد ما تسكر شاشة الفوز */

@@ -444,7 +444,7 @@ export class Room extends DurableObject {
       if (isM(role)) Object.assign(pub.me, { fakesDone: s.fakesDone || [], fakeNeed: s.fakeNeed || 1, fakeJudge: s.phase === "night0" ? this.judgeFakes() : [] });
       if (isM(role) && s.phase === "night0") Object.assign(pub.me, { fakesReady: this.fakesReady(), fakeList: this.fakes(), fakeOk: (s.night.fakeOk || {})[pid] === this.fakeKey() });
       // المقبرة (خيار جانبي بالقاضي والقاضي الآلي): اللي طلع يشوف كل شي باللعبة، بس ما يسوي شي
-      if (this.sets().grave && !s.alive[pid] && (!s.online || s.local) && s.phase !== "over") pub.me.grave = {
+      if (this.sets().grave && !s.alive[pid] && s.sniperPending !== pid && (!s.online || s.local) && s.phase !== "over") pub.me.grave = {
         roles: s.roles, fakes: this.fakes(), queryMax: s.queryMax || 0,
         night: { kill: s.night.kill, save: this.smap(), sugg: s.night.sugg || {}, fake: s.night.fake || {} },
         cops: Object.fromEntries(s.order.filter((i) => s.roles[i] === "cop").map((i) => [i, { left: Math.max(0, (s.queryMax || 0) - this.qUsed(i)), q: this.qmap()[i] || null }])),
@@ -498,7 +498,13 @@ export class Room extends DurableObject {
   // النصابين: اللي تأكدوا + اللي المافيا مختارينه الحين
   fakes() { const s = this.s; return [...(s.fakesDone || []), s.fakeCop].filter(Boolean); }
   // الليلة الأولى: النصاب (أو النصابين) تحددوا
-  fakesReady() { const s = this.s; return this.fakes().length >= Math.min(s.fakeNeed || 1, this.aliveIds().filter((i) => isM(s.roles[i])).length); }
+  fakesReady() {
+    const s = this.s, maf = this.aliveIds().filter((i) => isM(s.roles[i]));
+    if (this.fakes().length < Math.min(s.fakeNeed || 1, maf.length)) return false;
+    // النصاب الأخير ما يتثبت إلا لما كل المافيا يختارون (أو القاضي / خلص الوقت)، عشان أول واحد يدوس ما يقرر بروحه
+    if (s.fakeCop && !s.night.fakeByJudge && !maf.every((i) => (s.night.fake || {})[i])) return false;
+    return true;
+  }
   // كل المافيا الأحياء أكدوا إنهم عرفوا منو النصاب (عشان الصفحة ما تروح قبل لا يدرون)
   fakeKey() { return this.fakes().join(","); }
   fakeAcked() { const s = this.s, ok = s.night.fakeOk || {}, k = this.fakeKey(); return this.aliveIds().filter((i) => isM(s.roles[i])).every((i) => ok[i] === k); }
@@ -1023,7 +1029,8 @@ export class Room extends DurableObject {
   // يتقدم بروحه أول ما الكل يخلص (عشان محد ينطر)
   autoAdvance() {
     const s = this.s;
-    if ((s.phase === "night" || s.phase === "night0") && !s.local && this.stepDone() && (!this.adv() || this.aliveIds().every((i) => !this.todo(i).length))) { const d = Date.now() + 1500; if (!s.deadline || s.deadline > d) s.deadline = d; }
+    const mafiaVoted = s.phase !== "night" || this.aliveIds().filter((i) => isM(s.roles[i])).every((i) => (s.night.sugg || {})[i]);
+    if ((s.phase === "night" || s.phase === "night0") && !s.local && mafiaVoted && this.stepDone() && (!this.adv() || this.aliveIds().every((i) => !this.todo(i).length))) { const d = Date.now() + 1500; if (!s.deadline || s.deadline > d) s.deadline = d; }
     if (s.phase === "vote" && !this.curVoter() && s.deadline > Date.now() + 1500) s.deadline = Date.now() + 1500;
     if (s.phase === "result" && s.sniperPending === null && s.event && s.event.type === "snipe") { /* handled in resolveSnipe */ }
   }
