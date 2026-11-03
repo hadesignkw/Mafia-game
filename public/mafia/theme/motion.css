@@ -157,7 +157,6 @@ body.all-ready .seat.rdy .bulb{box-shadow:0 0 0 1.5px #5a4219,0 0 16px 6px rgb(2
 @keyframes mvRevB{0%,49.9%{opacity:1}50%,100%{opacity:0}}
 
 @media (prefers-reduced-motion:reduce){
-  #fx .mvscope,#fx .mvflash,#fx .mvname,#fx .mvsmoke,.seat .bulb{animation:none!important}
-  #fx .mvscope,#fx .mvflash,#fx .mvname{display:none}
+  .seat .bulb{animation:none!important}
   .reveal .mini::before{display:none}
 }

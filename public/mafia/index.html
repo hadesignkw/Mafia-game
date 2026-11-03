@@ -498,6 +498,22 @@ select{font:inherit;font-size:1rem;width:100%;background:var(--bg);color:var(--f
 .fx-out .stamp{font-family:var(--display);font-size:clamp(3rem,15vw,5.5rem);color:#e0b057;border:6px solid #e0b057;border-radius:14px;padding:0 22px;transform:rotate(-8deg);animation:stamp .5s .2s cubic-bezier(.3,1.8,.5,1) both}
 @keyframes stamp{from{transform:rotate(-8deg) scale(3);opacity:0}}
 .fx-out.hit{animation:shake .35s .55s ease}
+/* الحكم قبل الطرد: ظلام وكشاف يدور */
+.fx-verdict{background:#050403;color:#fff2d8}
+.fx-verdict .vd-spot{position:absolute;inset:-20%;background:radial-gradient(circle at var(--x,50%) 45%,rgb(255 226 160 / .32),transparent 28%);animation:vdSweep 2.4s cubic-bezier(.45,0,.3,1) both;pointer-events:none}
+.fx-verdict .vd-k{position:relative;font-family:var(--ruqaa);font-weight:700;font-size:clamp(2.8rem,13vw,4.6rem);letter-spacing:.02em;text-shadow:0 0 28px rgb(224 176 87 / .55);animation:vdIn .9s .25s cubic-bezier(.2,.8,.2,1) both,vdPulse 1s 1.2s ease-in-out infinite}
+.fx-verdict .vd-dots{display:flex;gap:10px;justify-content:center;margin-top:4px}
+.fx-verdict .vd-dots i{width:10px;height:10px;border-radius:50%;background:#e0b057;opacity:.15;animation:vdDot 1s ease-in-out infinite}
+.fx-verdict .vd-dots i:nth-child(2){animation-delay:.18s}.fx-verdict .vd-dots i:nth-child(3){animation-delay:.36s}
+.fx-verdict .vd-s{font-size:1.15rem;opacity:.85;animation:fxin .6s 1s both}
+@keyframes vdSweep{0%{--x:10%;opacity:0}15%{opacity:1}55%{--x:85%}85%,100%{--x:50%;opacity:1}}
+@property --x{syntax:"<percentage>";inherits:false;initial-value:50%}
+@keyframes vdIn{from{opacity:0;transform:scale(1.6);filter:blur(8px)}to{opacity:1;transform:none;filter:none}}
+@keyframes vdPulse{50%{transform:scale(1.05)}}
+@keyframes vdDot{50%{opacity:1;transform:translateY(-4px)}}
+.fx-out .vcount{font-family:var(--display);font-size:1.6rem;font-weight:700;color:#e0b057;font-variant-numeric:tabular-nums;animation:fxin .4s 1.6s both}
+.fx-out .vcount.tick{animation:vTick .25s ease-out}
+@keyframes vTick{from{transform:scale(1.35)}}
 /* تعادل */
 .fx-tie{background:radial-gradient(circle at 50% 45%,#262c38,#090b0f 72%);color:#e6e9ef}
 .fx-tie .scale{width:120px;height:90px;color:var(--brass);animation:sway 1.4s ease-in-out infinite}
@@ -724,7 +740,7 @@ span.ch-cop img{animation-delay:-1s}span.ch-doctor img{animation-delay:-2s}span.
 @keyframes miniIn{from{transform:perspective(600px) rotateY(90deg) scale(.8);opacity:0}}
 
 @media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}
+  :not(#fx):not(#fx *),:not(#fx):not(#fx *)::before,:not(#fx):not(#fx *)::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}
 }
 
 /* Kuwaiti diwaniya: warm limestone, petrol green and brushed brass. */
@@ -759,7 +775,7 @@ body{background-color:#101b1b;background-image:radial-gradient(ellipse at 15% 0%
 .mini>.anon{width:100%;height:auto;border-radius:10px;margin-top:6px}
 @media(hover:hover){.btn:hover,.pick:hover{transform:translateY(-2px);box-shadow:0 6px 16px #0003}}
 @media(max-width:420px){.face .art{height:225px}.face .art .ch{width:200px}.panel{border-radius:16px}}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media(prefers-reduced-motion:reduce){:not(#fx):not(#fx *),:not(#fx):not(#fx *)::before,:not(#fx):not(#fx *)::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
 /* Scoped cinematic reception; no game-screen styles. */
 body.reception-mode{background:#040609;margin:0}
@@ -858,7 +874,7 @@ h1{text-shadow:0 2px 20px #0008}body:not(.reception-mode) .hero .bulb{fill:#e0ef
 .nightbox{position:relative;overflow:hidden}.nightbox::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0,#517da921,transparent 70%);pointer-events:none}.nightbox .moon{filter:grayscale(.8)}
 .podium .disc{background:linear-gradient(135deg,#e4efff,#8299b7);color:#142031}.chip.b{color:#c5dfff;border-color:#6a8eae66}.panel.turn.mine{border-color:#a4c6ed;box-shadow:0 0 24px #7ca7dc14}
 @media(max-width:420px){.rx-scene{height:148px}.face .art{height:240px}.face .art .ch.rx-character{width:215px}}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media(prefers-reduced-motion:reduce){:not(#fx):not(#fx *),:not(#fx):not(#fx *)::before,:not(#fx):not(#fx *)::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
 :root{--rx-room:url("/mafia/art/room.webp")}
 body:not(.reception-mode) .wrap{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
@@ -1453,13 +1469,15 @@ function handleEvent(prev){
   lastEv=e.id;
   if(firstState&&!fresh){firstState=false;return}
   firstState=false;
-  if(e.type==="win"&&e.after&&!e.after.closed)fxQ.push(e.after);
-  if(e.type==="deal"&&!(window.MV&&MV.reduced()))fxQ.push({type:"doors",id:e.id+"-doors"});
+  const verdict=x=>{if(x&&x.type==="out")fxQ.push({type:"verdict",id:x.id+"-v",forId:x.id})};
+  if(e.type==="win"&&e.after&&!e.after.closed){verdict(e.after);fxQ.push(e.after)}
+  verdict(e);
+  if(e.type==="deal")fxQ.push({type:"doors",id:e.id+"-doors"});
   fxQ.push(e);playNext();
 }
 /* القناص طلع: بعد شوي تنزل شاشة المنظار فوق الخبر، مع صوت تعشيق الطلقة */
 const SNUP_AT=3.4;
-const snupReduced=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
+const snupReduced=()=>false; // المشاهد تشتغل كاملة حتى لو «تقليل الحركة» شغال
 function sniperUp(who){const d=snupReduced()?0:SNUP_AT;
   return`<div class="snup" style="--d:${d}s" aria-live="polite"><div class="snup-scope" aria-hidden="true"><svg viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-linecap="round"><circle cx="100" cy="100" r="88" stroke-width="3"/><circle cx="100" cy="100" r="60" stroke-width="1.2" opacity=".5"/><path d="M100 8v62M100 130v62M8 100h62M130 100h62" stroke-width="2.4"/><path d="M92 100h16M100 92v16" stroke-width="1.4"/><circle cx="100" cy="100" r="3" fill="currentColor" stroke="none"/></svg></div>
   <div class="snup-txt"><div class="snup-k">قناص!</div><div class="snup-n">${esc(who)} طلع القناص</div><div class="snup-s">وبيسحب واحد وياه… منو؟</div></div></div>`}
@@ -1467,6 +1485,7 @@ function playNext(){
   if(fxBusy||!fxQ.length)return;
   const e=fxQ.shift();const fx=$("#fx");
   if(isSticky(e.type)&&fxClosed(e.id))return playNext();
+  if(e.type==="verdict"&&isSticky("out")&&fxClosed(e.forId))return playNext();
   fxBusy=true;curFx=e;sceneSound(e);
   const night=e.type==="dusk", isMe=st&&st.me&&st.me.inGame;
   let cls="",html="",dur=3200;
@@ -1479,10 +1498,11 @@ function playNext(){
   else if(e.type==="deal"){cls="fx-deal";dur=2400;html=`<div class="fan">${[-30,-15,0,15,30].map((r,i)=>`<i style="transform:rotate(${r}deg);animation-delay:${i*.06}s"></i>`).join("")}</div><div class="big">توزعت الكروت</div><div class="sub">${isMe?"اقلب كرتك وغطّ الشاشة عن اللي جنبك":"كل واحد يشوف دوره بتلفونه"}</div>`;dealAnim=true;buzz(60)}
   else if(e.type==="dusk"){cls="fx-dusk mv-sky";dur=7000;html=(window.MV?MV.sky("dusk"):"")+stars(20)+`<div class="rx-event-scene dusk" aria-hidden="true"></div>`+`<div class="big">الليل</div><div class="sub">كل واحد يتابع تلفونه</div>`}
   else if(e.type==="dawn"){cls="fx-dawn mv-sky";dur=7000;html=(window.MV?MV.sky("dawn"):"")+`<div class="rx-event-scene dawn" aria-hidden="true"></div>`+`<div class="big">الصبح</div><div class="sub">بدا النهار</div>${(()=>{const c=((st&&st.copsUp)||[]).filter(isAlive);return c.length?`<div class="dawncops"><span class="l">👮 الشرطة</span><span class="n">${c.map(i=>esc(nm(i))).join(" و ")}</span><span class="h">${c.length===2?"واحد حقيقي وواحد مزيف، ومحد يدري منو":c.length>2?"فيهم الحقيقي وفيهم المزيف، ومحد يدري منو":""}</span></div>`:""})()}`;dur=9000}
-  else if(e.type==="kill"){cls="fx-kill"+(window.MV&&!MV.reduced()?" mv":"");dur=12000;const tape="مسرح جريمة · لا تقرب · ".repeat(8);html=(cls.includes(" mv")?MV.scope(e.who):"")+`<div class="tape t1"><span>${tape}</span></div><div class="tape t2"><span>${tape}</span></div>${polaroid(e.who,"x")}<div class="big">اغتيال</div><div class="sub">تم اغتيال ${esc(e.who)}</div><div class="sub" style="animation-delay:1.3s">صيدة سهلة والبيطري مدوّج 😴</div>${e.sniper?sniperUp(e.who):""}`;buzz([80,60,200])}
+  else if(e.type==="kill"){cls="fx-kill"+(window.MV?" mv":"");dur=12000;const tape="مسرح جريمة · لا تقرب · ".repeat(8);html=(cls.includes(" mv")?MV.scope(e.who):"")+`<div class="tape t1"><span>${tape}</span></div><div class="tape t2"><span>${tape}</span></div>${polaroid(e.who,"x")}<div class="big">اغتيال</div><div class="sub">تم اغتيال ${esc(e.who)}</div><div class="sub" style="animation-delay:1.3s">صيدة سهلة والبيطري مدوّج 😴</div>${e.sniper?sniperUp(e.who):""}`;buzz([80,60,200])}
   else if(e.type==="saved"){cls="fx-saved";dur=12000;html=(window.MV?MV.life():"")+`<svg class="cross" viewBox="0 0 64 64" fill="currentColor"><path d="M24 6h16v18h18v16H40v18H24V40H6V24h18z"/></svg><svg class="ecg" viewBox="0 0 320 90"><path d="M0 50 H90 L105 20 L120 80 L140 8 L158 70 L172 50 H320"/></svg><div class="big">اغتيال شامط</div><div class="sub">البيطري موجووووود 🔥</div>`;buzz([40,80,40])}
   else if(e.type==="nokill"){cls="fx-dawn mv-sky";dur=12000;html=(window.MV?MV.sky("dawn"):"")+`<div class="rx-event-scene dawn" aria-hidden="true"></div>`+`<div class="big">خرمس</div><div class="sub">المافيا ما عرفوا يغتالون أحد</div>`}
-  else if(e.type==="out"){cls="fx-out hit"+(window.MV&&!MV.reduced()?" mv":"");dur=12000;html=`<svg class="gavel" viewBox="0 0 120 120" aria-hidden="true"><g class="gv"><rect x="54" y="40" width="10" height="66" rx="4" fill="#8a5a33"/><rect x="26" y="14" width="66" height="30" rx="8" fill="#5a3720" stroke="#b8cadd" stroke-width="3"/><rect x="21" y="19" width="9" height="20" rx="2" fill="#b8cadd"/><rect x="88" y="19" width="9" height="20" rx="2" fill="#b8cadd"/></g><ellipse cx="59" cy="112" rx="40" ry="6" fill="#2a1a0c"/></svg>${polaroid(e.who,"out")}<div class="sub" style="margin-top:14px">${esc(e.who)} طلع بالتصويت</div><div class="muted">${ar(e.votes)} صوت</div>${e.sniper?sniperUp(e.who):""}`;buzz([30,40,160])}
+  else if(e.type==="out"){cls="fx-out hit"+(window.MV?" mv":"");dur=12000;html=`<svg class="gavel" viewBox="0 0 120 120" aria-hidden="true"><g class="gv"><rect x="54" y="40" width="10" height="66" rx="4" fill="#8a5a33"/><rect x="26" y="14" width="66" height="30" rx="8" fill="#5a3720" stroke="#b8cadd" stroke-width="3"/><rect x="21" y="19" width="9" height="20" rx="2" fill="#b8cadd"/><rect x="88" y="19" width="9" height="20" rx="2" fill="#b8cadd"/></g><ellipse cx="59" cy="112" rx="40" ry="6" fill="#2a1a0c"/></svg>${polaroid(e.who,"out")}<div class="sub" style="margin-top:14px">${esc(e.who)} طلع بالتصويت</div><div class="vcount" data-n="${+e.votes||0}">0 صوت</div>${e.sniper?sniperUp(e.who):""}`;buzz([30,40,160])}
+  else if(e.type==="verdict"){cls="fx-verdict";dur=2700;html=`<div class="vd-spot" aria-hidden="true"></div><div class="vd-k">الشعب قرر</div><div class="vd-dots" aria-hidden="true"><i></i><i></i><i></i></div><div class="vd-s">ومنو بيطلع الليلة…</div>`;buzz([40,260,40])}
   else if(e.type==="tie"){cls="fx-tie";dur=12000;html=`<svg class="scale" viewBox="0 0 120 90" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"><path d="M60 8v74M30 84h60M14 22h92M14 22 4 52h22zM106 22l-10 30h22z"/></svg><div class="big">${e.none?"ما أحد صوّت":"تعادل"}</div><div class="sub">التصويت ما ينحسب</div>`}
   else if(e.type==="snipe"){cls="fx-snipe";dur=12000;html=`${polaroid(e.who,"aim")}<div class="big" style="font-size:2.4rem">القناص سحبه</div>`;buzz([20,30,20,30,200])}
   else if(e.type==="cast"){cls="fx-cast hit";dur=fxQ.some(x=>x.type==="cast")?1300:2600;
@@ -1500,10 +1520,11 @@ function playNext(){
   const tapH=!sticky?tap:(st&&st.judge?`<div class="tap judgeclose"><button class="btn primary" data-fx="close">سكّر النتيجة عند الكل</button></div>`:`<div class="tap">القاضي يسكرها لما يشوفها الكل</div>`);
   const demoH=demo&&st&&!st.judge?`<div class="democlose"><button class="btn sm" data-fx="judge">رجوع لشاشة القاضي</button></div>`:"";
   fx.className="fx-enter "+cls+(sticky?" sticky":"");fx.innerHTML=html+tapH+demoH;fx.hidden=false;fxShownAt=Date.now();
+  {const vc=fx.querySelector(".vcount");if(vc){const n=+vc.dataset.n||0;let i=0;const step=()=>{if(!vc.isConnected)return;vc.textContent=`${ar(i)} صوت`;vc.classList.remove("tick");void vc.offsetWidth;vc.classList.add("tick");if(receptionAudio?.enabled&&i>0)receptionAudio.play("chips",{gain:.5});if(i<n){i++;setTimeout(step,Math.max(160,700/Math.max(n,1)))}};setTimeout(step,1700)}}
   if(e.type==="win"){const s1=confetti(fx,e.winner==="town"?["#d4e2f4","#72b096","#f4ffef","#d2a74c"]:["#cf5c55","#7a1d1f","#ffb4ab","#2a0a0b"],e.winner!=="town"),s2=e.winner==="town"&&window.MV?MV.fireworks(fx):null;confettiStop=s1||s2?()=>{s1&&s1();s2&&s2()}:null}
   const info=INFO.has(e.type)&&!e.day; // بالليل يظل لين الخطوة الجاية، وبالنهار يروح بوقته
   if(info)curFx.key=fxStepKey();else if(curFx)curFx.key=null;
-  clearTimeout(fxTimer);if(!sticky&&!info)fxTimer=setTimeout(closeFx,matchMedia("(prefers-reduced-motion: reduce)").matches&&!e.sniper?Math.min(dur,1800):dur);
+  clearTimeout(fxTimer);if(!sticky&&!info)fxTimer=setTimeout(closeFx,dur);
   if(night)document.body.dataset.phase="night";
 }
 /* كشف الأدوار بالنهاية: الكروت تتقلب وحدة وحدة بعد ما تسكر شاشة الفوز */
@@ -1515,6 +1536,7 @@ function revealSync(){const r=document.querySelector(".reveal");if(!r||!st)retur
 let fxGuard=0,fxShownAt=0; // وقت ما تتسكر الشاشة: الدوسة اللي بعدها مباشرة ما توصل للأزرار اللي تحت
 function closeFx(){
   const fx=$("#fx"),was=curFx&&curFx.type;curFx=null;if(fx.hidden){fxBusy=false;return playNext()}
+  if(was==="verdict"&&fxQ.length){clearTimeout(fxTimer);fxBusy=false;return playNext()} // من «الشعب قرر» للطرد على طول بدون ما تبين الصفحة
   clearTimeout(fxTimer);fx.classList.add("fx-leave");fxGuard=Date.now()+900;
   setTimeout(()=>{fxGuard=Math.max(fxGuard,Date.now()+450);fx.hidden=true;fx.innerHTML="";fx.className="";if(confettiStop){confettiStop();confettiStop=null}fxBusy=false;if(was==="deal"&&window.MV)MV.flyCard();if(was==="win")revealGo();playNext()},380);
 }
@@ -1531,7 +1553,6 @@ $("#fx").addEventListener("click",e=>{
 });
 function stars(n){let h="";for(let i=0;i<n;i++)h+=`<span class="star" style="top:${Math.random()*70}%;left:${Math.random()*100}%;animation-delay:${(Math.random()*1.6).toFixed(2)}s;opacity:.${2+Math.floor(Math.random()*7)}"></span>`;return h}
 function confetti(host,colors,embers){
-  if(matchMedia("(prefers-reduced-motion: reduce)").matches)return null;
   const c=document.createElement("canvas");host.prepend(c);const x=c.getContext("2d");
   const dpr=Math.min(2,devicePixelRatio||1);let W,H;
   const size=()=>{W=c.width=innerWidth*dpr;H=c.height=innerHeight*dpr};size();
@@ -1640,10 +1661,11 @@ function sceneSound(e){
   else if(type==="deal"){P("shuffle",{gain:.9});P("slide",{gain:.6,delay:1.2});P("slide",{gain:.6,delay:1.45});P("slide",{gain:.6,delay:1.7})}
   else if(type==="dusk"){P("whoosh",{gain:.5});P("door",{gain:.45,delay:.35})}
   else if(type==="dawn"){P("rooster",{gain:.5,delay:.3})}
-  else if(type==="kill"){const d=window.MV&&!MV.reduced()?1.15:0;P("sniper",{gain:1.3,vary:false,delay:d});P("gasp",{gain:.55,delay:d+.45});P("tension",{gain:.55,delay:d+1.2});if(e.sniper)snupSound(P)}
+  else if(type==="kill"){const d=window.MV?1.15:0;P("sniper",{gain:1.3,vary:false,delay:d});P("gasp",{gain:.55,delay:d+.45});P("tension",{gain:.55,delay:d+1.2});if(e.sniper)snupSound(P)}
   else if(type==="saved"){P("heartbeat",{gain:.9});P("bell",{gain:.35,delay:2.6})}
   else if(type==="nokill"){P("rooster",{gain:.45,delay:.2});P("coins",{gain:.4,delay:1.4})}
-  else if(type==="out"){const d=window.MV&&!MV.reduced()?.3:0;P("gavel",{gain:1,vary:false,delay:d});P("gavel",{gain:1,delay:d+.38,vary:false});P("gavel",{gain:1.1,delay:d+.76,vary:false});P("gasp",{gain:.4,delay:d+1.1});if(e.sniper)snupSound(P)}
+  else if(type==="out"){const d=window.MV?.3:0;P("gavel",{gain:1,vary:false,delay:d});P("gavel",{gain:1,delay:d+.38,vary:false});P("gavel",{gain:1.1,delay:d+.76,vary:false});P("gasp",{gain:.4,delay:d+1.1});if(e.sniper)snupSound(P)}
+  else if(type==="verdict"){P("heartbeat",{gain:.9});P("tension",{gain:.7,delay:.4});P("whoosh",{gain:.6,delay:2.3})}
   else if(type==="tie"){P("gavel",{gain:.8});P("coins",{gain:.35,delay:.4})}
   else if(type==="snipe"){P("sniper",{gain:1.4,vary:false});P("shot",{gain:.7,vary:false,delay:.05});P("gasp",{gain:.5,delay:.5});P("tension",{gain:.5,delay:.8})}
   else if(type==="cast"){P("chips",{gain:.9})}

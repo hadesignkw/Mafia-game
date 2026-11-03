@@ -22,7 +22,6 @@ const cigar=()=>`<div class="mvsmoke" aria-hidden="true">${[0,1,2,3,4,5].map(i=>
 
 /* ألعاب نارية للشعب */
 function fireworks(host){
-  if(reduced())return null;
   const c=document.createElement('canvas');host.prepend(c);const x=c.getContext('2d');
   const dpr=Math.min(2,devicePixelRatio||1);let W,H;const size=()=>{W=c.width=innerWidth*dpr;H=c.height=innerHeight*dpr};size();
   const cols=['#ffd36b','#d4e2f4','#72b096','#ff8f7a','#f4ffef','#b8cadd'];
