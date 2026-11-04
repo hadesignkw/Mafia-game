@@ -480,7 +480,7 @@ export class Room extends DurableObject {
         if (isM(role) || dead) pub.me.chat.mafia = { msgs: (ch.mafia || []).slice(-CHAT_MAX), write: isM(role) && !dead && (s.phase === "night" || s.phase === "night0") };
         if (dead) pub.me.chat.grave = { msgs: (ch.grave || []).slice(-CHAT_MAX), write: s.phase !== "over" };
         }
-        if (!this.adv() && (s.phase === "night" || s.phase === "night0") && !dead && canGuessRole(role)) pub.me.canGuess = true;
+        if (!this.adv() && (s.phase === "night" || s.phase === "night0") && !dead && canGuessRole(role, s.phase)) pub.me.canGuess = true;
       }
       if (this.adv() && (s.phase === "night" || s.phase === "night0")) {
         pub.me.todo = this.todo(pid);
@@ -541,7 +541,7 @@ export class Room extends DurableObject {
   todo(pid) {
     const s = this.s, n = s.night, r = s.roles[pid], out = [];
     if (!this.adv() || !s.alive[pid] || !(s.phase === "night" || s.phase === "night0")) return out;
-    const g = n.guess || {}, fg = n.fguess || {}, free = canGuessRole(r);
+    const g = n.guess || {}, fg = n.fguess || {}, free = canGuessRole(r, s.phase);
     if (s.phase === "night0") {
       // الدور أول، وبعدين التخمين
       if (this.isStep("police") && r === "cop" && !this.qmap()[pid] && this.qUsed(pid) < (s.queryMax || 0)) out.push("query");
@@ -1207,7 +1207,7 @@ export class Room extends DurableObject {
         if (alive && role === "cop") this.doQuery(pid, t);
         break;
       case "guess": // تخمين: منو تشك إنه مافيا (اللي ما عنده دور بالليل بس)
-        if (!canGuessRole(role)) break;
+        if (!canGuessRole(role, s.phase)) break;
         if (this.adv() && alive && (t === "none" || (tA && t !== pid)) && ((s.phase === "night" && s.step === "all") || (s.phase === "night0" && this.isStep("police")))) (n.guess = n.guess || {})[pid] = t;
         else if (!this.adv() && s.online && alive && (t === "none" || (tA && t !== pid)) && (s.phase === "night" || s.phase === "night0")) (n.guess = n.guess || {})[pid] = t;
         break;
@@ -1231,6 +1231,6 @@ export class Room extends DurableObject {
 }
 
 // التخمين بالليل («منو تشك إنه مافيا؟»): الكل، بس بعد ما يخلص دوره.
-function canGuessRole(r) { return !!r; } // الكل يخمن بعد ما يخلص دوره (المافيا والبيطري والشريف بعد)
+function canGuessRole(r, phase) { return !!r && r !== "cop" && (r !== "doctor" || phase === "night0"); } // كل واحد خيار واحد: الشريف يفتش بس، والبيطري يفزع بس (بالليلة الأولى ما عنده فزعة فيخمن). المافيا يغتالون ويخمنون
 
 function blankNight() { return { sugg: {}, suggAt: {}, fake: {}, kill: null, save: {}, queried: {}, guess: {}, fguess: {}, killByJudge: false, fakeByJudge: false }; }

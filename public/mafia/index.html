@@ -1924,7 +1924,7 @@ const GUIDE=[
   "دايم شغالة بلعبة القاضي، مع افتراضي أو مخصص.",
   "الفكرة: محد يقعد بدون شي بالليل. الكل ماسك تلفونه ويختار، فما يبين منو عنده دور ومنو فداوي.",
   "<b>الليلة الأولى</b> خطوة وحدة: الشريف يفتش والمافيا يختارون النصاب، وبعدين الكل يجاوب «منو تشك إنه مافيا؟»، واللي مو مافيا يجاوبون بعد «منو تتوقع النصاب؟».",
-  "<b>من الليلة الثانية</b> الكل يختار بنفس الوقت بخطوة وحدة: المافيا يغتالون، البيطري يفزع، الشريف يفتش، وكل واحد بعد ما يخلص دوره يخمن «منو تشك فيه؟».",
+  "<b>من الليلة الثانية</b> الكل يختار بنفس الوقت بخطوة وحدة: المافيا يغتالون، البيطري يفزع، الشريف يفتش، وكل واحد (إلا الشريف والبيطري) بعد ما يخلص دوره يخمن «منو تشك فيه؟».",
   "زر «الصبح» يشتغل أول ما المافيا والبيطري والشريف يخلصون. اللي ما خلصوا تخمينهم تشوف أسماءهم فوق الزر، وتقدر تنطرهم أو تكمل.",
   "<b>الصبح</b> يطلع للكل نسبة شك الشعب على كل لاعب، بدون ما يبين منو خمّن منو. تقدر تفتح فيها النقاش.",
   "<b>نقاط المحقق</b>: كل تخمين صح لواحد من الشعب بنقطة. ما تبين وسط اللعبة، وبالنهاية يطلع «أحسن محقق».",
@@ -2008,7 +2008,7 @@ const OGUIDE=[
  {k:"night",t:"الليل",items:[
   "خطوة وحدة بدقيقة: <b>المافيا</b> يغتالون (حتى ربعهم أو نفسهم)، <b>البيطري</b> يفزع، و<b>الشريف</b> يفتش، كلهم بنفس الوقت.",
   "إذا المافيا تعادلوا لين يخلص الوقت، اللعبة تختار من اختياراتهم.",
-  "كل واحد يخلص دوره أول (الاغتيال، الفزعة، التفتيش)، وبعدين الكل يخمن «منو تشك فيه؟».",
+  "كل واحد يخلص دوره أول (الاغتيال، الفزعة، التفتيش)، وبعدين الكل يخمن «منو تشك فيه؟»، إلا الشريف يفتش بس والبيطري يفزع بس.",
   "اللي يفصل بالليل ما ننطره، تروح عليه خطوته."]},
  {k:"day",t:"النهار والكلام",items:[
   "الصبح ينعلن منو انغتال أو إن البيطري لحّق.",
@@ -2065,7 +2065,7 @@ function graveToggle(on){
 function advToggle(on){
   return`<div class="adv-row"><button class="adv-chk ${on?"on":""}" data-a="set" data-k="adv" data-v="${on?0:1}" role="checkbox" aria-checked="${on}"><span class="box">${on?"✓":""}</span><span>تبي إعدادات متقدمة؟</span></button><button class="adv-q" data-a="advHelp" aria-expanded="${advHelpOpen}" aria-label="شنو الإعدادات المتقدمة؟">؟</button></div>
   ${advHelpOpen?`<div class="adv-help"><b>الفرق عن العادي:</b> بالعادي اللي ما عنده دور يقعد بدون شي بالليل، فيبين إنه شعب. بالمتقدمة الكل ماسك تلفونه ويسوي نفس الشي، فمحد ينكشف.<ul>
-  <li>كل ليلة <b>الكل يختار بنفس الوقت</b>: المافيا يغتالون، البيطري يفزع، الشريف يفتش، وبعدها الكل يخمن.</li>
+  <li>كل ليلة <b>الكل يختار بنفس الوقت</b>: المافيا يغتالون، البيطري يفزع، الشريف يفتش، وبعدها الكل يخمن إلا الشريف والبيطري.</li>
   <li>الكل يخلص دوره أول، وبعدين يجاوب <b>منو تشك فيه؟</b> (واللي مو مافيا بالليلة الأولى: <b>منو تتوقع النصاب؟</b>).</li>
 
   <li><b>نقاط المحقق:</b> كل تخمين صح للشعب بنقطة، وتطلع بنهاية اللعبة "أحسن محقق".</li>
@@ -2151,7 +2151,7 @@ function judgeControls(){
   if(p==="deal"){
     h+=`<p class="script"><b>كل واحد يشوف دوره</b> بكرته. لما يخلصون دوس «ابدا اللعبة» والكروت تنشال من تلفوناتهم.</p><button class="btn primary" data-a="cmd" data-c="begin">ابدا اللعبة</button>`;
   }else if(p==="night0"||p==="night"){
-    const say={night0:{police:"<b>الشريف</b> يفتش من تلفونه عن نصاب.",mafia:"<b>المافيا</b> يتعرفون على بعض ويختارون النصاب من تلفوناتهم.",all:"<b>الكل يختار بنفس الوقت:</b> الشريف يفتش، والمافيا يتعرفون على بعض ويختارون النصاب، والكل بعد ما يخلص دوره يخمن."},
+    const say={night0:{police:"<b>الشريف</b> يفتش من تلفونه.",mafia:"<b>المافيا</b> يتعرفون على بعض ويختارون النصاب من تلفوناتهم.",all:"<b>الكل يختار بنفس الوقت:</b> الشريف يفتش، والمافيا يتعرفون على بعض ويختارون النصاب، والكل بعد ما يخلص دوره يخمن."},
       night:{mafia:"<b>المافيا</b> يختارون منو يغتالون.",doctor:"<b>البيطري</b> يختار منو يفزع له.",police:"<b>الشريف</b> يفتش من تلفونه.",all:"<b>الكل يختار بنفس الوقت:</b> المافيا يغتالون، البيطري يفزع، الشريف يفتش، والكل بعد ما يخلص دوره يخمن."}}[p][st.step];
     const S=stepsOf(p),i=S.indexOf(st.step),last=i===S.length-1;
     h+=nightCard()+`<div class="steps">${S.map((s,k)=>`<span class="${k===i?"cur":k<i?"done":""}">${STEP_N[s]}</span>`).join("")}</div><p class="script">${say}</p>${nightStatus()}`;
@@ -2275,11 +2275,11 @@ setInterval(()=>{document.querySelectorAll(".snipecd").forEach(el=>{const left=M
 let qPend=null;
 function picker(k,ids,red){
   const sel=st.me.sel&&st.me.sel[k];
-  if(k==="query"&&!sel){
+  if((k==="query"||k==="save")&&!sel){
     if(st.adv&&(st.phase==="night"||st.phase==="night0"))ids=seedShuffle(ids,[st.me.id,st.gen,st.round,st.step,k].join("|"));
     if(qPend&&!ids.includes(qPend))qPend=null;
     return`<div class="grid">${ids.map(id=>`<button class="pick ${qPend===id?"on":""}" data-a="qpend" data-id="${id}">${esc(nm(id))}</button>`).join("")}</div>
-    ${qPend?`<div class="qconfirm"><p>متأكد تبي تفتش عن <b>${esc(nm(qPend))}</b>؟</p><div class="row"><button class="btn primary" data-a="act" data-k="query" data-id="${qPend}">إيه، فتّش عنه ✓</button><button class="btn ghost" data-a="qpend" data-id="">لا، بغيّر</button></div></div>`:`<p class="muted small">اختار واحد، وبعدين أكّد.</p>`}`;
+    ${qPend?`<div class="qconfirm"><p>${k==="save"?"متأكد تبي تفزع لـ":"متأكد تبي تفتش عن "}<b>${esc(nm(qPend))}</b>؟</p><div class="row"><button class="btn primary" data-a="act" data-k="${k}" data-id="${qPend}">${k==="save"?"إيه، أفزع له ✓":"إيه، فتّش عنه ✓"}</button><button class="btn ghost" data-a="qpend" data-id="">لا، بغيّر</button></div></div>`:`<p class="muted small">اختار واحد، وبعدين أكّد.</p>`}`;
   }
   const pk=[st.gen,st.phase,st.round,k,sel].join("|"),pop=sel&&!popSeen.has(pk);if(pop)popSeen.add(pk);
   if(st.adv&&(st.phase==="night"||st.phase==="night0"))ids=seedShuffle(ids,[st.me.id,st.gen,st.round,st.step,k].join("|"));
@@ -2334,7 +2334,7 @@ function advNight(others,al){
   if(!task&&me.role==="cop")return queryBox(others);
   if(!task)return`<div class="panel nightbox advwait"><div class="zz"><span class="leye"><i></i></span><span class="leye"><i></i></span><b>z</b><b>z</b><b>z</b></div><h2>انطر الصبح</h2><p class="muted small">خلصت اختيارك. خلك ماسك تلفونك لين يطلع الصبح.</p></div>`;
   const lq=me.lastQuery,qLine=lq?`نتيجة تفتيشك: <b>${esc(nm(lq.id))}</b> طلع <b>${lq.mafia?"مافيا":"شعب"}</b>. احفظها.`:null;
-  if(task==="query")return box("فتّش عن نصاب",`باقي لك ${ar(me.queriesLeft)} من ${ar(me.queryMax)}. الجواب يطلع لك بعد ما تختار.`,picker("query",others)+camo("guess",1));
+  if(task==="query")return box("تفتش عن منو؟",`باقي لك ${ar(me.queriesLeft)} من ${ar(me.queryMax)}. الجواب يطلع لك بعد ما تختار.`,picker("query",others)+camo("guess",1));
   if(task==="kill")return box("منو تغتالون؟","ربعك يشوفون اختيارك، والأغلبية تفوز.",picker("kill",al)+teamPicks()+mateCamo());
   if(task==="save")return box("منو تفزع له؟","تقدر تختار نفسك.",picker("save",al)+camo("guess",1));
   if(task==="fake"&&me.fakesReady)return`<div class="panel advp">${mafiaIdCard()}${fakeResult()}</div>`;
@@ -2427,7 +2427,7 @@ function queryBox(others){
       :`<button class="pick dim" disabled>${esc(nm(id))}</button>`).join("")}</div><p class="muted small">${st.online?"احفظ الجواب، يروح مع الخطوة الجاية.":"احفظ الجواب، يروح لما يقلب القاضي للخطوة الجاية."}</p></div>`;
   }
   if(!left)return`<div class="panel nightbox"><h2>خلاص قزرتها، ما عندك أسئلة</h2><p style="font-size:1.2rem">عاد الحين أنت وربعك بيّضوها 🔥</p></div>`;
-  return`<div class="panel"><h2>فتّش عن نصاب</h2>${count}<p class="muted small">تفتيش واحد بالليلة، وعدد تفتيشاتك كلها بعدد المافيا. دوس على الشخص والجواب يطلع على اسمه.</p>${picker("query",others)}</div>`;
+  return`<div class="panel"><h2>تفتش عن منو؟</h2>${count}<p class="muted small">تفتيش واحد بالليلة، وعدد تفتيشاتك كلها بعدد المافيا. دوس على الشخص والجواب يطلع على اسمه.</p>${picker("query",others)}</div>`;
 }
 function bestPanel(){
   const b=st.best||[],town=st.winner==="town";
@@ -2475,7 +2475,7 @@ document.addEventListener("click",e=>{
   else if(a==="cancelGame"){if(confirm("تلغي اللعبة وترجع الكل للانتظار؟ اللي يبي يدخل يقدر يدخل بعدها."))send({t:"newGame"})}
   else if(a==="ready"){send({t:"ready",v:b.dataset.v==="1"})}
   else if(a==="qpend"){qPend=id||null;render()}
-  else if(a==="act"){if(b.dataset.k==="query")qPend=null;const k=b.dataset.k;if((k==="query"||k==="vote")&&st.me.sel[k])return;send({t:"act",k,id,gen:st.gen});buzz(25)}
+  else if(a==="act"){if(b.dataset.k==="query"||b.dataset.k==="save")qPend=null;const k=b.dataset.k;if((k==="query"||k==="vote")&&st.me.sel[k])return;send({t:"act",k,id,gen:st.gen});buzz(25)}
 });
 /* تموّج خفيف عند الضغط على أي زر */
 document.addEventListener("pointerdown",e=>{
