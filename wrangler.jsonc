@@ -5,9 +5,9 @@
   "compatibility_date": "2025-09-01",
   "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
   "durable_objects": {
-    "bindings": [{ "name": "ROOM", "class_name": "Room" }, { "name": "PARL", "class_name": "Parl" }, { "name": "ACCT", "class_name": "Acct" }, { "name": "PLANE", "class_name": "Plane" }]
+    "bindings": [{ "name": "ROOM", "class_name": "Room" }, { "name": "PARL", "class_name": "Parl" }, { "name": "ACCT", "class_name": "Acct" }]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }, { "tag": "v2", "new_sqlite_classes": ["Parl"] }, { "tag": "v3", "new_sqlite_classes": ["Acct"] }, { "tag": "v4", "new_sqlite_classes": ["Plane"] }],
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }, { "tag": "v2", "new_sqlite_classes": ["Parl"] }, { "tag": "v3", "new_sqlite_classes": ["Acct"] }, { "tag": "v4", "new_sqlite_classes": ["Plane"] }, { "tag": "v5", "deleted_classes": ["Plane"] }],
   "vars": { "BILLING": "off" },
   "observability": { "enabled": true }
 }

@@ -1,8 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { Parl } from "./parl.js";
 import { Acct, PACKS, hashPass, sha, same, rand, cleanEmail, okEmail, cleanName } from "./acct.js";
-import { Plane } from "./plane.js";
-export { Parl, Acct, Plane };
+export { Parl, Acct };
 
 /* =========== قوانين اللعبة =========== */
 const ROLE_N = {
@@ -130,8 +129,8 @@ const slow = () => json({ error: "طلبات واجد، جرّب بعد شوي."
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
-    if (url.pathname === "/api/create" || url.pathname === "/api/demo" || url.pathname === "/api/parl/create" || url.pathname === "/api/plane/create") { if (req.method === "POST" && tooMany(req, "create", 30, 10 * 60e3)) return slow(); }
-    if (url.pathname === "/api/exists" || url.pathname === "/api/parl/exists" || url.pathname === "/api/plane/exists") { if (tooMany(req, "exists", 60, 60e3)) return slow(); }
+    if (url.pathname === "/api/create" || url.pathname === "/api/demo" || url.pathname === "/api/parl/create") { if (req.method === "POST" && tooMany(req, "create", 30, 10 * 60e3)) return slow(); }
+    if (url.pathname === "/api/exists" || url.pathname === "/api/parl/exists") { if (tooMany(req, "exists", 60, 60e3)) return slow(); }
     if (url.pathname.startsWith("/api/acct/") || url.pathname.startsWith("/api/pay/")) return acctApi(req, env, url);
     if ((url.pathname === "/api/create" || url.pathname === "/api/demo") && req.method === "POST") {
       // وضع التجربة: غرفة فيها لاعبين وهميين يتحكم فيهم القاضي من جهاز واحد
@@ -190,26 +189,6 @@ export default {
       if (!/^\d{4}$/.test(code)) return new Response("bad code", { status: 400 });
       if (req.headers.get("Upgrade") !== "websocket") return new Response("websocket only", { status: 426 });
       return env.PARL.get(env.PARL.idFromName(code)).fetch(req);
-    }
-    /* ---------- الطيارة ---------- */
-    if (url.pathname === "/api/plane/create" && req.method === "POST") {
-      for (let i = 0; i < 25; i++) {
-        const code = String(1000 + Math.floor(Math.random() * 9000));
-        const r = await env.PLANE.get(env.PLANE.idFromName(code)).create(code);
-        if (r) return json(r);
-      }
-      return json({ error: "ما قدرت أفتح طيارة، جرّب مرة ثانية." }, 503);
-    }
-    if (url.pathname === "/api/plane/exists") {
-      const code = url.searchParams.get("code") || "";
-      if (!/^\d{4}$/.test(code)) return json({ ok: false });
-      return json({ ok: await env.PLANE.get(env.PLANE.idFromName(code)).exists() });
-    }
-    if (url.pathname === "/api/plane/ws") {
-      const code = url.searchParams.get("code") || "";
-      if (!/^\d{4}$/.test(code)) return new Response("bad code", { status: 400 });
-      if (req.headers.get("Upgrade") !== "websocket") return new Response("websocket only", { status: 426 });
-      return env.PLANE.get(env.PLANE.idFromName(code)).fetch(req);
     }
     if (url.pathname.startsWith("/api/")) return json({ error: "not found" }, 404);
     return env.ASSETS.fetch(req);
