@@ -110,7 +110,7 @@ canvas{display:block;width:100%;height:100%}
     <div id="feed"></div>
     <div id="stick"><div id="knob"></div></div>
     <div id="say">
-      <button data-s="هلا والله!">هلا والله!</button><button data-s="منو يسوق؟!">منو يسوق؟!</button><button data-s="يمّه!">يمّه!</button><button data-s="اقعد مكانك!">اقعد مكانك!</button>
+      <button data-s="اسكت واقعد!">اسكت واقعد!</button><button data-s="منو الحمار اللي يسوق؟!">منو الحمار اللي يسوق؟!</button><button data-s="يمّه!">يمّه!</button><button data-s="بنزّلك من الباب!">بنزّلك من الباب!</button>
     </div>
     <div class="acts">
       <button class="act small hide" id="bJump">نط</button>
@@ -124,7 +124,12 @@ import * as T from "./three.min.js";
 "use strict";
 /* ================= الإعدادات ================= */
 const LOOKS={captain:{n:"الكابتن",c:0x24365c},steward:{n:"المضيف",c:0x9b2d3a},stewardess:{n:"المضيفة",c:0x7a3b7a},guard:{n:"الأمن",c:0x1a1a1f},mechanic:{n:"الفني",c:0x5a6b3a},cleaner:{n:"عامل النظافة",c:0x2a7a86}};
-const PAX_LINES=["وين القبلة؟!","هذا شاي؟ هذا ماي حار!","أبي آيباد!","قلت لكم نروح بالسيارة","يمّه قلبي!","خخخ…","منو يسوق هالطيارة؟!","أبي أنزل!","الحين نهبط؟","صوروا المطب!"];
+const PAX_LINES=["وين القبلة؟!","هذا شاي؟ هذا ماي حار!","أبي آيباد!","قلت لكم نروح بالسيارة","يمّه قلبي!","خخخ…","منو الحمار اللي يسوق؟!","أبي أنزل من هالزفت!","الحين نهبط ولا شنو؟","صوروا المطب!","شنو هالطيران الزبالة؟","هذا طيار ولا سواق وانيت؟","يا خبل انتبه!","الله يقطع هالشركة","ولد! وين الأكل؟","أنا دافع ٣٠٠ دينار على هالخرابة؟","مضيف هبيل","خلصونا نبي ننزل","يا حمار الباب مفتوح!","لا تلمسني يا زقرتي!"];
+const LINES_TURB=["يا حمار! انتبه!","منو هالخبل اللي يسوق؟!","يمّه! قلبي طاح!","شنو هالسواقة الزفت!","الله ياخذك يا طيار","أنا بشتكي عليكم!","طيران حمير والله","بطني! بطني!"];
+const LINES_NOPILOT=["وين راح الطيار يا بهايم؟!","محد يسوق؟! محد يسوق؟!","الطيار بالحمام والطيارة تطيح!","يا الله يا الله!","منو المسؤول هني؟ منو؟!","شركة زبالة!"];
+const LINES_GRAB=["حطني! حطني يا حمار!","لا تلمسني يا زقرتي!","بشتكي عليك!","ليش أنا؟! ليش؟!","يمّه! بيرموني!","خل عنك يا خبل!"];
+const LINES_THROWN=["يا كلاااب!","بتشوفون!!","أممممي!","الله ياخذكم!","يا حميييير!"];
+const LINES_SIT=["لا لا هذا بيقتلنا","الله يستر","هذا يعرف يسوق؟","عطوه سيارة لعبة أول"];
 const PAX_NAMES=["العم","اليدة","الياهل","السنابي","النايم","بوشنط","المتوتر","بوجيم","السايح","بزنس","الخالة","بوسبحة","ناصر","جاسم","بدر","مشعل"];
 const CAB={w:4.8,h:2.5,z0:-13,z1:13,door:{z0:1.2,z1:2.9}};   // الكابينة: عرض وطول وموقع الباب (يسار)
 const PILOT={x:0,y:0,z:-12};
@@ -299,13 +304,13 @@ function mkSim(seed){
       if(a==="grab"){if(actor.carry)return;const f={x:-Math.sin(actor.ry),z:-Math.cos(actor.ry)};let best=null,bd=1.4;
         const cands=[...pax,...objs,...Object.values(others).filter(o=>o.id!==p),...(p!==pid?[my]:[])];
         for(const c of cands){if(c.by||c.st==="out"||c===actor)continue;const dx=c.x-actor.x,dz=c.z-actor.z,d2=Math.hypot(dx,dz);const dot=(dx*f.x+dz*f.z)/(d2||1);if(d2<bd&&dot>.1){bd=d2;best=c}}
-        if(best){best.by=p;best.st="carried";actor.carry=best;ev("grab",actor.name)}
+        if(best){best.by=p;best.st="carried";actor.carry=best;ev("grab",actor.name);if(best.kind)shout(LINES_GRAB,1,best)}
         return}
       if(a==="throw"){const c=actor.carry;if(!c)return;const f={x:-Math.sin(actor.ry),z:-Math.cos(actor.ry)};c.by=null;actor.carry=null;ev("throw",actor.name);
         if(c.player){const v=[r2(f.x*8),4,r2(f.z*8)];if(c===my){my.st="rag";my.x=actor.x+f.x*.7;my.z=actor.z+f.z*.7;my.y=1;my.vx=my.vz=0;kickMe(v)}else{c.st="rag";c.hx=undefined;c.kick=v;c.kseq=(c.kseq||0)+1}return}
-        c.st=c.m?"free":"rag";c.x=actor.x+f.x*.7;c.z=actor.z+f.z*.7;c.y=1;c.vx=f.x*8+actor.vx;c.vz=f.z*8+actor.vz;c.vy=4;return}
-      if(a==="sit"){if(world.pilot&&world.pilot!==p)return;if(Math.hypot(actor.x-PILOT.x,actor.z-PILOT.z)<1.6){world.pilot=p;ev("sit",actor.name)}return}
-      if(a==="stand"){if(world.pilot===p){world.pilot=null;ev("stand",actor.name)}return}
+        c.st=c.m?"free":"rag";c.x=actor.x+f.x*.7;c.z=actor.z+f.z*.7;c.y=1;c.vx=f.x*8+actor.vx;c.vz=f.z*8+actor.vz;c.vy=4;if(c.kind)shout(LINES_THROWN,1,c);return}
+      if(a==="sit"){if(world.pilot&&world.pilot!==p)return;if(Math.hypot(actor.x-PILOT.x,actor.z-PILOT.z)<1.6){world.pilot=p;ev("sit",actor.name);shout(LINES_SIT,2)}return}
+      if(a==="stand"){if(world.pilot===p){world.pilot=null;ev("stand",actor.name);shout(LINES_NOPILOT,3)}return}
       if(a==="ctl"&&d&&world.pilot===p){S.pilotIn={x:d[0],y:d[1]};S.pilotT=performance.now()}
       if(a==="jump"){if(actor.st==="walk"&&actor.y===0){actor.vy=5.5;actor.st="rag";actor.ragT=0}}
     },
@@ -315,6 +320,7 @@ function mkSim(seed){
       if(!hasPilot&&world.pilot)world.pilot=null;
       if(hasPilot){const inp=performance.now()-S.pilotT<600?S.pilotIn:{x:0,y:0};world.roll+=((inp.x*.55)-world.roll)*Math.min(1,2.2*dt);world.pitch+=((-inp.y*.3)-world.pitch)*Math.min(1,2*dt)}
       else{S.gustT-=dt;if(S.gustT<=0){S.gustT=1.5+rnd()*3;S.gRoll=(rnd()-.5)*1.4;S.gPitch=(rnd()-.5)*.6}world.roll+=((S.gRoll||0)-world.roll)*Math.min(1,.9*dt);world.pitch+=((S.gPitch||0)-world.pitch)*Math.min(1,.8*dt)}
+      if(!hasPilot){S.noPilotT=(S.noPilotT||0)+dt;if(S.noPilotT>7){S.noPilotT=0;shout(LINES_NOPILOT,2)}}else S.noPilotT=0;
       // مطب
       S.turbT-=dt;if(S.turbT<=0){S.turbT=10+rnd()*14;const big=rnd()<.35;turb(big)}
       // الركاب
@@ -332,7 +338,7 @@ function mkSim(seed){
           if(Math.abs(a.z-gl.z)>.5&&Math.abs(a.x)>.6){dx=-a.x;dz=0}else if(Math.abs(a.z-gl.z)>.5){dx=0}
           const d=Math.hypot(dx,dz);if(d<.25){if(gl===a.home){a.st="seated";a.ry=0}else{a.goal=a.home;a.sayNow=rnd()<.6?"🚽":null}}
           else{const sp=1.6;a.vx=dx/d*sp+g.x*.25;a.vz=dz/d*sp+g.z*.25;a.x+=a.vx*dt;a.z+=a.vz*dt;a.ry=Math.atan2(-a.vx,-a.vz);clampCabin(a,true)}}
-        a.sayT-=dt;if(a.sayT<=0||a.sayNow){a.sayT=10+rnd()*25;const t=a.sayNow||PAX_LINES[Math.floor(rnd()*PAX_LINES.length)];a.sayNow=null;a.pend=t}
+        a.sayT-=dt;if(a.sayT<=0||a.sayNow){a.sayT=7+rnd()*16;const t=a.sayNow||PAX_LINES[Math.floor(rnd()*PAX_LINES.length)];a.sayNow=null;a.pend=t}
       }
       // الأغراض
       for(const o of objs){if(o.st==="carried"){const c=o.by===pid?my:others[o.by];if(!c){o.by=null;o.st="free"}else{const f={x:-Math.sin(c.ry),z:-Math.cos(c.ry)};o.x=c.x+f.x*.5;o.z=c.z+f.z*.5;o.y=1;o.ry=c.ry}continue}
@@ -351,7 +357,9 @@ function mkSim(seed){
       send({t:"state",to:to||undefined,roll:r2(world.roll),pitch:r2(world.pitch),pilot:world.pilot,n,o,pl});
     }
   };
-  function turb(big){const k=big?2:1;ev(big?"turbBig":"turb","");
+  function shout(list,n=2,who){const pool=who?[who]:pax.filter(a=>a.st!=="gone"&&a.st!=="out");for(let i=0;i<n&&pool.length;i++){const a=pool.splice(Math.floor(rnd()*pool.length),1)[0];a.pend=list[Math.floor(rnd()*list.length)]}}
+  S.shout=shout;
+  function turb(big){const k=big?2:1;ev(big?"turbBig":"turb","");setTimeout(()=>shout(LINES_TURB,big?4:2),700);
     const hit=a=>{if(a.st==="gone"||a.st==="out"||a.st==="carried")return;if(a.st==="seated"&&!big&&rnd()<.5)return;a.st="rag";a.ragT=0;a.by=null;a.vy=3.5*k+rnd()*2;a.vx=(rnd()-.5)*6*k;a.vz=(rnd()-.5)*4*k;a.goal=a.home};
     for(const a of pax)hit(a);
     for(const o of objs)if(o.st==="free"){o.vy=4*k;o.vx=(rnd()-.5)*5*k;o.vz=(rnd()-.5)*4*k}
