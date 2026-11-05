@@ -185,7 +185,7 @@ $("#bCreate").onclick=async()=>{const n=$("#name").value.trim();if(!n)return err
   try{const r=await fetch("/api/plane/create",{method:"POST"});const j=await r.json();if(!r.ok)throw new Error(j.error||"ما قدرت");connect(j.code,n)}catch(e){err(e.message)}finally{$("#bCreate").disabled=false}};
 $("#bJoin").onclick=async()=>{const n=$("#name").value.trim(),c=$("#code").value.trim();if(!n)return err("اكتب اسمك أول.");if(!/^\d{4}$/.test(c))return err("الرمز ٤ أرقام.");err("");
   const j=await fetch("/api/plane/exists?code="+c).then(r=>r.json()).catch(()=>({}));if(!j.ok)return err("ما فيه طيارة بهالرمز.");connect(c,n)};
-$("#bStart").onclick=()=>send({t:"start"});
+$("#bStart").onclick=()=>{audioInit();send({t:"start"})};
 $("#bLeave").onclick=()=>{send({t:"leave"});location.reload()};
 function connect(code,name){localStorage.setItem("plane.name",name);
   const saved=JSON.parse(sessionStorage.getItem("plane."+code)||"null");
@@ -268,7 +268,7 @@ function setReq(a,k,mood){
   if(k&&mood>=1&&a.face==="n")setFaceA(a,"angry",0);if(!k&&a.face==="angry"&&!a.g.userData.K.angry&&a.faceT<=0)setFaceA(a,"n",0);
 }
 function flightHud(f){const m=Math.floor(f[0]/60),sx=String(f[0]%60).padStart(2,"0");$("#flight").textContent=m+":"+sx;$("#satBar").style.width=f[1]+"%";$("#satBar").style.background=f[1]>60?"#5dc46f":f[1]>30?"#f2b134":"#d94c3d";$("#satN").textContent=f[1]+"%"}
-function showEnd(e){const el=$("#end");if(el.dataset.on)return;el.dataset.on="1";el.classList.remove("hide");
+function showEnd(e){const el=$("#end");if(el.dataset.on)return;el.dataset.on="1";el.classList.remove("hide");setTimeout(()=>play(e.sat>=55?"cheer":"laugh",.9),700);
   const grade=e.sat>=80?"رحلة محترمة… بالغلط 😳":e.sat>=55?"وصلنا، والركاب حيّين 😮‍💨":e.sat>=30?"زفت، بس مو أزفت رحلة 🫠":"أزفت رحلة بتاريخ الطيران 💀";
   $("#endTxt").innerHTML=`<h2>${grade}</h2><div class="stats"><div><b>${e.sat}%</b><span>رضا الركاب</span></div><div><b>${e.served}</b><span>طلب اتخدم</span></div><div><b>${e.thrown}</b><span>راكب طاح برا</span></div><div><b>${e.turb}</b><span>مطب</span></div></div>`;
   $("#bAgain").classList.toggle("hide",!isHost);$("#end .sub").classList.toggle("hide",isHost)}
@@ -428,10 +428,22 @@ function onEvent(m){
   const who=m.who?esc(m.who):"";
   const txt={turb:"مطب! 💥",turbBig:"مطب قوي!! 🌪️",out:who+" طاح برا الطيارة! 😱",outObj:"غرض طار برا! 🧳",sit:who+" قعد يسوق ✈️",stand:who+" ترك القيادة! منو يسوق؟! 😨",grab:"",throw:who+" رمى أحد! 🙌",joined:"",served:who+" خدم راكب 🍽️",landed:"هبطنا! 🛬",restart:"رحلة جديدة! ✈️"}[m.k];
   if(txt)toast(txt,m.k==="turbBig"||m.k==="out"||m.k==="stand");
-  if(m.k==="turb"||m.k==="turbBig"){shake=m.k==="turbBig"?.5:.25;vib(m.k==="turbBig"?120:60)}
+  if(m.k==="turb"||m.k==="turbBig"){shake=m.k==="turbBig"?.5:.25;vib(m.k==="turbBig"?120:60);play(pick(["scream1","scream2","scream3"]),.9);if(m.k==="turbBig")setTimeout(()=>play(pick(["scream1","scream3"]),.8,1.1),250);setTimeout(()=>play("thud",.8),900)}
+  if(m.k==="throw")play("whoosh",1);if(m.k==="grab")play("grab",.5,1.2);if(m.k==="out"||m.k==="outObj"){play("wind",.8);if(m.k==="out")play("scream2",1,.95)}
+  if(m.k==="served")play("ding",.9);if(m.k==="stand")play("scream3",.7,1.05);if(m.k==="landed"){play("bell",.9)}if(m.k==="restart")play("bell",.6,1.2);
   if(m.k==="sit"||m.k==="stand")$("#pilotName").textContent=m.k==="sit"?who:"بدون طيار!";
 }
 let shake=0;const vib=ms=>{try{navigator.vibrate&&navigator.vibrate(ms)}catch{}};
+/* ---------- الصوت (Web Audio): يشتغل حتى لو الآيفون على الصامت ---------- */
+const SFX={engine:"engine",scream1:"scream1",scream2:"scream2",scream3:"scream3",whoosh:"whoosh",thud:"thud",boing:"boing",ding:"ding",wind:"wind",cheer:"cheer",laugh:"laugh",grab:"grab",bell:"bell"};
+const AU={ctx:null,buf:{},on:false,engine:null};
+function audioInit(){if(AU.on)return;AU.on=true;try{if(navigator.audioSession)navigator.audioSession.type="playback"}catch{}
+  const C=window.AudioContext||window.webkitAudioContext;if(!C)return;AU.ctx=new C();AU.ctx.resume().catch(()=>{});
+  for(const k in SFX)fetch("/plane/sfx/"+SFX[k]+".mp3").then(r=>r.arrayBuffer()).then(b=>AU.ctx.decodeAudioData(b)).then(d=>{AU.buf[k]=d;if(k==="engine")engineLoop()}).catch(()=>{})}
+function play(k,vol=1,rate=1){const c=AU.ctx,b=AU.buf[k];if(!c||!b)return;const s=c.createBufferSource();s.buffer=b;s.playbackRate.value=rate;const g=c.createGain();g.gain.value=vol;s.connect(g).connect(c.destination);s.start()}
+function engineLoop(){const c=AU.ctx,b=AU.buf.engine;if(!c||!b||AU.engine)return;const s=c.createBufferSource();s.buffer=b;s.loop=true;s.loopStart=.4;s.loopEnd=7.6;const g=c.createGain();g.gain.value=.35;s.connect(g).connect(c.destination);s.start();AU.engine=g}
+addEventListener("visibilitychange",()=>{if(AU.ctx&&document.visibilityState==="visible")AU.ctx.resume().catch(()=>{})});
+const pick=a=>a[Math.floor(Math.random()*a.length)];
 function toast(t,big){const d=document.createElement("div");d.textContent=t;if(big)d.className="big";$("#feed").appendChild(d);setTimeout(()=>d.remove(),3200);while($("#feed").children.length>4)$("#feed").firstChild.remove()}
 /* ================= أنا ================= */
 let my=null;
@@ -449,7 +461,8 @@ function setupInput(){
   $("#bAct").onclick=()=>{const k=actKind();if(k==="sit")act("sit");else if(k==="stand")act("stand");else if(k==="throw")act("throw");else if(k==="give")act("give");else act("grab")};
   $("#galley").querySelectorAll("button").forEach(b=>b.onclick=()=>act("take",[+b.dataset.k]));
   $("#bAgain").onclick=()=>act("restart");
-  $("#bJump").onclick=()=>act("jump");
+  $("#bJump").onclick=()=>{act("jump");play("boing",.7)};
+  const unlock=()=>{audioInit();removeEventListener("pointerdown",unlock)};addEventListener("pointerdown",unlock);
   $("#say").querySelectorAll("button").forEach(b=>b.onclick=()=>send({t:"say",text:b.dataset.s}));
 }
 function act(a,d){if(isHost&&sim)sim.act(pid,a,d);else send({t:"act",a,d})}
@@ -468,7 +481,7 @@ function stepMe(dt){
   if(my.st==="seated")my.st="walk";
   if(my.st==="carried"){const c=others[my.by];if(c){const f={x:-Math.sin(c.ry),z:-Math.cos(c.ry)};my.x=c.x+f.x*.6;my.z=c.z+f.z*.6;my.y=.9;my.ry=c.ry}return}
   if(my.st==="rag"){const out=stepFree(my,dt);if(out){toast("طحت برا الطيارة! 😱 … بترجع بعد شوي",true);if(isHost&&sim)send({t:"ev",k:"out",who:my.name});return}
-    my.ragT=(my.ragT||0)+dt;if(my.y===0&&Math.hypot(my.vx,my.vz)<.5&&my.ragT>1){my.st="walk";my.vx=my.vz=0}return}
+    my.ragT=(my.ragT||0)+dt;if(my.y===0&&!my.hitS&&my.ragT>.15){my.hitS=true;play("thud",.5,1.2)}if(my.y===0&&Math.hypot(my.vx,my.vz)<.5&&my.ragT>1){my.st="walk";my.vx=my.vz=0;my.hitS=false}return}
   if(my.st==="out"){my.outT=(my.outT||0)+dt;my.x-=12*dt;my.y+=2*dt;my.ry+=dt*8;if(my.outT>2.5){my.st="walk";my.outT=0;my.x=-.5;my.y=0;my.z=CAB.z1-1.5;my.vx=my.vy=my.vz=0;toast("رجعت من الباب الخلفي 🤫")}return}
   // المشي
   const g=gravity(),lat=Math.hypot(g.x,g.z);

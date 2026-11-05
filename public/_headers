@@ -13,6 +13,10 @@
   Cache-Control: public, max-age=86400, stale-while-revalidate=604800
 /mafia/sfx/*
   Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/plane/sfx/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/plane/three.min.js
+  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
 /fonts/*
   Cache-Control: public, max-age=2592000, stale-while-revalidate=2592000
 /theme/farm-day.webp

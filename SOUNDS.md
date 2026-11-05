@@ -81,3 +81,24 @@ Everything was fetched with `git clone --depth 1` on 2026-10-25. The commits use
   - The Loppansson Godot mirrors of Kenney packs no longer exist.
 | sniper.mp3 | ANIM + LAV | sfx/gun_shot_1.mp3 + 25-CC0-bang-sfx/cannon_01.ogg | gun_shot_1: Freesound #484036 "Rifle Gun Shot 02.wav" by MATRIXXX_; cannon_01: rubberduck, OpenGameArt "25 CC0 bang / firework sfx" | CC0: ANIM README + catalog.json `"license": "CC0"`; LAV repo-root LICENSE "CC0 1.0 Universal". Layered (rifle pitched down + low-passed cannon), compressed and limited for the assassination shot. |
 | bolt.mp3 | FFL | Master Tracks/Savage 10 .300 Blackout/T_9.wav ("Savage Model 10, rifle, bolt action, .300 AAC Blackout, full cycle loaded mag") | The Free Firearm Sound Library (Kickstarter 2014), mirror https://github.com/buddingmonkey/FreeFirearmsSFXLibrary @ HEAD; OpenGameArt page https://opengameart.org/content/the-free-firearm-sound-library | CC0: repo `LICENSE` is the full CC0 1.0 Universal legal code; OGA page states "CC0 NO RIGHTS RESERVED". First full bolt cycle cut (0.66–2.99 s), mono, loudness-normalized; played when the sniper is revealed. |
+
+## طيران الزفت (`public/plane/sfx/`) — added 2026-11-05
+
+All from **ANIM** (https://github.com/S3Electronics/anim-sounds, commit `b581477212acbead61dbd1258675f1c389c27733`, CC0 per its README and `catalog.json`). Trimmed and re-encoded to mono 32 kHz MP3 with ffmpeg; nothing else changed.
+
+| Game file | Source file in ANIM | Edit |
+|---|---|---|
+| engine.mp3 | sfx/airplane_1.mp3 | first 8 s, fade in/out, −20% volume (loops in game) |
+| scream1.mp3 | sfx/scream_man.mp3 | first 2.2 s |
+| scream2.mp3 | sfx/scream_woman.mp3 | as is |
+| scream3.mp3 | sfx/scream_2.mp3 | first 2 s |
+| whoosh.mp3 | sfx/whoosh_1.mp3 | as is |
+| thud.mp3 | sfx/impact_2.mp3 | first 1.2 s |
+| boing.mp3 | sfx/boing_1.mp3 | as is |
+| ding.mp3 | sfx/ding.mp3 | as is |
+| wind.mp3 | sfx/wind_1.mp3 | as is |
+| cheer.mp3 | sfx/crowd_cheer.mp3 | first 4 s |
+| laugh.mp3 | sfx/laugh_crowd.mp3 | first 4 s |
+| grab.mp3 | sfx/punch.mp3 | as is |
+| bell.mp3 | sfx/bell_1.mp3 | first 2 s |
+| snore.mp3 | sfx/snore_1.mp3 | first 3 s, −50% volume (not wired yet) |
