@@ -69,6 +69,16 @@ canvas{display:block;width:100%;height:100%}
 .act.hide{display:none}
 #say{position:absolute;left:50%;bottom:calc(36px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:6px;pointer-events:auto}
 #say button{padding:8px 11px;border-radius:99px;background:rgb(0 0 0 / .5);border:1px solid rgb(255 255 255 / .15);font-size:.8rem}
+#sat{position:absolute;top:calc(max(10px,env(safe-area-inset-top)) + 44px);right:12px;display:flex;align-items:center;gap:8px;font-size:.78rem;background:rgb(0 0 0 / .45);padding:5px 10px;border-radius:99px;border:1px solid rgb(255 255 255 / .12)}
+#sat i{display:block;width:90px;height:8px;border-radius:99px;background:rgb(255 255 255 / .15);overflow:hidden}#sat b{display:block;height:100%;width:100%;background:#5dc46f;transition:width .6s}
+#galley{position:absolute;right:max(18px,env(safe-area-inset-right));bottom:calc(130px + env(safe-area-inset-bottom));display:grid;gap:8px;pointer-events:auto}
+#galley button{padding:10px 14px;border-radius:99px;background:rgb(242 177 52 / .9);color:#1d1408;font-weight:700;font-size:.95rem;box-shadow:0 4px 12px rgb(0 0 0 / .4)}
+#end{position:fixed;inset:0;z-index:8;display:grid;place-items:center;background:rgb(11 16 32 / .82);pointer-events:auto;padding:16px}
+#end .box{background:rgb(255 255 255 / .06);border:1px solid rgb(255 255 255 / .12);border-radius:22px;padding:18px 22px;max-width:520px;width:100%;text-align:center;max-height:92vh;overflow:auto}
+#end img{width:70px;display:block;margin:0 auto 6px}#end h2{margin:4px 0 10px;font-size:1.4rem}
+#end .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0 12px}#end .stats div{background:rgb(0 0 0 / .3);border-radius:12px;padding:8px 4px}#end .stats b{display:block;font-size:1.3rem;color:var(--brass-hi)}#end .stats span{font-size:.72rem;color:#a9b4c8}
+#end .btn{margin-top:4px}#end .sub{margin:8px 0 0;font-size:.8rem}
+#hand{position:absolute;left:50%;bottom:calc(100px + env(safe-area-inset-bottom));transform:translateX(-50%);font-size:.95rem;background:rgb(0 0 0 / .5);padding:6px 14px;border-radius:99px;border:1px solid rgb(255 255 255 / .15)}
 #rot{position:fixed;inset:0;z-index:9;display:none;place-items:center;background:var(--ink);text-align:center;padding:30px;font-size:1.3rem;font-weight:700}
 @media (orientation:portrait){#rot.on{display:grid}}
 </style>
@@ -111,11 +121,15 @@ canvas{display:block;width:100%;height:100%}
   <div id="hud">
     <div class="top">
       <div class="pill" id="who"><b>—</b></div>
-      <div class="pill" id="info">✈️ <b id="pilotName">بدون طيار!</b></div>
+      <div class="pill" id="info">✈️ <b id="pilotName">بدون طيار!</b> · ⏱ <b id="flight">5:00</b></div>
     </div>
+    <div id="sat"><span>رضا الركاب</span><i><b id="satBar"></b></i><span id="satN">100%</span></div>
+    <div id="galley" class="hide"><button data-k="1">🥤 ماي</button><button data-k="2">☕ شاي</button><button data-k="3">🍗 أكل</button></div>
+    <div id="end" class="hide"><div class="box"><img src="/plane/badge.png" alt=""><div id="endTxt"></div><button class="btn hide" id="bAgain">رحلة ثانية ✈️</button><p class="sub">ننطر المضيف يفتح رحلة ثانية…</p></div></div>
     <div id="tilt"><i></i></div>
     <div id="feed"></div>
     <div id="stick"><div id="knob"></div></div>
+    <div id="hand" class="hide"></div>
     <div id="say">
       <button data-s="اسكت واقعد!">اسكت واقعد!</button><button data-s="منو الحمار اللي يسوق؟!">منو الحمار اللي يسوق؟!</button><button data-s="يمّه!">يمّه!</button><button data-s="بنزّلك من الباب!">بنزّلك من الباب!</button>
     </div>
@@ -138,13 +152,21 @@ const LINES_TURB=["يا حمار! انتبه!","منو هالخبل اللي ي�
 const LINES_NOPILOT=["وين راح الطيار يا بهايم؟!","محد يسوق؟! محد يسوق؟!","الطيار بالحمام والطيارة تطيح!","يا الله يا الله!","منو المسؤول هني؟ منو؟!","شركة زبالة!"];
 const LINES_GRAB=["حطني! حطني يا حمار!","لا تلمسني يا زقرتي!","بشتكي عليك!","ليش أنا؟! ليش؟!","يمّه! بيرموني!","خل عنك يا خبل!"];
 const LINES_THROWN=["يا كلاااب!","بتشوفون!!","أممممي!","الله ياخذكم!","يا حميييير!"];
+const ITEMS={1:{n:"ماي",e:"🥤"},2:{n:"شاي",e:"☕"},3:{n:"أكل",e:"🍗"}};
+const LINES_REQ={1:["ولد! ماي!","أبي ماي، عطشان!","وين الماي يا جماعة؟"],2:["شاي! شاي حليب!","أبي شاي، مو ماي!","وين الشاي؟ من ساعة أطلب"],3:["جوعان! وين الأكل؟","أبي أكل، أي شي!","الأكل متى؟ بموت جوع"]};
+const LINES_MOOD1=["ولد! وين طلبي؟","من ساعة وأنا أطلب!","هذي خدمة ولا شنو؟","أنا أكلمك يا مضيف!","والله عيب عليكم","ما تشوفوني رافع يدي؟"];
+const LINES_MOOD2=["يا كلب وين طلبي؟!","يلعن أبو هالشركة!","يا حيوان أنا أكلمك!","غبي! غبي! غبي!","والله لأطيحك من الطيارة!","تافهين كلكم!","يا بهيمة تعال هني!","شركة حمير وطاقم حمير!","بشتكي وبخرب بيتكم!"];
+const LINES_MOOD3=["خلاص بجيب طلبي بنفسي يا كلاب!","قوموا كلكم! وين المطبخ؟!","أنا بسوق بنفسي أحسن منكم!","بكسر الطيارة على روسكم!"];
+const LINES_WRONG=["قلت {w} يا غبي! مو {g}!","هذا {g}؟! أنا طلبت {w} يا حمار!","يا بهيمة {w}! {w}!"];
+const LINES_THANKS=["أخيراً يا بطيء","عمرك ما تشتغل بمكان محترم","يالله روح من وجهي","هاه، تدري تشتغل!","وين كنت يا حيوان؟ هات"];
 const LINES_SIT=["لا لا هذا بيقتلنا","الله يستر","هذا يعرف يسوق؟","عطوه سيارة لعبة أول"];
-const PAX_NAMES=["العم","اليدة","الياهل","السنابي","النايم","بوشنط","المتوتر","بوجيم","السايح","بزنس","الخالة","بوسبحة","ناصر","جاسم","بدر","مشعل"];
+const PAX_NAMES=["العم","اليدة","الياهل","السنابي","النايم","بوشنط","المتوتر","بوجيم","السايح","بزنس","الخالة","بوسبحة","ناصر","جاسم","بدر","مشعل","الخروف"];
 const CAB={w:8.4,h:2.9,z0:-13,z1:13,door:{z0:1.2,z1:2.9}};   // الكابينة: عرض وطول وموقع الباب (يسار)
 const PILOT={x:0,y:0,z:-12};
 const SEAT_ROWS=[];for(let z=-7;z<=10;z+=2.1)SEAT_ROWS.push(z);
 const SEATS=[];for(const z of SEAT_ROWS)for(const x of[-3.5,-2.75,2.75,3.5])SEATS.push({x,z});
 const G=14;
+const FLIGHT_SEC=300; // طول الرحلة: ٥ دقايق
 /* ================= حالة ================= */
 let ws=null,me=null,room=null,isHost=false,started=false,pid=null,token=null;
 const others={};   // اللاعبين الثانين: pid → actor
@@ -214,7 +236,7 @@ function mkLabel(text,w=1.1){const c=document.createElement("canvas");c.width=25
   x.fillStyle="rgba(0,0,0,.55)";x.beginPath();x.roundRect(8,8,240,56,18);x.fill();x.fillStyle="#fff";x.fillText(text,128,48,230);
   const sp=new T.Sprite(new T.SpriteMaterial({map:new T.CanvasTexture(c),transparent:true,depthTest:false}));sp.scale.set(w,w*72/256,1);sp.renderOrder=5;return sp}
 /* ================= الشخصيات ================= */
-const PAX_KINDS=["amm","yadda","kid","snap","sleep","bags","nerv","gym","tour","biz","khala","sebha","amm","kid","biz","khala"];
+const PAX_KINDS=["amm","yadda","kid","snap","sleep","bags","nerv","gym","tour","biz","khala","sebha","amm","kid","biz","khala","sheep"];
 const PAX_TINT=[null,null,null,null,null,null,null,null,null,null,null,null,{dishdasha:0xd9d2c0,mustache:0x222},{shirt:0x3a7ad9,pants:0xf2b134,hair:0x111},{shirt:0x4a4a55,tie:0x1f5a8a},{abaya:0x2a3a5a}];
 function mkActor(o){
   const kind=o.player?o.look:(PAX_KINDS[o.i]||"amm");
@@ -226,6 +248,7 @@ function mkActor(o){
 function bubble(a,text){if(a.bub){a.g.remove(a.bub);a.bub.material.map.dispose()}a.bub=mkLabel(text,1.6);a.bub.position.y=2.35;a.g.add(a.bub);a.bubT=performance.now()+2600}
 function poseActor(a,dt){
   a.t+=dt;
+  if(a.player){const it=a===my?my.item:a.item;if(a.itemK!==it){a.itemK=it;if(a.itemSp){a.g.remove(a.itemSp);a.itemSp=null}if(it){a.itemSp=mkLabel(ITEMS[it].e,.45);a.itemSp.position.set(-.42,.75,.25);a.g.add(a.itemSp)}}}
   if(a.bub&&performance.now()>a.bubT){a.g.remove(a.bub);a.bub=null}
   const g=a.g;g.position.set(a.x,a.y,a.z);
   const rag=a.anim===2||a.st==="rag"||a.st==="out";
@@ -239,6 +262,17 @@ function poseActor(a,dt){
   if(a.faceT>0){a.faceT-=dt;if(a.faceT<=0)setFaceA(a,K.angry?"angry":(a.kind==="sleep"?"sleep":"n"),0)}
   pose(g,anim,a.t);
 }
+function setReq(a,k,mood){
+  if(a.reqK!==k){a.reqK=k;if(a.reqIcon){a.g.remove(a.reqIcon);a.reqIcon=null}if(k){a.reqIcon=mkLabel(ITEMS[k].e+" "+ITEMS[k].n,.9);a.reqIcon.position.y=2.6;a.g.add(a.reqIcon)}}
+  if(a.reqIcon)a.reqIcon.material.color.setHex(mood>=2?0xff6b5b:mood===1?0xffd27a:0xffffff);
+  if(k&&mood>=1&&a.face==="n")setFaceA(a,"angry",0);if(!k&&a.face==="angry"&&!a.g.userData.K.angry&&a.faceT<=0)setFaceA(a,"n",0);
+}
+function flightHud(f){const m=Math.floor(f[0]/60),sx=String(f[0]%60).padStart(2,"0");$("#flight").textContent=m+":"+sx;$("#satBar").style.width=f[1]+"%";$("#satBar").style.background=f[1]>60?"#5dc46f":f[1]>30?"#f2b134":"#d94c3d";$("#satN").textContent=f[1]+"%"}
+function showEnd(e){const el=$("#end");if(el.dataset.on)return;el.dataset.on="1";el.classList.remove("hide");
+  const grade=e.sat>=80?"رحلة محترمة… بالغلط 😳":e.sat>=55?"وصلنا، والركاب حيّين 😮‍💨":e.sat>=30?"زفت، بس مو أزفت رحلة 🫠":"أزفت رحلة بتاريخ الطيران 💀";
+  $("#endTxt").innerHTML=`<h2>${grade}</h2><div class="stats"><div><b>${e.sat}%</b><span>رضا الركاب</span></div><div><b>${e.served}</b><span>طلب اتخدم</span></div><div><b>${e.thrown}</b><span>راكب طاح برا</span></div><div><b>${e.turb}</b><span>مطب</span></div></div>`;
+  $("#bAgain").classList.toggle("hide",!isHost);$("#end .sub").classList.toggle("hide",isHost)}
+function hideEnd(){const el=$("#end");if(!el.dataset.on)return;delete el.dataset.on;el.classList.add("hide")}
 function setFaceA(a,f,hold){if(a.face!==f){a.face=f;setFace(a.g,f)}if(hold)a.faceT=hold}
 /* ================= الفيزياء المشتركة ================= */
 // الجاذبية بإطار الكابينة بعد ميلان الطيارة
@@ -268,10 +302,10 @@ function mkSim(seed){
   let rnd=mulberry(seed);
   const pax=[];const kinds=PAX_KINDS;
   const free=[...SEATS].sort(()=>rnd()-.5);
-  for(let i=0;i<Math.min(16,free.length);i++){const s=free[i];const a=mkActor({id:"n"+i,name:PAX_NAMES[i],i,kind:kinds[i]});a.kind=kinds[i];if(kinds[i]==="sleep")setFaceA(a,"sleep",0);a.seat=s;a.x=s.x;a.z=s.z;a.y=0;a.ry=0;a.st="seated";a.home=s;a.wanderT=6+rnd()*20;a.sayT=4+rnd()*12;pax.push(a)}
+  for(let i=0;i<Math.min(17,free.length);i++){const s=i===16?{x:-2.6,z:CAB.z1-3.2}:free[i];const a=mkActor({id:"n"+i,name:PAX_NAMES[i],i,kind:kinds[i]});a.kind=kinds[i];if(kinds[i]==="sleep")setFaceA(a,"sleep",0);a.seat=s;a.x=s.x;a.z=s.z;a.y=0;a.ry=0;a.st="seated";a.home=s;a.wanderT=6+rnd()*20;a.sayT=4+rnd()*12;pax.push(a)}
   const objs=[];
   for(let i=0;i<PROP_KINDS.length;i++){const m=makeProp(PROP_KINDS[i]);scene.add(m);const o={id:"o"+i,m,x:-3.2+rnd()*1.6,y:0,z:CAB.z1-4.5+rnd()*2.4,vx:0,vy:0,vz:0,st:"free",by:null,ry:rnd()*6};objs.push(o)}
-  const S={pax,objs,turbT:9,gustT:0,tick:0,pilotIn:{x:0,y:0},pilotT:0,seq:0,lastSend:0,
+  const S={pax,objs,turbT:9,gustT:0,tick:0,pilotIn:{x:0,y:0},pilotT:0,seq:0,lastSend:0,flightT:FLIGHT_SEC,sat:100,served:0,thrown:0,turbN:0,ended:false,end:null,
     adopt(w){world.roll=w.roll;world.pitch=w.pitch;world.pilot=w.pilot},
     act(p,a,d){
       const actor=p===pid?my:others[p];if(!actor)return;
@@ -286,6 +320,14 @@ function mkSim(seed){
       if(a==="sit"){if(world.pilot&&world.pilot!==p)return;if(Math.hypot(actor.x-PILOT.x,actor.z-PILOT.z)<1.6){world.pilot=p;ev("sit",actor.name);shout(LINES_SIT,2)}return}
       if(a==="stand"){if(world.pilot===p){world.pilot=null;ev("stand",actor.name);shout(LINES_NOPILOT,3)}return}
       if(a==="ctl"&&d&&world.pilot===p){S.pilotIn={x:d[0],y:d[1]};S.pilotT=performance.now()}
+      if(a==="take"&&d){const k=d[0]|0;if(!ITEMS[k])return;if(actor.carry)return;if(!inGalley(actor))return;actor.item=k;if(actor===my)my.item=k;return}
+      if(a==="give"){const it=actor.item;if(!it)return;let best=null,bd=1.6;for(const c of pax){if(!c.req||c.st==="gone"||c.st==="out")continue;const d2=Math.hypot(c.x-actor.x,c.z-actor.z);if(d2<bd){bd=d2;best=c}}
+        if(!best)return;if(best.req.k!==it){best.pend=LINES_WRONG[Math.floor(rnd()*LINES_WRONG.length)].replace(/{w}/g,ITEMS[best.req.k].n).replace(/{g}/g,ITEMS[it].n);S.sat=Math.max(0,S.sat-1);return}
+        best.req=null;best.reqT=20+rnd()*40;best.pend=LINES_THANKS[Math.floor(rnd()*LINES_THANKS.length)];best.rage=false;if(best.st==="walk")best.goal=best.home;actor.item=0;if(actor===my)my.item=0;S.served++;S.sat=Math.min(100,S.sat+5);ev("served",actor.name);return}
+      if(a==="restart"){if(p!==pid)return;S.ended=false;S.end=null;S.flightT=FLIGHT_SEC;S.sat=100;S.served=S.thrown=S.turbN=0;world.pilot=null;
+        for(const a2 of pax){a2.req=null;a2.reqT=undefined;a2.rage=false;a2.by=null;a2.st="seated";a2.g.visible=true;a2.x=a2.seat.x;a2.z=a2.seat.z;a2.y=0;a2.vx=a2.vy=a2.vz=0}
+        for(const o of objs){o.st="free";o.by=null;o.m.visible=true;o.x=-3.2+rnd()*1.6;o.z=CAB.z1-4.5+rnd()*2.4;o.y=0;o.vx=o.vy=o.vz=0}
+        for(const o of Object.values(others)){o.item=0;o.carry=null}my.item=0;my.carry=null;ev("restart","");return}
       if(a==="jump"){if(actor.st==="walk"&&actor.y===0){actor.vy=5.5;actor.st="rag";actor.ragT=0}}
     },
     step(dt){
@@ -297,22 +339,31 @@ function mkSim(seed){
       if(!hasPilot){S.noPilotT=(S.noPilotT||0)+dt;if(S.noPilotT>7){S.noPilotT=0;shout(LINES_NOPILOT,2)}}else S.noPilotT=0;
       // مطب
       S.turbT-=dt;if(S.turbT<=0){S.turbT=10+rnd()*14;const big=rnd()<.35;turb(big)}
+      // الرحلة: وقت، رضا، نتيجة
+      if(!S.ended){S.flightT-=dt;if(S.flightT<=0){S.ended=true;S.end={sat:Math.round(S.sat),served:S.served,thrown:S.thrown,turb:S.turbN};ev("landed","")}
+        S.satT=(S.satT||0)+dt;if(S.satT>=2){S.satT=0;let d=0;for(const a of pax)if(a.req){if(a.req.mood>=2)d+=.8;else if(a.req.mood===1)d+=.3}S.sat=Math.max(0,Math.min(100,S.sat-d+(!hasPilot?-1.2:0)))}}
       // الركاب
       for(const a of pax){
+        // الطلبات: يطلب، وإذا تأخر الطاقم يعصب ويسب، وبالآخر يقوم من مكانه
+        if(!S.ended&&a.st!=="gone"&&a.st!=="out"&&a.kind!=="sleep"&&a.kind!=="sheep"){
+          if(!a.req){a.reqT=(a.reqT===undefined?8+rnd()*20:a.reqT)-dt;if(a.reqT<=0&&a.st==="seated"){const k=1+Math.floor(rnd()*3);a.req={k,t:0,mood:0};a.pend=LINES_REQ[k][Math.floor(rnd()*3)];a.reqT=undefined}}
+          else{const q=a.req;q.t+=dt;const m=q.t>62?3:q.t>40?2:q.t>20?1:0;
+            if(m!==q.mood){q.mood=m;if(m===1)a.pend=LINES_MOOD1[Math.floor(rnd()*LINES_MOOD1.length)];if(m===2)a.pend=LINES_MOOD2[Math.floor(rnd()*LINES_MOOD2.length)];if(m===3){a.pend=LINES_MOOD3[Math.floor(rnd()*LINES_MOOD3.length)];if(a.st==="seated"){a.st="walk";a.goal={x:(rnd()-.5)*2,z:CAB.z0+4+rnd()*(CAB.z1-CAB.z0-8)};a.rage=true}}}
+            q.nag=(q.nag||0)+dt;if(q.nag>(m>=2?7:14)){q.nag=0;if(m>=1)a.pend=(m>=2?LINES_MOOD2:LINES_MOOD1)[Math.floor(rnd()*(m>=2?LINES_MOOD2:LINES_MOOD1).length)]}}}
         if(a.st==="carried"){const c=a.by===pid?my:others[a.by];if(!c){a.by=null;a.st="rag"}else{const f={x:-Math.sin(c.ry),z:-Math.cos(c.ry)};a.x=c.x+f.x*.55;a.z=c.z+f.z*.55;a.y=.9;a.ry=c.ry;a.vx=a.vy=a.vz=0}continue}
         if(a.st==="out"){a.outT=(a.outT||0)+dt;a.x-=12*dt;a.y+=2*dt;a.vy=0;a.ry+=dt*8;if(a.outT>2.5){a.st="gone";a.g.visible=false}continue}
         if(a.st==="gone")continue;
-        if(a.st==="rag"){const out=stepFree(a,dt);if(out){ev("out",a.name);continue}a.ragT=(a.ragT||0)+dt;if(a.y===0&&Math.hypot(a.vx,a.vz)<.4&&a.ragT>1.2){a.st="walk";a.goal=a.home}continue}
+        if(a.st==="rag"){const out=stepFree(a,dt);if(out){ev("out",a.name);S.thrown++;S.sat=Math.max(0,S.sat-8);a.req=null;continue}a.ragT=(a.ragT||0)+dt;if(a.y===0&&Math.hypot(a.vx,a.vz)<.4&&a.ragT>1.2){a.st="walk";a.goal=a.home}continue}
         const g=gravity(),lat=Math.hypot(g.x,g.z);
         if(a.st==="seated"){a.x=a.seat.x;a.z=a.seat.z;a.y=0;a.ry=0;if(lat>9.5&&rnd()<dt*1.5){a.st="rag";a.vx=g.x*.3;a.vz=g.z*.3;a.vy=2;a.ragT=0}
-          a.wanderT-=dt;if(a.wanderT<=0&&a.kind!=="sleep"){a.wanderT=15+rnd()*25;a.st="walk";a.goal={x:1.4+rnd()*.6,z:CAB.z1-1.2};a.back=false}}
+          a.wanderT-=dt;if(a.wanderT<=0&&a.kind!=="sleep"){a.wanderT=15+rnd()*25;a.st="walk";if(a.kind==="sheep"){a.wanderT=4+rnd()*6;a.goal={x:(rnd()-.5)*2.4,z:CAB.z0+3+rnd()*(CAB.z1-CAB.z0-6)};a.rage=true}else a.goal={x:1.4+rnd()*.6,z:CAB.z1-1.2};a.back=false}}
         else if(a.st==="walk"){if(lat>8){a.st="rag";a.vx=g.x*.4;a.vz=g.z*.4;a.vy=2.5;a.ragT=0;continue}
           const gl=a.goal||a.home;let dx=gl.x-a.x,dz=gl.z-a.z;
           // يمشي بالممر: أول للممر، بعدين بالطول، بعدين للكرسي
           const lane=a.x>0?1.3:-1.3;if(Math.abs(a.z-gl.z)>.5&&Math.abs(a.x-lane)>.3){dx=lane-a.x;dz=0}else if(Math.abs(a.z-gl.z)>.5){dx=0}
-          const d=Math.hypot(dx,dz);if(d<.25){if(gl===a.home){a.st="seated";a.ry=0}else{a.goal=a.home;a.sayNow=rnd()<.6?"🚽":null}}
+          const d=Math.hypot(dx,dz);if(d<.25){if(gl===a.home){a.st="seated";a.ry=0;a.rage=false}else if(a.rage&&(a.req||a.kind==="sheep")){if(a.kind==="sheep"&&rnd()<.3){a.goal=a.home}else a.goal={x:(rnd()-.5)*2,z:CAB.z0+4+rnd()*(CAB.z1-CAB.z0-8)}}else{a.goal=a.home;a.sayNow=rnd()<.6?"🚽":null}}
           else{const sp=1.6;a.vx=dx/d*sp+g.x*.25;a.vz=dz/d*sp+g.z*.25;a.x+=a.vx*dt;a.z+=a.vz*dt;a.ry=Math.atan2(-a.vx,-a.vz);clampCabin(a,true)}}
-        a.sayT-=dt;if(a.sayT<=0||a.sayNow){a.sayT=7+rnd()*16;const t=a.sayNow||PAX_LINES[Math.floor(rnd()*PAX_LINES.length)];a.sayNow=null;a.pend=t}
+        a.sayT-=dt;if(a.sayT<=0||a.sayNow){a.sayT=7+rnd()*16;const t=a.sayNow||(a.kind==="sheep"?["بععع","بععععع!","بع"][Math.floor(rnd()*3)]:PAX_LINES[Math.floor(rnd()*PAX_LINES.length)]);a.sayNow=null;a.pend=t}
       }
       // الأغراض
       for(const o of objs){if(o.st==="carried"){const c=o.by===pid?my:others[o.by];if(!c){o.by=null;o.st="free"}else{const f={x:-Math.sin(c.ry),z:-Math.cos(c.ry)};o.x=c.x+f.x*.5;o.z=c.z+f.z*.5;o.y=1;o.ry=c.ry}continue}
@@ -324,16 +375,16 @@ function mkSim(seed){
       S.tick+=dt;if(S.tick>=.1){S.tick=0;S.sendState()}
     },
     sendState(to){
-      const n=pax.filter(a=>a.st!=="gone").map(a=>[a.id,r2(a.x),r2(a.y),r2(a.z),r2(a.ry),a.st==="seated"?4:a.st==="carried"?3:a.st==="rag"||a.st==="out"?2:a.st==="walk"&&Math.hypot(a.vx,a.vz)>.2?1:0,a.by||0,a.pend||0]);
+      const n=pax.filter(a=>a.st!=="gone").map(a=>[a.id,r2(a.x),r2(a.y),r2(a.z),r2(a.ry),a.st==="seated"?4:a.st==="carried"?3:a.st==="rag"||a.st==="out"?2:a.st==="walk"&&Math.hypot(a.vx,a.vz)>.2?1:0,a.by||0,a.pend||0,a.req?a.req.k:0,a.req?a.req.mood:0]);
       for(const a of pax)a.pend=null;
       const o=objs.filter(x=>x.st!=="gone").map(x=>[x.id,r2(x.x),r2(x.y),r2(x.z),r2(x.ry),x.st==="out"?1:0,x.by||0]);
-      const pl={};for(const id in others){const p=others[id];if(p.st==="carried"||p.kick){pl[id]={st:p.st,by:p.by,v:p.kick||null,k:p.kseq||0};p.kick=null}}
-      send({t:"state",to:to||undefined,roll:r2(world.roll),pitch:r2(world.pitch),pilot:world.pilot,n,o,pl});
+      const pl={};for(const id in others){const p=others[id];if(p.st==="carried"||p.kick||p.item){pl[id]={st:p.st,by:p.by,v:p.kick||null,k:p.kseq||0,it:p.item||0};p.kick=null}}
+      send({t:"state",to:to||undefined,roll:r2(world.roll),pitch:r2(world.pitch),pilot:world.pilot,n,o,pl,f:[Math.max(0,Math.round(S.flightT)),Math.round(S.sat),S.served,S.thrown],end:S.end||null});
     }
   };
-  function shout(list,n=2,who){const pool=who?[who]:pax.filter(a=>a.st!=="gone"&&a.st!=="out");for(let i=0;i<n&&pool.length;i++){const a=pool.splice(Math.floor(rnd()*pool.length),1)[0];a.pend=list[Math.floor(rnd()*list.length)]}}
+  function shout(list,n=2,who){const pool=who?[who]:pax.filter(a=>a.st!=="gone"&&a.st!=="out"&&a.kind!=="sheep");for(let i=0;i<n&&pool.length;i++){const a=pool.splice(Math.floor(rnd()*pool.length),1)[0];a.pend=list[Math.floor(rnd()*list.length)]}}
   S.shout=shout;
-  function turb(big){const k=big?2:1;ev(big?"turbBig":"turb","");setTimeout(()=>shout(LINES_TURB,big?4:2),700);
+  function turb(big){const k=big?2:1;S.turbN++;S.sat=Math.max(0,S.sat-(big?4:2));ev(big?"turbBig":"turb","");setTimeout(()=>shout(LINES_TURB,big?4:2),700);
     const hit=a=>{if(a.st==="gone"||a.st==="out"||a.st==="carried")return;if(a.st==="seated"&&!big&&rnd()<.5)return;a.st="rag";a.ragT=0;a.by=null;a.vy=3.5*k+rnd()*2;a.vx=(rnd()-.5)*6*k;a.vz=(rnd()-.5)*4*k;a.goal=a.home};
     for(const a of pax)hit(a);
     for(const o of objs)if(o.st==="free"){o.vy=4*k;o.vx=(rnd()-.5)*5*k;o.vz=(rnd()-.5)*4*k}
@@ -348,6 +399,7 @@ function mkSim(seed){
   return S;
 }
 const r2=v=>Math.round(v*100)/100;
+function inGalley(a){return a.x<-2.3&&a.z>CAB.z1-2.6}
 function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 /* ================= اللاعب: من المضيف ================= */
 const paxView={},objView={};
@@ -355,12 +407,15 @@ function applyState(m){
   world.roll=m.roll;world.pitch=m.pitch;world.pilot=m.pilot;
   const seen=new Set();
   for(const v of m.n){seen.add(v[0]);let a=paxView[v[0]];if(!a){const i=+v[0].slice(1);a=paxView[v[0]]=mkActor({id:v[0],name:PAX_NAMES[i]||"راكب",i,kind:PAX_KINDS[i]});a.x=v[1];a.y=v[2];a.z=v[3]}
-    a.tx=v[1];a.ty=v[2];a.tz=v[3];a.try=v[4];a.anim=v[5];a.st=v[5]===2?"rag":v[5]===4?"seated":v[5]===3?"carried":"walk";a.by=v[6]||null;if(v[7])bubble(a,v[7])}
+    a.tx=v[1];a.ty=v[2];a.tz=v[3];a.try=v[4];a.anim=v[5];a.st=v[5]===2?"rag":v[5]===4?"seated":v[5]===3?"carried":"walk";a.by=v[6]||null;if(v[7])bubble(a,v[7]);setReq(a,v[8]||0,v[9]||0)}
   for(const id in paxView)if(!seen.has(id)){paxView[id].g.visible=false}
   const seenO=new Set();
   for(const v of m.o){seenO.add(v[0]);let o=objView[v[0]];if(!o){const mm=makeProp(PROP_KINDS[+v[0].slice(1)]||"case_navy");scene.add(mm);o=objView[v[0]]={m:mm,x:v[1],y:v[2],z:v[3]}}o.tx=v[1];o.ty=v[2];o.tz=v[3];o.try=v[4]}
   for(const id in objView)if(!seenO.has(id))objView[id].m.visible=false;
   my.carry=m.n.some(v=>v[6]===pid)||m.o.some(v=>v[6]===pid)||Object.values(m.pl||{}).some(v=>v.by===pid)?1:null;
+  for(const id in others){others[id].item=(m.pl&&m.pl[id]&&m.pl[id].it)||0}
+  if(m.pl&&m.pl[pid])my.item=m.pl[pid].it||0;else my.item=0;
+  if(m.f)flightHud(m.f);if(m.end)showEnd(m.end);else hideEnd();
   const mine=m.pl&&m.pl[pid];
   if(mine){if(mine.st==="carried"){my.st="carried";my.by=mine.by;my.carry=null}
     if(mine.v&&mine.k!==my.kseq){my.kseq=mine.k;kickMe(mine.v)}}
@@ -371,7 +426,7 @@ function applyState(m){
 function kickMe(v){if(world.pilot===pid)return;my.st="rag";my.ragT=0;my.vx+=v[0];my.vy+=v[1];my.vz+=v[2];my.carry=null;vib(60)}
 function onEvent(m){
   const who=m.who?esc(m.who):"";
-  const txt={turb:"مطب! 💥",turbBig:"مطب قوي!! 🌪️",out:who+" طاح برا الطيارة! 😱",outObj:"غرض طار برا! 🧳",sit:who+" قعد يسوق ✈️",stand:who+" ترك القيادة! منو يسوق؟! 😨",grab:"",throw:who+" رمى أحد! 🙌",joined:""}[m.k];
+  const txt={turb:"مطب! 💥",turbBig:"مطب قوي!! 🌪️",out:who+" طاح برا الطيارة! 😱",outObj:"غرض طار برا! 🧳",sit:who+" قعد يسوق ✈️",stand:who+" ترك القيادة! منو يسوق؟! 😨",grab:"",throw:who+" رمى أحد! 🙌",joined:"",served:who+" خدم راكب 🍽️",landed:"هبطنا! 🛬",restart:"رحلة جديدة! ✈️"}[m.k];
   if(txt)toast(txt,m.k==="turbBig"||m.k==="out"||m.k==="stand");
   if(m.k==="turb"||m.k==="turbBig"){shake=m.k==="turbBig"?.5:.25;vib(m.k==="turbBig"?120:60)}
   if(m.k==="sit"||m.k==="stand")$("#pilotName").textContent=m.k==="sit"?who:"بدون طيار!";
@@ -391,16 +446,21 @@ function setupInput(){
   cv.addEventListener("pointerdown",e=>{if(orb.id===null){orb.id=e.pointerId;orb.x0=e.clientX}});
   cv.addEventListener("pointermove",e=>{if(e.pointerId===orb.id){camYaw-=(e.clientX-orb.x0)*.006;orb.x0=e.clientX}});
   const oe=e=>{if(e.pointerId===orb.id)orb.id=null};cv.addEventListener("pointerup",oe);cv.addEventListener("pointercancel",oe);
-  $("#bAct").onclick=()=>{const k=actKind();if(k==="sit")act("sit");else if(k==="stand")act("stand");else if(k==="throw")act("throw");else act("grab")};
+  $("#bAct").onclick=()=>{const k=actKind();if(k==="sit")act("sit");else if(k==="stand")act("stand");else if(k==="throw")act("throw");else if(k==="give")act("give");else act("grab")};
+  $("#galley").querySelectorAll("button").forEach(b=>b.onclick=()=>act("take",[+b.dataset.k]));
+  $("#bAgain").onclick=()=>act("restart");
   $("#bJump").onclick=()=>act("jump");
   $("#say").querySelectorAll("button").forEach(b=>b.onclick=()=>send({t:"say",text:b.dataset.s}));
 }
 function act(a,d){if(isHost&&sim)sim.act(pid,a,d);else send({t:"act",a,d})}
-function actKind(){if(world.pilot===pid)return"stand";if(my.carry)return"throw";if(my.st==="walk"&&Math.hypot(my.x-PILOT.x,my.z-PILOT.z)<1.6&&!world.pilot)return"sit";return"grab"}
+function nearReq(){let best=null,bd=1.6;const list=sim?sim.pax:Object.values(paxView);for(const c of list){if(!c.reqK||c.st==="out"||!c.g.visible)continue;const d=Math.hypot(c.x-my.x,c.z-my.z);if(d<bd){bd=d;best=c}}return best}
+function actKind(){if(world.pilot===pid)return"stand";if(my.carry)return"throw";if(my.item&&nearReq())return"give";if(my.st==="walk"&&Math.hypot(my.x-PILOT.x,my.z-PILOT.z)<1.6&&!world.pilot)return"sit";return"grab"}
 let ctlT=0,posT=0;
 function stepMe(dt){
   const seated=world.pilot===pid;
-  $("#bAct").textContent={sit:"اقعد\nتسوق",stand:"قم",throw:"ارمِ",grab:"مسك"}[actKind()];
+  $("#bAct").textContent={sit:"اقعد\nتسوق",stand:"قم",throw:"ارمِ",grab:"مسك",give:"عطه"}[actKind()];
+  const inG=my.st==="walk"&&inGalley(my)&&!my.carry;$("#galley").classList.toggle("hide",!inG);
+  $("#hand").classList.toggle("hide",!my.item);if(my.item)$("#hand").textContent="بيدك: "+ITEMS[my.item].e+" "+ITEMS[my.item].n;
   $("#bJump").classList.toggle("hide",seated||my.st!=="walk");
   if(seated){my.x=PILOT.x;my.z=PILOT.z+.05;my.y=0;my.ry=0;my.st="seated";my.vx=my.vy=my.vz=0;
     ctlT+=dt;if(ctlT>.15){ctlT=0;if(stick.x||stick.y)act("ctl",[r2(stick.x),r2(stick.y)])}
@@ -439,7 +499,7 @@ function loop(t){requestAnimationFrame(loop);const dt=Math.min(.05,(t-last)/1000
     if(a.st==="carried"&&sim&&a.hx!==undefined){a.x=a.hx;a.y=a.hy;a.z=a.hz}
     else{a.x+=(a.tx-a.x)*k;a.y+=(a.ty-a.y)*k;a.z+=(a.tz-a.z)*k;let d=a.try-a.ry;d=Math.atan2(Math.sin(d),Math.cos(d));a.ry+=d*k}
     poseActor(a,dt)}
-  if(sim){for(const a of sim.pax)poseActor(a,dt);for(const o of sim.objs){o.m.position.set(o.x,o.y,o.z);o.m.rotation.y=o.ry;if(o.st==="out")o.m.rotation.z+=dt*6;else if(o.st==="free"&&o.y>0.05)o.m.rotation.z=Math.sin(o.x*3+o.z*2)*.6;else o.m.rotation.z=0}}
+  if(sim){for(const a of sim.pax){setReq(a,a.req?a.req.k:0,a.req?a.req.mood:0);poseActor(a,dt)}flightHud([Math.max(0,Math.round(sim.flightT)),Math.round(sim.sat),sim.served,sim.thrown]);if(sim.end)showEnd(sim.end);else hideEnd();for(const o of sim.objs){o.m.position.set(o.x,o.y,o.z);o.m.rotation.y=o.ry;if(o.st==="out")o.m.rotation.z+=dt*6;else if(o.st==="free"&&o.y>0.05)o.m.rotation.z=Math.sin(o.x*3+o.z*2)*.6;else o.m.rotation.z=0}}
   else{const k=Math.min(1,10*dt);for(const id in paxView){const a=paxView[id];a.x+=(a.tx-a.x)*k;a.y+=(a.ty-a.y)*k;a.z+=(a.tz-a.z)*k;let d=a.try-a.ry;d=Math.atan2(Math.sin(d),Math.cos(d));a.ry+=d*k;poseActor(a,dt)}
     for(const id in objView){const o=objView[id];o.x+=(o.tx-o.x)*k;o.y+=(o.ty-o.y)*k;o.z+=(o.tz-o.z)*k;o.m.position.set(o.x,o.y,o.z);o.m.rotation.y=o.try||0}}
   my.anim=my.st==="rag"||my.st==="out"?2:my.st==="carried"?3:my.st==="seated"?4:Math.hypot(my.vx,my.vz)>.6?1:0;
