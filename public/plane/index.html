@@ -432,6 +432,7 @@ function onEvent(m){
   if(m.k==="throw")play("whoosh",1);if(m.k==="grab")play("grab",.5,1.2);if(m.k==="out"||m.k==="outObj"){play("wind",.8);if(m.k==="out")play("scream2",1,.95)}
   if(m.k==="served")play("ding",.9);if(m.k==="stand")play("scream3",.7,1.05);if(m.k==="landed"){play("bell",.9)}if(m.k==="restart")play("bell",.6,1.2);
   if(m.k==="sit"||m.k==="stand")$("#pilotName").textContent=m.k==="sit"?who:"بدون طيار!";
+  if(m.k==="sit"&&m.who===(me&&me.name))setTimeout(()=>toast("ميّل العصا يمين ويسار عشان تثبّت الطيارة… أو تقلبها 😈"),400);
 }
 let shake=0;const vib=ms=>{try{navigator.vibrate&&navigator.vibrate(ms)}catch{}};
 /* ---------- الصوت (Web Audio): يشتغل حتى لو الآيفون على الصامت ---------- */
@@ -535,7 +536,7 @@ function loop(t){requestAnimationFrame(loop);const dt=Math.min(.05,(t-last)/1000
   R.render(scene,cam);
 }
 addEventListener("visibilitychange",()=>{last=performance.now()});
-window.__p={get my(){return my},get sim(){return sim},get world(){return world},act,PILOT};
+window.__p={get my(){return my},get sim(){return sim},get world(){return world},act,PILOT,info(){return {calls:R.info.render.calls,tris:R.info.render.triangles,geos:R.info.memory.geometries}}};
 </script>
 </body>
 </html>

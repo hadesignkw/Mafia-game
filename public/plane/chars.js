@@ -1,6 +1,7 @@
 /* شخصيات طيران الزفت: مبنية بالكود قطعة قطعة من رسومات الشخصيات.
    كل شخصية: راس كبير، جسم قصير، أطراف قصيرة، ألوان مسطحة. الوجه يتغير (عادي، خايف، دايخ، معصب، يصيح، يضحك). */
 import * as T from "./three.min.js";
+import {mergeStatic} from "./cabin.js";
 const SKIN={light:0xf0c8a0,tan:0xe2a877,med:0xd1946a,dark:0xb87a52};
 const M=(c)=>new T.MeshLambertMaterial({color:c});
 const geo={sph:new T.SphereGeometry(1,18,14),box:new T.BoxGeometry(1,1,1),cyl:new T.CylinderGeometry(1,1,1,14),cap:new T.CapsuleGeometry(1,1,4,12),tor:new T.TorusGeometry(1,.28,8,20),arc:new T.TorusGeometry(1,.22,8,16,Math.PI),ring:new T.TorusGeometry(1,.12,8,24)};
@@ -101,6 +102,9 @@ export function makeChar(kind,opts={}){
   if(K.camera)mesh("box",0x222,0,.42,.26,.16,.1,.08,torso);
   if(K.bag){const b=mesh("box",K.bag,0,-.5,.05,.22,.18,.1,parts.armR);mesh("tor",K.bag,0,-.38,.05,.08,.08,.03,parts.armR)}
   if(K.pot){mesh("cyl",K.pot,0,R*2.1,0,R*.9,.3,R*.9,head);mesh("sph",0x555,0,R*2.3,0,.05,.05,.05,head)}
+  // الوجه يظل قطع منفصلة (يتغير)، والباقي يندمج عشان الرسم أخف
+  for(const k in face){const v=face[k];(Array.isArray(v)?v:(v.visible!==undefined?[v]:Object.values(v))).forEach(m=>{m.userData.keep=true})}
+  mergeStatic(head,true);mergeStatic(torso,true);for(const k of["armL","armR","legL","legR"])mergeStatic(parts[k],true);
   g.userData.parts=parts;g.userData.face=face;g.userData.kind=kind;g.userData.K=K;
   if(K.scale)g.scale.setScalar(K.scale);
   setFace(g,K.angry?"angry":"n");

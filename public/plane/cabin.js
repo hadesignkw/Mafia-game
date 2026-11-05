@@ -19,6 +19,22 @@ export function mkSeat(x,z,parent,pilot){const g=new T.Group();g.position.set(x,
   for(const s of[-1,1])box(.08,.36,.08,C.cream2,s*.2,.18,0,g);
   box(.5,.03,.06,C.yellow,0,.52,-.24,g);
   if(pilot)g.rotation.y=Math.PI;parent.add(g);return g}
+/* دمج كل القطع الثابتة اللي بنفس اللون بقطعة وحدة: عشان التلفون ما يرسم ٨٠٠ قطعة كل إطار */
+export function mergeStatic(root,direct){
+  root.updateMatrixWorld(true);const groups=new Map();const drop=[];
+  const each=direct?(f)=>root.children.forEach(f):(f)=>root.traverse(f);
+  each(m=>{if(!m.isMesh||!m.geometry.index||m.geometry.attributes.position===undefined)return;if(m.userData.keep||m.material.map)return;
+    const key=(m.material.isMeshBasicMaterial?"B":"L")+m.material.color.getHex();
+    m.updateMatrix();const g=m.geometry.clone().applyMatrix4(direct?m.matrix:m.matrixWorld);if(!g.attributes.uv)return;
+    (groups.get(key)||groups.set(key,{mat:m.material,list:[]}).get(key)).list.push(g);drop.push(m)});
+  for(const m of drop)m.parent.remove(m);
+  const out=new T.Group();
+  for(const {mat,list} of groups.values()){let n=0,ni=0;for(const g of list){n+=g.attributes.position.count;ni+=g.index.count}
+    const pos=new Float32Array(n*3),nor=new Float32Array(n*3),uv=new Float32Array(n*2),idx=n>65535?new Uint32Array(ni):new Uint16Array(ni);let o=0,oi=0;
+    for(const g of list){pos.set(g.attributes.position.array,o*3);nor.set(g.attributes.normal.array,o*3);uv.set(g.attributes.uv.array,o*2);const ia=g.index.array;for(let i=0;i<ia.length;i++)idx[oi+i]=ia[i]+o;o+=g.attributes.position.count;oi+=ia.length}
+    const bg=new T.BufferGeometry();bg.setAttribute("position",new T.BufferAttribute(pos,3));bg.setAttribute("normal",new T.BufferAttribute(nor,3));bg.setAttribute("uv",new T.BufferAttribute(uv,2));bg.setIndex(new T.BufferAttribute(idx,1));
+    out.add(new T.Mesh(bg,mat))}
+  root.add(out);return out}
 export function buildCabin(cabin,CAB,SEATS,PILOT){
   const L=CAB.z1-CAB.z0,zc=(CAB.z0+CAB.z1)/2,hw=CAB.w/2,H=CAB.h;
   // الأرضية
@@ -66,6 +82,7 @@ export function buildCabin(cabin,CAB,SEATS,PILOT){
   for(const s of[-1,1]){box(.05,.3,.05,C.grey,s*.35,1.2,CAB.z0+.72,cabin);const kn=new T.Mesh(new T.SphereGeometry(.06,10,8),M(C.red));kn.position.set(s*.35,1.36,CAB.z0+.72);cabin.add(kn)}
   mkSeat(PILOT.x,PILOT.z,cabin,true);mkSeat(PILOT.x+1.3,PILOT.z,cabin,true);
   for(const s of SEATS)mkSeat(s.x,s.z,cabin,false);
+  mergeStatic(cabin);
 }
 /* الأغراض: شنط ودفل وقدر وصناديق */
 export const PROP_KINDS=["case_navy","case_yellow","case_teal","duffel","pot","crate_croc","crate_sheep","ext","plunger"];
