@@ -1088,8 +1088,10 @@ const ICON={
 };
 
 /* صور الشخصيات (من ChatGPT): الغلاف للحركات اللي تصير مرة وحدة، والصورة نفسها تتنفس */
-const portrait=(r,vb="full",cls="")=>ROLE[r]?`<span class="ch ch-${r} pv-${vb} ${cls}" aria-hidden="true"><img src="/mafia/chars/${r}.webp" alt="" draggable="false" decoding="async"></span>`:"";
-window.__charKeep=["mafia","cop","doctor","sniper","citizen"].map(r=>{const i=new Image();i.decoding="async";i.src=`/mafia/chars/${r}.webp`;if(i.decode)i.decode().catch(()=>{});return i}); // تنفك مسبقاً وتظل بالذاكرة: الصورة تطلع فوراً بدون رمشة
+/* v: رابط خاص لكل لعبة (كرت اللاعب)، عشان التلفون ما يعرض صورة قديمة محفوظة عنده (خلل بالآيفون) */
+const portrait=(r,vb="full",cls="",v="")=>ROLE[r]?`<span class="ch ch-${r} pv-${vb} ${cls}" aria-hidden="true"><img src="/mafia/chars/${r}.webp${v?`?g=${encodeURIComponent(v)}`:""}" alt="" draggable="false" decoding="async" data-role="${r}"></span>`:"";
+// صور كل الأدوار تنحمل مسبقاً عند القاضي بس (يشوف أدوار الكل). اللاعب ينزل صورة دوره بس
+function charWarm(){if(window.__charKeep)return;window.__charKeep=["mafia","cop","doctor","sniper","citizen"].map(r=>{const i=new Image();i.decoding="async";i.src=`/mafia/chars/${r}.webp`;if(i.decode)i.decode().catch(()=>{});return i})}
 /* صورة لاعب ما ينعرف دوره: ظل بلون مقعده وأول حرف من اسمه */
 function anon(name){const c=seatColor(name),l=esc([...(name||"")][0]||"؟");
   return`<svg class="anon" viewBox="0 0 120 120" aria-hidden="true"><rect width="120" height="120" fill="#201915"/><circle cx="60" cy="120" r="70" fill="${c}" opacity=".12"/><path d="M14 124c2-34 22-48 46-48s44 14 46 48z" fill="${c}" opacity=".8"/><circle cx="60" cy="46" r="25" fill="${c}"/><text x="60" y="56" text-anchor="middle" font-family="Readex Pro,sans-serif" font-weight="700" font-size="30" fill="#1d1408">${l}</text></svg>`}
@@ -1143,7 +1145,8 @@ function onMsg(m){
   if(m.t==="state"){
     offset=m.now-Date.now();
     const prev=st;st=m;view="game";
-    if(st.me&&st.gen!==lastGen){if(lastGen!==null||st.phase==="night0")cardOpen=false;lastGen=st.gen}
+    if(st.me&&st.gen!==lastGen){if(lastGen!==null||st.phase==="night0")cardOpen=false;lastGen=st.gen;document.querySelectorAll("#app .flip").forEach(e=>e.remove())} // لعبة جديدة: الكرت ينبني من جديد كامل
+    if(st.judge)charWarm();
     handleEvent(prev);
     fxInfoCheck();
     voteFx(prev);
@@ -1808,7 +1811,7 @@ const GUIDE=[
   "إذا تلفونه فيه مشكلة افتح «تلفونه فيه مشكلة؟ اختار بداله» واختار أنت."]},
  {k:"night",t:"الليل",items:[
   "قول للكل يسكرون عيونهم، وكل واحد يتابع تلفونه.",
-  "<b>المافيا</b> يختارون منو يغتالون. يشوفون اختيارات بعض، والأغلبية تمشي. إذا تعادلوا تختار أنت بين المتعادلين.",
+  "<b>المافيا</b> يختارون منو يغتالون. يشوفون اختيارات بعض، والأغلبية تمشي. إذا تعادلوا تختار أنت بين المتعادلين. المافيا الطالعين يرشحون بعد: إذا ما اختار ولا واحد من الحيين، ينغتال اللي رشحوه الطالعين.",
   "<b>البيطري</b> يختار منو يفزع له. إذا فزع للي انغتال ينقذه.",
   "<b>الشريف</b> يفتش عن واحد ويطلع له مافيا ولا شعب. تفتيشاته باللعبة كلها بعدد المافيا، وحدة بالليلة.",
   "إذا أحد ما اختار أو تلفونه علق، تقدر تختار بداله من صفحتك.",
@@ -1839,7 +1842,7 @@ const GUIDE=[
 const PGUIDE=[
  {k:"roles",t:"الأدوار وشلون تفوز",items:[
   "<b>الشعب يفوز</b> إذا صادوا كل المافيا بالتصويت. <b>المافيا يفوزون</b> إذا صار عددهم قد الشعب.",
-  "<b>المافيا</b> 🕶️: يعرفون بعض. كل ليلة يختارون واحد يغتالونه، والأغلبية تمشي.",
+  "<b>المافيا</b> 🕶️: يعرفون بعض. كل ليلة يختارون واحد يغتالونه، والأغلبية تمشي. المافيا الطالعين يرشحون بعد: إذا ما اختار ولا واحد من الحيين، ينغتال اللي رشحوه الطالعين.",
   "<b>النصاب</b> 🤪: واحد من المافيا يسوي نفسه الشريف، ويتكلم أول بالنهار عشان يلخبط الشعب.",
   "<b>الشريف</b> 👮: كل ليلة يفتش واحد ويعرف إذا مافيا ولا لا. تفتيشاته محدودة (بعدد المافيا).",
   "<b>البيطري</b> 🩺: كل ليلة يفزع لواحد. إذا المافيا اختاروا نفس الشخص، ما يموت.",
@@ -1877,7 +1880,7 @@ const GUIDE_AT={lobby:"lobby",deal:"deal",night0:"night0",day:"day",vote:"vote",
 const OGUIDE=[
  {k:"roles",t:"الأدوار وشلون تفوز",items:[
   "<b>الشعب يفوز</b> إذا صادوا كل المافيا بالتصويت. <b>المافيا يفوزون</b> إذا صار عددهم قد الشعب.",
-  "<b>المافيا</b> 🕶️: يعرفون بعض. كل ليلة يختارون واحد يغتالونه، والأغلبية تمشي، وإذا تعادلوا يعيدون لين يتفقون.",
+  "<b>المافيا</b> 🕶️: يعرفون بعض. كل ليلة يختارون واحد يغتالونه، والأغلبية تمشي، وإذا تعادلوا يعيدون لين يتفقون. المافيا الطالعين يرشحون بعد: إذا ما اختار ولا واحد من الحيين، ينغتال اللي رشحوه الطالعين.",
   "<b>النصاب</b> 🤪: واحد من المافيا يسوي نفسه الشريف، ويتكلم أول بالنهار عشان يلخبط الشعب.",
   "<b>الشريف</b> 👮: كل ليلة يفتش واحد ويعرف إذا مافيا ولا لا. تفتيشاته محدودة (بعدد المافيا).",
   "<b>البيطري</b> 🩺: كل ليلة يفزع لواحد. إذا المافيا اختاروا نفس الشخص، ما يموت.",
@@ -2096,13 +2099,14 @@ function playerView(){
   if(st.phase==="over")return h+overView();
   const alive=P(me.id).alive;
   if(st.phase==="deal")return h+cardView()+`<div class="panel nightbox"><div class="moon"></div><h2>احفظ دورك</h2><p class="muted">${st.online?"أول ما يخلص الوقت الكرت ينشال.":"أول ما يبدا القاضي اللعبة الكرت ينشال."}</p></div>`;
+  if(!alive&&isM(me.role)&&st.phase==="night"&&(me.todo||[]).includes("kill"))return h+advNight(aliveIds().filter(i=>i!==me.id),aliveIds())+chatPanels()+aliveList();
   if(!alive&&st.sniperPending!==me.id)return h+`<div class="panel"><h2>طلعت من اللعبة</h2><p class="muted">${st.online&&!st.local?"صرت بالمقبرة: تسولف ويا الطالعين، وتقرا شات المافيا بس ما تكتب فيه.":"لا تتكلم ولا تأشر، تابع لين تخلص."}</p></div>`+chatPanels()+(st.vote?voteStage():"")+aliveList();
   return h+actionView()+chatPanels()+hostPanel();
 }
 function cardView(){
   if(st.phase!=="deal")return "";
   const me=st.me,r=ROLE[me.role],accent=r.team==="m"?"var(--blood)":"var(--town)";
-  let front=`<div class="art">${SKY}${portrait(me.role)}<span class="chip ${r.team} tm">${r.team==="m"?"المافيا":"الشعب"}</span></div>
+  let front=`<div class="art">${SKY}${portrait(me.role,"full","",st.gen+"-"+me.role)}<span class="chip ${r.team} tm">${r.team==="m"?"المافيا":"الشعب"}</span></div>
     <div class="ribbon"><span class="rn">${r.n}${me.fake?"<br><small style='font-size:1.1rem'>والنصاب</small>":""}</span></div>
     <p class="muted">${roleDesc(r)}${me.fake?(st.online?" ربعك عيّنوك النصاب: بالنهار تتكلم أول مع الشريف، سوّ نفسك الشريف وانتبه لا تنكشف 🤪":" ربعك عيّنوك النصاب: بالنهار اسمك يطلع للكل مع الشرطة، سوّ نفسك الشريف 🤪"):""}</p>`;
   if(me.team)front+=`<div class="sep"></div><h3>ربعك المافيا</h3><div class="list">${me.team.map(t=>`<div class="li ${isAlive(t.id)?"":"out"}"><span class="nm">${esc(nm(t.id))}${t.id===me.id?" (أنت)":""}</span><span class="chip m">${ROLE[t.role].n}${t.fake?" · نصاب":""}</span></div>`).join("")}</div>`;
@@ -2140,11 +2144,11 @@ function picker(k,ids,red){
 }
 // اختيارات ربعك المافيا: كل واحد وش يرشح، من بيانات السيرفر مباشرة
 function teamPicks(){
-  const t=(st.me.team||[]).filter(x=>x.id!==st.me.id&&isAlive(x.id));
+  const t=(st.me.team||[]).filter(x=>x.id!==st.me.id&&(isAlive(x.id)||st.phase==="night"));
   if(!t.length)return"";
-  const fake=st.phase==="night0";
+  const fake=st.phase==="night0",dn=x=>isAlive(x.id)?"":` <span class="small muted">(طالع)</span>`;
   const tgt=x=>x.pick===x.id?"نفسه":x.pick===st.me.id?"أنت":esc(nm(x.pick));
-  return`<div class="list mpicks">${t.map(x=>`<div class="li"><span class="nm">${x.pick?(fake?`<b>${esc(nm(x.id))}</b> يرشح <b>${tgt(x)}</b> نصاب`:`<b>${esc(nm(x.id))}</b> يرشح نغتال <b>${tgt(x)}</b>`):`<b>${esc(nm(x.id))}</b> <span class="small muted">ما رشح أحد للحين</span>`}</span></div>`).join("")}</div>`;
+  return`<div class="list mpicks">${t.map(x=>`<div class="li"><span class="nm">${x.pick?(fake?`<b>${esc(nm(x.id))}</b> يرشح <b>${tgt(x)}</b> نصاب`:`<b>${esc(nm(x.id))}</b>${dn(x)} يرشح نغتال <b>${tgt(x)}</b>`):`<b>${esc(nm(x.id))}</b>${dn(x)} <span class="small muted">ما رشح أحد للحين</span>`}</span></div>`).join("")}</div>`;
 }
 function aliveList(){
   return`<div class="panel"><h3>اللاعبين</h3><div class="list">${st.players.map(p=>{const sp=st.timer&&st.timer.pid===p.id,done=st.talked&&st.talked[p.id]&&!sp;
@@ -2187,7 +2191,11 @@ function advNight(others,al){
   if(!task)return`<div class="panel nightbox advwait"><div class="zz"><span class="leye"><i></i></span><span class="leye"><i></i></span><b>z</b><b>z</b><b>z</b></div><h2>انطر الصبح</h2><p class="muted small">خلصت اختيارك. خلك ماسك تلفونك لين يطلع الصبح.</p></div>`;
   const lq=me.lastQuery,qLine=lq?`نتيجة تفتيشك: <b>${esc(nm(lq.id))}</b> طلع <b>${lq.mafia?"مافيا":"شعب"}</b>. احفظها.`:null;
   if(task==="query")return box("تفتش عن منو؟",`باقي لك ${ar(me.queriesLeft)} من ${ar(me.queryMax)}. الجواب يطلع لك بعد ما تختار.`,picker("query",others)+camo("guess",1));
-  if(task==="kill")return box("منو تغتالون؟","ربعك يشوفون اختيارك، والأغلبية تفوز.",picker("kill",al)+teamPicks()+mateCamo());
+  if(task==="kill"){const dead=!isAlive(me.id),liveM=(me.team||[]).some(x=>x.id!==me.id&&isAlive(x.id)),deadM=(me.team||[]).some(x=>x.id!==me.id&&!isAlive(x.id));
+    const line=dead?"أنت طالع، بس تقدر ترشح ويا ربعك. اختيار ربعك الحي هو اللي يمشي، واختيارك يمشي بس إذا هو ما اختار أحد."
+      :deadM?"ربعك يشوفون اختيارك. اختيارك أنت والحيين هو اللي يمشي، وإذا ما اخترتوا ناخذ باختيار ربعكم الطالعين."
+      :"ربعك يشوفون اختيارك، والأغلبية تفوز.";
+    return box("منو تغتالون؟",line,picker("kill",al)+teamPicks()+mateCamo())}
   if(task==="save")return box("منو تفزع له؟","تقدر تختار نفسك.",picker("save",al)+camo("guess",1));
   if(task==="fake"&&me.fakesReady)return`<div class="panel advp">${mafiaIdCard()}${fakeResult()}</div>`;
   if(task==="fake"){const need=me.fakeNeed||1,done=me.fakesDone||[];
@@ -2252,7 +2260,7 @@ function speakerCard(){
 let lastMate=null;
 function mateCard(){
   const me=st.me,t={},at={};
-  (me.team||[]).filter(x=>x.id!==me.id&&isAlive(x.id)&&x.pick&&isAlive(x.pick)).forEach(x=>{t[x.pick]=(t[x.pick]||0)+1;at[x.pick]=Math.max(at[x.pick]||0,x.at||0)});
+  (me.team||[]).filter(x=>x.id!==me.id&&x.pick&&isAlive(x.pick)).forEach(x=>{t[x.pick]=(t[x.pick]||0)+1;at[x.pick]=Math.max(at[x.pick]||0,x.at||0)});
   const ids=Object.keys(t);if(!ids.length){lastMate=null;return""}
   ids.sort((a,b)=>t[b]-t[a]||at[b]-at[a]);
   // إذا تعادلوا ما نطلع اسم واحد كأنهم متفقين: القائمة فوق تبين كل واحد وش يرشح
@@ -2260,7 +2268,7 @@ function mateCard(){
   const pick=ids[0],n=t[pick];
   if(pick===me.id)return"";
   const withThem=me.sel.kill===pick,swap=lastMate&&lastMate!==pick;lastMate=pick;
-  const mates=(me.team||[]).filter(x=>x.id!==me.id&&isAlive(x.id)&&x.pick===pick).map(x=>esc(nm(x.id))).join(" و");
+  const mates=(me.team||[]).filter(x=>x.id!==me.id&&x.pick===pick).map(x=>esc(nm(x.id))+(isAlive(x.id)?"":" (طالع)")).join(" و");
   return`<button class="mate ${withThem?"with":""} ${swap?"swap":""}" ${withThem?"disabled":`data-a="act" data-k="kill" data-id="${pick}"`} aria-label="صوّت مع ربعك على ${esc(nm(pick))}">
     <span class="ttl">${mates} ${n>1?"يرشحون":"يرشح"} نغتال</span><span class="who">${esc(nm(pick))}${n===1&&(me.team||[]).some(x=>x.id===pick&&x.pick===pick)?" (نفسه)":""}</span>
     <span class="how">${withThem?"رشحت وياهم ✓":"دوس هني ورشح وياهم"}</span></button>`;

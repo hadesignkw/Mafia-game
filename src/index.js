@@ -530,10 +530,34 @@ export class Room extends DurableObject {
   // كل الأوضاع: كل ليلة خطوة وحدة، الكل يختار بنفس الوقت (الليلة الأولى: الشريف يفتش والمافيا يختارون النصاب)
   stepsFor(p) { return p === "night0" ? STEPS_ADV : this.adv() || this.s.online ? STEPS_ADV : STEPS; }
   isStep(k) { return this.s.step === k || this.s.step === "all"; }
+  // مافيا طالع يقدر يرشح للاغتيال: بالليل وفيه مافيا حي باقي
+  deadMafiaCanPick(pid) { const s = this.s; return s.phase === "night" && this.isStep("mafia") && isM(s.roles[pid]) && !s.alive[pid] && s.order.includes(pid) && !s.players[pid]?.kicked && this.aliveIds().some((i) => isM(s.roles[i])); }
+  // منو ينغتال: اختيار المافيا الحيين هو الأول (الأغلبية، والتعادل القاضي يختار).
+  // إذا ولا واحد حي اختار: ناخذ باختيار الطالعين، وإذا تعادلوا نختار عشوائي من اختياراتهم
+  pickKill() {
+    const s = this.s, n = s.night, live = this.aliveIds().filter((i) => isM(s.roles[i]));
+    if (!live.length) return;
+    const lp = live.map((i) => n.sugg[i]).filter((t) => t && s.alive[t]);
+    if (lp.length) {
+      const r = plurality(lp);
+      if (r.winner) { n.kill = r.winner; n.killByJudge = false; n.killByDead = false; }
+      else if (!(n.killByJudge && r.tied.includes(n.kill))) { n.kill = null; n.killByJudge = false; n.killByDead = false; }
+      return;
+    }
+    if (n.killByJudge && n.kill) return; // القاضي اختار بدالهم
+    const dp = s.order.filter((i) => isM(s.roles[i]) && !s.alive[i] && !s.players[i]?.kicked).map((i) => n.sugg[i]).filter((t) => t && s.alive[t]);
+    if (!dp.length) { if (n.killByDead) { n.kill = null; n.killByDead = false; } return; }
+    const r = plurality(dp);
+    if (r.winner) n.kill = r.winner;
+    else if (!(n.killByDead && r.tied.includes(n.kill))) n.kill = r.tied[crypto.getRandomValues(new Uint32Array(1))[0] % r.tied.length];
+    n.killByDead = true;
+  }
   // شنو باقي على اللاعب يسويه بالخطوة الحالية (عشان كل الشاشات تمشي بنفس الطريقة)
   todo(pid) {
     const s = this.s, n = s.night, r = s.roles[pid], out = [];
-    if (!this.adv() || !s.alive[pid] || !(s.phase === "night" || s.phase === "night0")) return out;
+    if (!this.adv() || !(s.phase === "night" || s.phase === "night0")) return out;
+    // المافيا الطالعين: بالليل يرشحون للاغتيال بس (اختيار ربعهم الحيين هو الأول)
+    if (!s.alive[pid]) { if (this.deadMafiaCanPick(pid) && !(n.kill && n.sugg[pid] === n.kill)) out.push("kill"); return out; }
     const g = n.guess || {}, fg = n.fguess || {}, free = canGuessRole(r, s.phase);
     if (s.phase === "night0") {
       // الدور أول، وبعدين التخمين
@@ -1178,11 +1202,10 @@ export class Room extends DurableObject {
         if (s.phase === "night0" && this.isStep("mafia") && alive && isM(role) && this.fakesReady()) (n.fakeOk = n.fakeOk || {})[pid] = this.fakeKey();
         break;
       case "kill":
-        if (s.phase === "night" && this.isStep("mafia") && alive && isM(role) && tA) { // المافيا يقدرون يغتالون ربعهم أو حتى نفسهم
+        // المافيا يقدرون يغتالون ربعهم أو حتى نفسهم. والطالعين منهم يرشحون بعد
+        if (s.phase === "night" && this.isStep("mafia") && isM(role) && tA && (alive || this.deadMafiaCanPick(pid))) {
           if (n.sugg[pid] !== t) { n.sugg[pid] = t; (n.suggAt = n.suggAt || {})[pid] = Date.now(); }
-          const r = plurality(this.aliveIds().filter((i) => isM(s.roles[i])).map((i) => n.sugg[i]));
-          if (r.winner) { n.kill = r.winner; n.killByJudge = false; }
-          else if (!(n.killByJudge && r.tied.includes(n.kill))) { n.kill = null; n.killByJudge = false; }
+          this.pickKill();
         }
         break;
       case "save":
