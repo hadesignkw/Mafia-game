@@ -1074,7 +1074,7 @@ const ROLE={
   citizen:{n:"فداوي",team:"t",d:"أنت من الشعب. ما عندك قدرة، سلاحك كلامك وتصويتك."}
 };
 const isM=r=>r==="mafia";
-const STEPS0=["police","mafia"],STEPN=["mafia","doctor","police"];
+const STEPN=["mafia","doctor","police"];
 const stepsOf=p=>p==="night0"?["all"]:(st&&st.adv?["all"]:STEPN);
 const STEP_N={mafia:"المافيا",doctor:"البيطري",police:"الشريف",all:"الكل يختار"};
 const PHASE_N={lobby:"ننطر",deal:"نوزع الكروت",night0:"الليلة الأولى",night:"الليل",day:"النهار",vote:"التصويت",result:"نتيجة التصويت",over:"خلصت اللعبة"};
@@ -1087,23 +1087,8 @@ const ICON={
   emblem:'<svg viewBox="0 0 64 64" fill="currentColor"><path d="M10 40h44l-4 6H14zM18 38c0-10 6-18 14-18s14 8 14 18zM22 20h20l-2-8H24z"/></svg>'
 };
 
-/* ---------- الشخصيات: رسمة لكل دور، ترمش وتتنفس ---------- */
-const PC={skin:"#c98d63",neck:"#a56f4a",ink:"#1a1210"};
-const pHead=()=>`<circle cx="50" cy="84" r="7" fill="${PC.skin}"/><circle cx="110" cy="84" r="7" fill="${PC.skin}"/><ellipse cx="80" cy="80" rx="30" ry="34" fill="${PC.skin}"/><path d="M80 84q-4 9 1 11" stroke="#8a5a3c" stroke-width="2.2" fill="none" stroke-linecap="round"/><ellipse cx="63" cy="94" rx="5" ry="3" fill="#e0705a" opacity=".25"/><ellipse cx="97" cy="94" rx="5" ry="3" fill="#e0705a" opacity=".25"/>`;
-const pEyes=`<g class="eyes"><ellipse cx="69" cy="81" rx="3.3" ry="4.5" fill="${PC.ink}"/><ellipse cx="91" cy="81" rx="3.3" ry="4.5" fill="${PC.ink}"/><circle cx="70.2" cy="79.4" r="1.1" fill="#fff"/><circle cx="92.2" cy="79.4" r="1.1" fill="#fff"/></g>`;
-const pNeck=`<path d="M68 102h24v24H68z" fill="${PC.neck}"/>`;
-const pMust=`<path d="M63 100q9-8 17-3q8-5 17 3q-8 5-17 1q-9 4-17-1z" fill="${PC.ink}"/>`;
-const pBody=c=>`<path d="M12 182c4-42 30-60 68-60s64 18 68 60z" fill="${c}"/>`;
-const pLine=(d,w=3)=>`<path d="${d}" stroke="${PC.ink}" stroke-width="${w}" stroke-linecap="round" fill="none"/>`;
-/* Local vector artwork: no external assets or requests. */
-const kwGhutra=(dark=false)=>`<path d="M44 74Q34 27 80 24q46 3 36 50l15 96-30 6-9-65H68l-9 65-30-6z" fill="${dark?'#807360':'#f6f1e6'}" stroke="${dark?'#4b453d':'#d5ccba'}" stroke-width="1.3"/><path d="M48 80l-9 78m73-78 9 78" stroke="${dark?'#b0a18a':'#fffdf7'}" stroke-width="3" opacity=".6"/>`;
-const kwFace=(r)=>`<g class="hd">${kwGhutra(r==='sniper')}<path d="M52 62q2-22 28-22t28 22v25q-2 26-28 30-26-4-28-30z" fill="#bd805b"/><path d="M56 62q1-16 24-18 23 2 24 18v23q0 23-24 29-24-6-24-29z" fill="#d9a17a"/><path d="M58 91q5 20 22 22 17-2 22-22l-5 5-7-1-10 6-10-6-7 1z" fill="#30241f" opacity="${r==='doctor'?'.35':'.95'}"/><path d="M62 71q6-4 12-1m12 0q6-3 12 1" fill="none" stroke="#332720" stroke-width="2.8" stroke-linecap="round"/>${r==='mafia'?'<g><rect x="57" y="75" width="21" height="13" rx="5" fill="#192526" stroke="#ae9564"/><rect x="82" y="75" width="21" height="13" rx="5" fill="#192526" stroke="#ae9564"/><path d="M78 79h4m-21-1h10m15 0h10" stroke="#d9e6dc" stroke-width="1.4"/></g>':pEyes}<path d="M80 83l-3 11h6" fill="none" stroke="#a66b49" stroke-width="1.7" stroke-linecap="round"/><path d="M69 99q6-6 11-2 5-4 11 2l-11 2z" fill="#30241f"/><path d="M75 105q5 3 10 0" stroke="#f1c2a0" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M45 67q0-35 35-36 35 1 35 36-12-18-35-18T45 67z" fill="${r==='sniper'?'#8f826b':'#fffaf0'}" stroke="#d0c4ac" stroke-width="1"/><path d="M48 47q32-15 64 0m-63 7q31-14 62 0" fill="none" stroke="#202324" stroke-width="5" stroke-linecap="round"/>${r==='doctor'?'<g fill="none" stroke="#635b4b" stroke-width="2"><circle cx="69" cy="81" r="9"/><circle cx="91" cy="81" r="9"/><path d="M78 80h4"/></g>':''}</g>`;
-const kwBody=(r)=>{const c={mafia:'#393632',cop:'#526650',doctor:'#f0eee7',sniper:'#62664c',citizen:'#e8e3d7'}[r];return `<g class="torso"><path d="M65 106h30v24H65z" fill="#b47c58"/><path d="M16 182q2-47 48-60l16 5 16-5q46 13 48 60z" fill="${c}" stroke="#242824" stroke-opacity=".3"/><path d="M66 121l14 10 14-10-5 19H71z" fill="${r==='doctor'?'#71a594':c}"/><path d="M80 138v44m-29-36-7 36m65-36 7 36" stroke="${r==='citizen'?'#c5bbab':'#252a25'}" stroke-opacity=".4" fill="none" stroke-width="1.5"/><circle cx="80" cy="145" r="1.5" fill="#b5a483"/><circle cx="80" cy="155" r="1.5" fill="#b5a483"/>${r==='mafia'?'<path d="M32 170l16-44 13-5-5 61H33m95-12-16-44-13-5 5 61h23" fill="#1d2726" stroke="#bc9c61" stroke-width="1.4"/><path d="M104 156h15l-2 7h-11z" fill="#b99a60"/>':''}${r==='cop'?'<path d="M29 139l21-10 3 7-21 10m96-7-21-10-3 7 21 10" fill="#bdab73"/><path class="badge" d="M108 145l9 4-1 13-8 6-8-6-1-13z" fill="#d4b765" stroke="#8b793e"/><path d="M42 158h17v10H42z" fill="#263a35"/><path d="M45 161h11m-11 3h8" stroke="#c5b57e"/>':''}${r==='doctor'?'<path d="M64 122l-12 15 18 45m26-60 12 15-18 45" fill="#fffaf1" stroke="#d5cdbd"/><path d="M66 125q-9 28 8 37m20-37q9 28-8 37m-12 0q6 7 12 0" fill="none" stroke="#3b5351" stroke-width="3"/><circle cx="80" cy="170" r="5" fill="#b4c9c2" stroke="#3b5351" stroke-width="2"/><g class="cat"><path class="ear" d="M114 155l1-14 10 9m6 0 10-9 1 14" fill="#c89460"/><ellipse cx="128" cy="161" rx="15" ry="13" fill="#d6aa79"/><g class="ceyes" fill="#32332c"><circle cx="122" cy="159" r="2"/><circle cx="134" cy="159" r="2"/></g><path d="M125 165l3 3 3-3m-15-1-9-2m9 6-9 2m33-6 9-2m-9 6 9 2" stroke="#5b4634" fill="none" stroke-width="1.2"/></g>':''}${r==='sniper'?'<path d="M32 136l67 46" stroke="#303d34" stroke-width="9"/><path d="M35 137l63 43" stroke="#a09973" stroke-width="2" stroke-dasharray="4 6"/><path d="M103 147h19v23h-19z" fill="#414e3d"/><path d="M103 153h19" stroke="#a5a080"/>':''}${r==='citizen'?'<g class="kw-cup"><path d="M104 156h14l-2 13h-10z" fill="#f3ead5" stroke="#ae8b56"/><ellipse cx="111" cy="156" rx="7" ry="2" fill="#604329"/><path d="M111 151q-3-4 0-8" fill="none" stroke="#eee1c2" stroke-width="1.3" opacity=".6"/></g>':''}</g>`};
-const CHAR=Object.fromEntries(['mafia','cop','doctor','sniper','citizen'].map(r=>[r,kwBody(r)+kwFace(r)]));
-/* vb: "full" للكرت، "head" للصورة الصغيرة، "bust" للكروت الصغيرة */
-const PVB={full:"0 0 160 182",head:"36 30 88 88",bust:"8 22 144 160"};
 /* صور الشخصيات (من ChatGPT): الغلاف للحركات اللي تصير مرة وحدة، والصورة نفسها تتنفس */
-const portrait=(r,vb="full",cls="")=>CHAR[r]?`<span class="ch ch-${r} pv-${vb} ${cls}" aria-hidden="true"><img src="/mafia/chars/${r}.webp" alt="" draggable="false" decoding="async"></span>`:"";
+const portrait=(r,vb="full",cls="")=>ROLE[r]?`<span class="ch ch-${r} pv-${vb} ${cls}" aria-hidden="true"><img src="/mafia/chars/${r}.webp" alt="" draggable="false" decoding="async"></span>`:"";
 window.__charKeep=["mafia","cop","doctor","sniper","citizen"].map(r=>{const i=new Image();i.decoding="async";i.src=`/mafia/chars/${r}.webp`;if(i.decode)i.decode().catch(()=>{});return i}); // تنفك مسبقاً وتظل بالذاكرة: الصورة تطلع فوراً بدون رمشة
 /* صورة لاعب ما ينعرف دوره: ظل بلون مقعده وأول حرف من اسمه */
 function anon(name){const c=seatColor(name),l=esc([...(name||"")][0]||"؟");
@@ -1114,16 +1099,6 @@ function polaroid(name,mark){
   return`<div class="pola ${mark||""}"><div class="ph">${anon(name)}${m}</div><div class="cap">${esc(name)}</div></div>`}
 const SKY=`<svg class="sky" viewBox="0 0 360 100" preserveAspectRatio="xMidYMax meet" fill="currentColor" aria-hidden="true"><path d="M0 100V76h25V65h22v35h18V73h24v27h24V80h22v20h20V69h30v31h20V77h22v23h26V68h24v32h25V78h24v22z"/><path d="M264 100l4-81h3l4 81zm33 0 3-70h3l4 70zm-59 0 2-91h2l2 91z"/><ellipse cx="269.5" cy="45" rx="12" ry="15"/><ellipse cx="269.5" cy="24" rx="7" ry="8"/><ellipse cx="301.5" cy="55" rx="10" ry="13"/><path d="M164 100V31l16-20 8 89z"/></svg>`;
 
-const LAMP=`<div class="lamp" aria-hidden="true"><div class="rig"><span class="cord"></span><svg class="shade" width="96" height="56" viewBox="0 0 120 70"><defs><linearGradient id="sh" x1="0" x2="1"><stop offset="0" stop-color="#1f1a16"/><stop offset=".45" stop-color="#4e4237"/><stop offset="1" stop-color="#16120f"/></linearGradient></defs><rect x="54" y="0" width="12" height="12" rx="2" fill="#2d2621"/><path d="M44 12h32l40 46H4z" fill="url(#sh)"/><path d="M4 58h112" stroke="#b8cadd" stroke-opacity=".5" stroke-width="2"/><ellipse class="bulb" cx="60" cy="60" rx="16" ry="7" fill="#ffe2a6"/></svg></div><span class="beam"></span></div>`;
-const SCENE_NIGHT=`<svg class="scene-svg" viewBox="0 0 360 260" aria-hidden="true"><text x="180" y="252" text-anchor="middle" direction="rtl" fill="#d1b37b" font-size="13" font-family="Readex Pro,sans-serif">منو الصيدة اليوم؟</text><rect x="24" y="28" width="312" height="183" rx="24" fill="#203a35" stroke="#9d8757" stroke-opacity=".5"/><path d="M38 75h284M38 85h284" stroke="#d1b37b" stroke-opacity=".2"/><path d="M50 198v-66q28-22 56 0v66m148 0v-66q28-22 56 0v66" fill="#314c42" stroke="#b29b65"/><path d="M46 176h66v25H46m202-25h66v25h-66" fill="#725247"/><path d="M55 183l13 11 13-11 13 11 13-11m146 0 13 11 13-11 13 11 13-11" fill="none" stroke="#d2b784" stroke-width="2"/><rect x="138" y="42" width="84" height="82" rx="40" fill="#112b2d" stroke="#b49b64"/><circle cx="195" cy="65" r="12" fill="#f1d391"/><circle cx="201" cy="61" r="11" fill="#112b2d"/><path d="M170 116l3-39 3 39m22 0 2-32 2 32" stroke="#8a9e86" stroke-width="2"/><circle cx="174" cy="93" r="6" fill="#8a9e86"/><circle cx="201" cy="101" r="5" fill="#8a9e86"/><ellipse cx="180" cy="214" rx="108" ry="20" fill="#0a1516"/><ellipse cx="180" cy="201" rx="108" ry="19" fill="#725439" stroke="#b39861"/><path d="M109 210v28m142-28v28" stroke="#493729" stroke-width="8"/><g class="sw"><path d="M180 0v24m-18 18q18-32 36 0z" fill="#bda16b" stroke="#bda16b"/><ellipse cx="180" cy="43" rx="18" ry="4" fill="#f5db9d"/></g><g><path d="M164 195l3-26q10-11 20 0l3 26z" fill="#c6a565"/><path d="M170 164l7-5 7 5m-17 13q-17-14-17 5l15 6m22-13q18-12 13-21" fill="none" stroke="#c6a565" stroke-width="4" stroke-linecap="round"/><path d="M131 193h10l-2 9h-6zm79 0h10l-2 9h-6z" fill="#f5edda"/><path class="smk" d="M178 155q-6-8 0-15t0-15" stroke="#e5daba" stroke-width="2" fill="none"/></g></svg>`;
-const SCENE_DAY=`<svg class="scene-svg" viewBox="0 0 360 260" aria-hidden="true">
-<g class="sunrise"><circle cx="282" cy="56" r="52" fill="#ffe7a8" opacity=".14"/><circle cx="282" cy="56" r="46" fill="#ffe7a8" opacity=".28"/><g class="rays" stroke="#ffe7a8" stroke-width="3" stroke-linecap="round" opacity=".7"><path d="M282 18v-12M282 94v12M244 56h-12M320 56h12M255 29l-8-8M309 83l8 8M309 29l8-8M255 83l-8 8"/></g><circle cx="282" cy="56" r="26" fill="#fff1c4"/><circle cx="282" cy="56" r="26" fill="none" stroke="#b9d3f1" stroke-width="3"/></g>
-<g fill="#5a3721"><path d="M78 196V98l4-4 4 4v98z"/><circle cx="82" cy="112" r="11"/><circle cx="82" cy="132" r="7"/><path d="M98 196v-46l3-3 3 3v46z"/><circle cx="101" cy="160" r="6"/>
-<path d="M0 196v-34h34v-10h26v44zM120 196v-40h40v40zM164 196v-28h30v-12h22v40zM222 196v-46h44v46zM270 196v-30h34v-12h30v12h26v30z"/></g>
-<g fill="#a8c5e9" opacity=".75"><rect x="10" y="172" width="6" height="8"/><rect x="40" y="164" width="6" height="8"/><rect x="132" y="168" width="6" height="8"/><rect x="146" y="168" width="6" height="8"/><rect x="232" y="162" width="6" height="8"/><rect x="250" y="176" width="6" height="8"/><rect x="284" y="176" width="6" height="8"/><rect x="318" y="166" width="6" height="8"/></g>
-<defs><linearGradient id="rd" x1="0" y1="0" x2="0" y2="1"><stop offset=".55" stop-color="#24150b"/><stop offset="1" stop-color="#24150b" stop-opacity="0"/></linearGradient></defs><rect x="0" y="196" width="360" height="64" fill="url(#rd)"/><path d="M0 222h360" stroke="#b8cadd" stroke-opacity=".35" stroke-dasharray="18 14" stroke-width="3"/>
-<g class="bird"><path d="M0 0q6-6 12 0q6-6 12 0" stroke="#3d2414" stroke-width="2.4" fill="none"/></g><g class="bird b2"><path d="M0 0q5-5 10 0q5-5 10 0" stroke="#3d2414" stroke-width="2" fill="none"/></g>
-<g class="walker w0"><g class="bob"><path d="M-11 0l3-39h16l3 39z" fill="#efe3c8"/><path d="M-11 -42q0-15 11-15t11 15l3 20-7-4-2-12h-10l-2 12-7 4z" fill="#fff"/><circle cx="0" cy="-45" r="6.2" fill="#b07a55"/><path d="M-9 -51q9-4 18 0" stroke="#111" stroke-width="2.8" fill="none" stroke-linecap="round"/></g></g><g class="walker w1"><g class="bob"><path d="M-11 0l3-39h16l3 39z" fill="#d9cdb0"/><path d="M-11 -42q0-15 11-15t11 15l3 20-7-4-2-12h-10l-2 12-7 4z" fill="#c9443b"/><circle cx="0" cy="-45" r="6.2" fill="#b07a55"/><path d="M-9 -51q9-4 18 0" stroke="#111" stroke-width="2.8" fill="none" stroke-linecap="round"/></g></g><g class="walker w2"><g class="bob"><path d="M-11 0l3-39h16l3 39z" fill="#efe3c8"/><path d="M-11 -42q0-15 11-15t11 15l3 20-7-4-2-12h-10l-2 12-7 4z" fill="#fff"/><circle cx="0" cy="-45" r="6.2" fill="#b07a55"/><path d="M-9 -51q9-4 18 0" stroke="#111" stroke-width="2.8" fill="none" stroke-linecap="round"/></g></g></svg>`;
 /* ---------- أدوات ---------- */
 const $=s=>document.querySelector(s);
 const hsh=t=>{let h=5381;for(let i=0;i<t.length;i++)h=(h*33^t.charCodeAt(i))>>>0;return h.toString(36)};
@@ -1197,7 +1172,6 @@ function endSession(msg){doorSeen=false;doorState="";nbReset();if(demo){endDemo(
 /* ---------- النوتة: تكتب كلمة السر بخط إيدك ---------- */
 const nb={lines:[{t:"",s:0},{t:"",s:0}],cur:0,prev:"",flipping:false};
 const lnHtml=(l,i)=>`<div class="ln ${l.s?"struck":""}" data-i="${i}">${[...l.t].map(d=>`<span class="dg">${d}</span>`).join("")}<i class="strike"></i></div>`;
-function nbPage(){return`<div class="page cur">${nb.lines.map(lnHtml).join("")}</div>`}
 function nbReset(){nb.lines=[{t:"",s:0},{t:"",s:0}];nb.cur=0;nb.prev="";nb.flipping=false;const i=$("#codeIn");if(i)i.value=""}
 function lineEl(i){return document.querySelector(`.pad .page.cur .ln[data-i="${i}"]`)}
 // نرسم الصفحة من الحالة: الأرقام الجديدة تنكتب بالقلم، والقديمة تبقى
@@ -1633,7 +1607,6 @@ function homeViewPaid(){
 }
 // جرّب اللعبة: تاخذ مكان رقم الغرفة، وفوقها رجوع
 function rxDemo(h){if(!demoOpen)return h;return h.replace('<form class="rx-form"',`<div class="rx-try" role="region" aria-label="جرّب اللعبة"><button type="button" class="rx-back" data-a="demoOpen">→ رجوع</button><div class="demo-intro"><b>شلون تمشي اللعبة؟</b><span>هالتجربة تبين لك اللعبة من منظور كل لاعب: تتنقل بين شاشة القاضي وشاشة كل لاعب، وتختار بدالهم بنفسك.</span><span>تفيدك إذا بتدير اللعبة كقاضي، أو تبي تاخذ فكرة عنها وشلون تمشي قبل لا تلعب مع الربع. اللاعبين وهميين، والتجربة مجانية.</span></div><div class="rx-demo-row"><select id="demoN" aria-label="عدد اللاعبين">${[6,7,8,9,10,11,12,13,14,15].map(n=>`<option value="${n}" ${n===8?"selected":""}>${n} لاعبين، ${2+Math.floor((n-6)/4)} مافيا</option>`).join("")}</select><button class="rx-go" data-a="demo" ${busy?"disabled":""}>ابدا التجربة</button></div></div><form style="display:none" class="rx-form"`)}
-function demoPanel(){return`<div class="panel demoset"><div class="demo-intro"><b>شلون تمشي اللعبة؟</b><span>هالتجربة تبين لك اللعبة من منظور كل لاعب: تتنقل بين شاشة القاضي وشاشة كل لاعب، وتختار بدالهم بنفسك.</span><span>تفيدك إذا بتدير اللعبة كقاضي، أو تبي تاخذ فكرة عنها وشلون تمشي قبل لا تلعب مع الربع. اللاعبين وهميين، والتجربة مجانية.</span></div><label class="muted small" for="demoN">عدد اللاعبين</label><select id="demoN">${[6,7,8,9,10,11,12,13,14,15].map(n=>`<option value="${n}" ${n===8?"selected":""}>${n} لاعبين، ${2+Math.floor((n-6)/4)} مافيا</option>`).join("")}</select><button class="btn" data-a="demo" ${busy?"disabled":""}>ابدا التجربة</button></div>`}
 function createView(){return`<div><h1>غرفة جديدة</h1>${billing()?`<p class="muted">رصيدك ${ar(acctMe?acctMe.credits:0)} ${acctMe&&acctMe.credits===1?"لعبة":"ألعاب"}. تنخصم لعبة وحدة لما تبدون اللعبة، مو الحين.</p>`:""}</div>
   <div class="panel">${homeErr?`<p class="err small" role="alert">${esc(homeErr)}</p>`:""}
     ${(()=>{const m=onlineCreate?"online":autoCreate?"auto":"judge";const o=(k,t,d)=>`<button class="lnk onl-t ${m===k?"on":""}" data-a="createMode" data-v="${k}" role="radio" aria-checked="${m===k}" style="align-self:flex-start"><span class="onl-box">${m===k?"✓":""}</span><span>${t}<br><small class="muted">${d}</small></span></button>`;
@@ -1684,85 +1657,6 @@ document.addEventListener("pointerdown",e=>{if(!receptionAudio?.enabled)return;i
   else if(b.classList.contains("primary"))receptionAudio.play("select",{gain:.45,rate:.9});
   else receptionAudio.play("click",{gain:.6})},{capture:true,passive:true});
 
-function legacyHomeView(){
-  const intro=!doorSeen;doorSeen=true;
-  const say=SAY[doorState]||"كلمة السر؟";
-  return`<a class="back over" href="/games/">→ كل الألعاب</a>
-  <div class="den ${intro?"intro":""} ${doorState}" aria-hidden="true">
-    <svg class="alley" viewBox="0 0 360 300" preserveAspectRatio="xMidYMax slice">
-      <defs>
-        <pattern id="brk" width="22" height="12" patternUnits="userSpaceOnUse"><rect width="22" height="12" fill="#120d0b"/><path d="M0 .5h22M0 6.5h22M.5 0v6M11.5 6v6" stroke="#060404" stroke-width="1.2"/></pattern>
-        <linearGradient id="cone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd9a0" stop-opacity=".55"/><stop offset=".7" stop-color="#ffcf8a" stop-opacity=".12"/><stop offset="1" stop-color="#ffcf8a" stop-opacity="0"/></linearGradient>
-        <radialGradient id="pool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffcf8a" stop-opacity=".45"/><stop offset="1" stop-color="#ffcf8a" stop-opacity="0"/></radialGradient>
-        <linearGradient id="wet" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d0d10"/><stop offset="1" stop-color="#050506"/></linearGradient>
-        <radialGradient id="far" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#3a3f4a" stop-opacity=".6"/><stop offset="1" stop-color="#3a3f4a" stop-opacity="0"/></radialGradient>
-        <filter id="blur6"><feGaussianBlur stdDeviation="6"/></filter><filter id="blur2"><feGaussianBlur stdDeviation="1.6"/></filter>
-      </defs>
-      <rect width="360" height="300" fill="#040405"/>
-      <ellipse cx="180" cy="150" rx="70" ry="60" fill="url(#far)"/>
-      <path d="M0 0H120L150 200H0z" fill="url(#brk)"/><path d="M0 0H120L150 200H0z" fill="#000" opacity=".45"/>
-      <path d="M360 0H240L210 200H360z" fill="url(#brk)"/><path d="M360 0H240L210 200H360z" fill="#000" opacity=".55"/>
-      <path d="M150 200L120 0M210 200L240 0" stroke="#000" stroke-width="2"/>
-      <rect x="18" y="70" width="34" height="46" fill="#0a0808" stroke="#1d1613"/><rect x="21" y="73" width="28" height="40" fill="#1b0d0a" opacity=".7"/>
-      <path d="M0 200H360V300H0z" fill="url(#wet)"/>
-      <g class="lampg"><path d="M276 40h-34" stroke="#1c1916" stroke-width="3"/><path d="M276 30v40" stroke="#1c1916" stroke-width="4"/>
-        <path d="M232 40h20l4 8h-28z" fill="#2a2520"/><ellipse class="bulb3" cx="242" cy="49" rx="9" ry="2.6" fill="#fff0cf"/>
-        <path class="cone" d="M233 49h18l62 210H170z" fill="url(#cone)" filter="url(#blur2)"/>
-        <ellipse class="pool" cx="226" cy="262" rx="90" ry="16" fill="url(#pool)"/></g>
-      <ellipse class="refl-l" cx="242" cy="285" rx="6" ry="16" fill="#ffd9a0" opacity=".35" filter="url(#blur2)"/>
-      <g class="man">
-        <g class="body">
-          <path d="M222 238h7v26h-7zM233 238h7v26h-7z" fill="#020202"/><path d="M228 264h-11v5h13zM234 264h11v5h-13z" fill="#000"/>
-          <path d="M216 162Q231 156 246 162L252 176L256 232L263 262L242 264L238 240H224L220 264L199 262L206 232L210 176Z" fill="#030303"/>
-          <path d="M224 162l7 20 7-20" fill="none" stroke="#181512" stroke-width="1.1"/>
-          <path d="M208 212h47" stroke="#0d0c0b" stroke-width="3"/>
-          <path d="M213 168q-6 22-2 46M249 168q6 22 2 46" fill="none" stroke="#0a0909" stroke-width="2"/>
-          <ellipse cx="231" cy="151" rx="7.5" ry="9" fill="#040303"/>
-          <path d="M220 144q0-13 11-14 11 1 11 14z" fill="#040404"/><path d="M220 140h22" stroke="#1f1b17" stroke-width="2"/>
-          <ellipse cx="231" cy="144" rx="19" ry="3.2" fill="#040404"/>
-          <path d="M246 162L252 176L256 232L263 262M242 144q0-13-11-14M250 144.5a19 3.2 0 0 1-6 2.5M238.5 151a7.5 9 0 0 1-2 6" fill="none" stroke="#ffd9a0" stroke-opacity=".38" stroke-width="1.1"/>
-          <path class="cig" d="M236 154.5l7 1.4" stroke="#cfc4b4" stroke-opacity=".85" stroke-width="1.1" stroke-linecap="round"/>
-          <circle class="ember" cx="243.6" cy="156" r="1.2" fill="#ff5a2a"/>
-        </g>
-        <g class="held"><path class="rarm" d="M213 168q-8 12 4 22" fill="none" stroke="#050505" stroke-width="7" stroke-linecap="round"/>
-          <g class="note"><rect id="notepos" x="215" y="171" width="24" height="18" rx="1" fill="#efe6cf" transform="rotate(-8 227 180)"/>
-          <path d="M219 177h14M219 181h11M219 185h15" stroke="#3a4a6a" stroke-width=".9" transform="rotate(-8 227 180)"/></g>
-          <circle cx="217" cy="188" r="3.4" fill="#2a1d16"/></g>
-        <g class="smoke"><path d="M244 153c-5-8 5-12 0-20s5-12 0-20"/><path d="M244 153c5-8-5-12 0-20s-5-12 0-20"/></g>
-        <g class="refl" transform="translate(0 540) scale(1 -1)" opacity=".16" filter="url(#blur2)"><path d="M216 162Q231 156 246 162L252 176L256 232L263 262L242 264L238 240H224L220 264L199 262L206 232L210 176Z" fill="#000"/></g>
-      </g>
-      <circle class="flick" cx="243.6" cy="156" r="1.6" fill="#ff7a3a"/>
-    </svg>
-    <canvas class="rain" id="rain"></canvas>
-    <div class="vig"></div>
-    <p class="say">${say}</p>
-  </div>
-  ${homeErr?`<p class="err" style="text-align:center">${esc(homeErr)}</p>`:""}
-  <form class="pov" id="joinF">
-    <svg class="lhand" viewBox="0 0 200 200" aria-hidden="true"><path d="M-40 230L40 120 96 150 30 260z" fill="#0d0d10"/><path d="M40 120l56 30" stroke="#2a2a30" stroke-width="2"/>
-      <path d="M36 112l12-14 58 30-10 18z" fill="#e8e2d6"/><circle cx="74" cy="122" r="3" fill="#b8cadd"/>
-      <path d="M52 96c6-24 30-36 58-30 22 5 34 16 36 30l-8 24-74-6z" fill="#b98663"/><path d="M60 100c10-10 34-14 70-6" stroke="#8f6246" stroke-width="2" fill="none"/></svg>
-    <div class="pad" id="pad" aria-hidden="true"><span class="spiral"></span><div class="pages">${nbPage()}</div>
-      <svg class="pen" id="pen" viewBox="0 0 220 220"><path d="M118 118L250 250 210 290 82 160z" fill="#0d0d10"/><path d="M98 132l34-30" stroke="#2a2a30" stroke-width="2"/>
-        <path d="M88 124l34-30 16 16-34 30z" fill="#e8e2d6"/><circle cx="112" cy="116" r="3" fill="#b8cadd"/>
-        <path d="M4 4l14 6 70 70-8 8-70-70z" fill="#141414"/><path d="M4 4l14 6-8 8z" fill="#b8cadd"/><path d="M60 52l12 12-8 8-12-12z" fill="#b8cadd"/>
-        <path d="M30 44c10-6 22-4 30 4l26 30c4 6 2 12-4 14l-34-10z" fill="#c49270"/><path d="M28 34c4-4 10-4 14 0l30 34-10 8z" fill="#b98663"/>
-        <path d="M54 92c10-12 30-16 46-6l18 28-28 26c-22-6-36-24-36-48z" fill="#b98663"/><path d="M58 98c10-8 24-10 36-4" stroke="#8f6246" stroke-width="2" fill="none"/></svg>
-      <svg class="thumb" viewBox="0 0 60 60" aria-hidden="true"><path d="M6 44c2-16 14-26 30-26 10 0 16 6 14 14-2 10-14 18-30 20z" fill="#c49270"/><path d="M34 22c8 0 12 6 10 12" stroke="#8f6246" stroke-width="1.6" fill="none"/></svg>
-      <input id="codeIn" class="padin" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" aria-label="كلمة السر: رقم الغرفة">
-    </div>
-    <p class="padhint">${nb.prev?"":"دوس على النوتة واكتب رقم الغرفة"}</p>
-    <button class="btn primary" ${busy?"disabled":""}>تمام</button>
-  </form>
-  <div class="links">
-    <button class="lnk onl-t ${onlineCreate?"on":""}" data-a="onlineToggle" role="checkbox" aria-checked="${onlineCreate}"><span class="onl-box">${onlineCreate?"✓":""}</span>تبيها أون لاين؟</button><button class="lnk onl-t ${autoCreate&&!onlineCreate?"on":""}" data-a="createMode" data-v="${autoCreate&&!onlineCreate?"judge":"auto"}" role="checkbox" aria-checked="${autoCreate&&!onlineCreate}"><span class="onl-box">${autoCreate&&!onlineCreate?"✓":""}</span>قاضي آلي؟</button><button class="lnk" data-a="create" ${busy?"disabled":""}>${busy?"نفتح الغرفة…":onlineCreate?"افتح غرفة أون لاين":autoCreate?"افتح غرفة بقاضي آلي":"افتح غرفة للقاضي"}</button>
-    <button class="lnk" data-a="demoOpen" aria-expanded="${demoOpen}">جرّب اللعبة</button>
-  </div>
-  ${demoOpen?`<div class="panel demoset"><div class="demo-intro"><b>شلون تمشي اللعبة؟</b><span>هالتجربة تبين لك اللعبة من منظور كل لاعب: تتنقل بين شاشة القاضي وشاشة كل لاعب، وتختار بدالهم بنفسك.</span><span>تفيدك إذا بتدير اللعبة كقاضي، أو تبي تاخذ فكرة عنها وشلون تمشي قبل لا تلعب مع الربع. اللاعبين وهميين، والتجربة مجانية.</span></div>
-    <label class="muted small" for="demoN">عدد اللاعبين</label>
-    <select id="demoN">${[6,7,8,9,10,11,12,13,14,15].map(n=>`<option value="${n}" ${n===8?"selected":""}>${n} لاعبين، ${2+Math.floor((n-6)/4)} مافيا</option>`).join("")}</select>
-    <button class="btn" data-a="demo" ${busy?"disabled":""}>ابدا التجربة</button></div>`:""}`;
-}
 /* =========== الأون لاين =========== */
 // المضيف: يطرد أحد وسط اللعبة (مقفولة، يفتحها إذا احتاج)
 let hostOpen=false;
@@ -2055,25 +1949,6 @@ function settingsPanel(){
   ${cu?step("cap",cap,"عدد اللاعبين","",cap>capMin?cap-1:null,cap<30?cap+1:null)+step("mafia",mf,"عدد المافيا","",mf>1?mf-1:null,room?mf+1:null)+step("cops",cops,"عدد الشرطة (الشريف)","",cops>1?cops-1:null,room?cops+1:null)+step("docs",docs,"عدد البياطرة","",docs>1?docs-1:null,room?docs+1:null)+step("talk",c.talk,"وقت كل واحد يتكلم"," ثانية",c.talk>10?c.talk-10:null,c.talk<300?c.talk+10:null)+`<p class="muted small">أول ${ar(cap)} يدخلون، واللي بعدهم يطلع له "العدد اكتمل". النصابين بعدد الشرطة${cops>mf?` (بس ما يزيدون عن المافيا، فبيكونون ${ar(mf)})`:""}، والباقين فداوية مع القناص.</p>`
   :`<p class="muted small">المافيا حسب عدد اللاعبين${J.mafiaNext?` (الحين ${ar(J.mafiaNext)})`:""}، وكل واحد يتكلم ${ar(st.local?60:40)} ثانية.</p>`}</div>`;
 }
-/* الإعدادات المتقدمة: صح تفعّله وتشيله، و؟ يشرح الفرق */
-let advHelpOpen=false;
-// المقبرة: خيار جانبي، الطالعين يشوفون كل شي باللعبة
-function graveToggle(on){
-  return`<div class="adv-row"><button class="adv-chk ${on?"on":""}" data-a="set" data-k="grave" data-v="${on?0:1}" role="checkbox" aria-checked="${on}"><span class="box">${on?"✓":""}</span><span>تبي المقبرة؟</span></button></div>
-  <p class="muted small" style="margin-top:-4px">اللي يطلع من اللعبة يشوف أدوار الكل وشنو يصير بالليل، بس ما يسوي شي ولا يتكلم.</p>`;
-}
-function advToggle(on){
-  return`<div class="adv-row"><button class="adv-chk ${on?"on":""}" data-a="set" data-k="adv" data-v="${on?0:1}" role="checkbox" aria-checked="${on}"><span class="box">${on?"✓":""}</span><span>تبي إعدادات متقدمة؟</span></button><button class="adv-q" data-a="advHelp" aria-expanded="${advHelpOpen}" aria-label="شنو الإعدادات المتقدمة؟">؟</button></div>
-  ${advHelpOpen?`<div class="adv-help"><b>الفرق عن العادي:</b> بالعادي اللي ما عنده دور يقعد بدون شي بالليل، فيبين إنه شعب. بالمتقدمة الكل ماسك تلفونه ويسوي نفس الشي، فمحد ينكشف.<ul>
-  <li>كل ليلة <b>الكل يختار بنفس الوقت</b>: المافيا يغتالون، البيطري يفزع، الشريف يفتش، وبعدها الكل يخمن إلا الشريف والبيطري.</li>
-  <li>الكل يخلص دوره أول، وبعدين يجاوب <b>منو تشك فيه؟</b> (واللي مو مافيا بالليلة الأولى: <b>منو تتوقع النصاب؟</b>).</li>
-
-  <li><b>نقاط المحقق:</b> كل تخمين صح للشعب بنقطة، وتطلع بنهاية اللعبة "أحسن محقق".</li>
-  <li><b>شك الشعب:</b> الصبح يطلع للكل نسبة الشك على كل لاعب، بدون ما يبين منو شك بمنو.</li>
-  <li>نفس الشاشة للكل: صندوق تحت على اليسار عند الكل، الأسماء مرتبة غير عند كل تلفون، ونفس شاشة "انطر الصبح" لما تخلص.</li>
-  <li>الشاشات تغمق بنفس الدرجة بالليل.</li>
-  <li>القاضي يشوف منو ما خلص اختياره.</li></ul></div>`:""}`;
-}
 /* نص الدور: بالأون لاين القاضي آلي، فالتعادل يعيدون فيه والقناص يشوف بروحه */
 function roleDesc(r){if(!(st&&st.online))return r.d;
   return r.d.replace("وإذا تعادلتوا القاضي يختار من اختياراتكم.","وإذا تعادلتوا لين يخلص الوقت، اللعبة تختار من اختياراتكم.").replace("وتعرف دوره أنت والقاضي بس.","وتعرف دوره بروحك.")}
@@ -2103,19 +1978,6 @@ function judgeCops(){
   const nmx=i=>`<b class="${isAlive(i)?"":"gone"}">${esc(nm(i))}</b>`;
   return`<div class="panel jcops"><span>👮 الشريف: ${cops.map(nmx).join("، ")}</span><span>🤪 النصاب: ${F.length?F.map(nmx).join("، "):`<i class="muted">ما تحدد للحين</i>`}</span></div>`;
 }
-// المقبرة: اللي طلع يشوف الأدوار وشنو يصير بالليل، بس ما يسوي شي
-function graveView(){
-  const G=st.me.grave,R=G.roles||{},ids=Object.keys(R),F=G.fakes||[];
-  const order=["mafia","cop","doctor","sniper","citizen"];
-  const cell=i=>{const p=P(i),r=R[i];return`<div class="li ${p.alive?"":"out"}"><span class="nm">${esc(p.name||"لاعب")}${i===st.me.id?" (أنت)":""}</span><span class="chip ${ROLE[r].team}">${ROLE[r].n}${F.includes(i)?" · نصاب":""}</span>${p.alive?"":`<span class="small muted">طالع</span>`}</div>`};
-  const group=(t,title)=>`<div><h3 style="color:var(--${t==="m"?"blood":"town"})">${title}</h3><div class="list">${order.filter(r=>ROLE[r].team===t).flatMap(r=>ids.filter(i=>R[i]===r)).map(cell).join("")}</div></div>`;
-  const night=(st.phase==="night"||st.phase==="night0")?nightCard(G):"";
-  const mp=night?Object.entries(st.phase==="night0"?G.night.fake:G.night.sugg).filter(([a])=>isAlive(a)):[];
-  return`<div class="panel grave"><h2>⚰️ المقبرة</h2><p class="muted small">طلعت من اللعبة. تشوف كل شي، بس لا تتكلم ولا تأشر لين تخلص.</p>
-  ${night}${mp.length?`<p class="small muted">اختيارات المافيا: ${mp.map(([a,b])=>esc(nm(a))+" ← "+esc(nm(b))).join("، ")}</p>`:""}
-  ${group("m","المافيا")}${group("t","الشعب")}
-  ${(G.log||[]).length?`<details><summary class="muted small">شنو صار باللعبة؟</summary><ul class="notes">${G.log.slice().reverse().map(l=>`<li>${esc(l)}</li>`).join("")}</ul></details>`:""}</div>`;
-}
 function rolesBoard(){
   const J=st.judge,ids=Object.keys(J.roles);
   const order=["mafia","cop","doctor","sniper","citizen"];
@@ -2124,14 +1986,6 @@ function rolesBoard(){
   const group=(t,title)=>`<div><h3 style="color:var(--${t==="m"?"blood":"town"})">${title}</h3><div class="list">${order.filter(r=>ROLE[r].team===t).flatMap(r=>by(r).map(i=>cell(r,i))).join("")}</div></div>`;
   const out=ids.filter(i=>!P(i).alive).length;
   return`<div class="panel roles"><button class="roles-head" data-a="roles" aria-expanded="${rolesOpen}"><h2>الأدوار</h2><span class="muted small">${ids.length-out} باقين${out?` · ${out} طلعوا`:""}</span><span class="chev ${rolesOpen?"up":""}">⌄</span></button>${rolesOpen?`<div class="roles-body ${rolesJust?"anim":""}">${group("m","المافيا")}${group("t","الشعب")}</div>`:""}</div>`;
-}
-function roleChip(id){const J=st.judge,r=J.roles[id];if(!r)return"";return`<span class="chip ${ROLE[r].team}">${ROLE[r].n}${(J.fakes||[]).includes(id)?" · نصاب":""}</span>`}
-function judgeRow(p){
-  const J=st.judge,speaking=st.timer&&st.timer.pid===p.id;let extra="";
-  if(p.alive&&st.phase==="day")extra=speaking?`<button class="btn sm" data-a="cmd" data-c="stopT">وقّف</button>`:`<button class="btn sm" data-a="cmd" data-c="talk" data-id="${p.id}">40 ث</button>`;
-  if(st.phase==="vote"&&p.alive){const v=J.votes[p.id];extra=`<span class="small muted">${v?(v==="none"?"ما صوّت على أحد":"صوّت ← "+esc(nm(v))):st.vote&&st.vote.cur===p.id?"دوره الحين":"ما صوّت"}</span>`}
-  if(st.sniperPending&&p.alive&&p.id!==st.sniperPending)extra=`<button class="btn sm ghost" data-a="cmd" data-c="snipeFor" data-id="${p.id}">القناص سحبه</button>`;
-  return`<div class="li ${p.alive?"":"out"} ${speaking?"speak":""}">${dot(p)}<span class="nm">${esc(p.name)}</span>${roleChip(p.id)}${extra}</div>`;
 }
 /* أزرار الكلام: اللي يتكلم ذهبي، واللي خلص أخضر مع صح */
 function talkGrid(ids,cops){
@@ -2144,7 +1998,6 @@ function sniperFallback(){
   const sp=st.sniperPending;
   return`<p class="err">القناص ${esc(nm(sp))} يختار من تلفونه منو يسحب وياه.</p>${snipeTimer(false)}<details><summary class="small muted">تلفونه فيه مشكلة؟ اختار بداله</summary><div class="grid" style="margin-top:8px">${aliveIds().filter(i=>i!==sp).map(i=>`<button class="pick red" data-a="cmd" data-c="snipeFor" data-id="${i}">${esc(nm(i))}</button>`).join("")}</div></details>`;
 }
-const whoHas=r=>Object.keys(st.judge.roles).find(i=>st.judge.roles[i]===r);
 const isAlive=id=>!!(id&&P(id).alive);
 function judgeControls(){
   const p=st.phase,J=st.judge;let h=`<div class="panel">`;
@@ -2243,7 +2096,6 @@ function playerView(){
   if(st.phase==="over")return h+overView();
   const alive=P(me.id).alive;
   if(st.phase==="deal")return h+cardView()+`<div class="panel nightbox"><div class="moon"></div><h2>احفظ دورك</h2><p class="muted">${st.online?"أول ما يخلص الوقت الكرت ينشال.":"أول ما يبدا القاضي اللعبة الكرت ينشال."}</p></div>`;
-  if(!alive&&st.sniperPending!==me.id&&me.grave)return h+graveView()+(st.vote?voteStage():"")+aliveList();
   if(!alive&&st.sniperPending!==me.id)return h+`<div class="panel"><h2>طلعت من اللعبة</h2><p class="muted">${st.online&&!st.local?"صرت بالمقبرة: تسولف ويا الطالعين، وتقرا شات المافيا بس ما تكتب فيه.":"لا تتكلم ولا تأشر، تابع لين تخلص."}</p></div>`+chatPanels()+(st.vote?voteStage():"")+aliveList();
   return h+actionView()+chatPanels()+hostPanel();
 }
@@ -2467,7 +2319,6 @@ document.addEventListener("click",e=>{
   else if(a==="roles"){const body=document.querySelector(".roles-body");
     if(rolesOpen&&body){body.classList.add("closing");document.querySelector(".chev").classList.remove("up");setTimeout(()=>{rolesOpen=false;render()},230)}
     else{rolesOpen=true;rolesJust=true;render();rolesJust=false}}
-  else if(a==="advHelp"){advHelpOpen=!advHelpOpen;render()}
   else if(a==="onlineToggle"){onlineCreate=!onlineCreate;if(onlineCreate)autoCreate=false;render()}
   else if(a==="createMode"){const v=b.dataset.v;onlineCreate=v==="online";autoCreate=v==="auto";render()}
   else if(a==="hostToggle"){hostOpen=!hostOpen}
