@@ -10,7 +10,8 @@ import ActivityKit
 final class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // الأصوات تطلع حتى لو التلفون على الصامت، وتختلط مع الموسيقى بدل ما توقفها
-        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
+        // playAndRecord: الأصوات تطلع حتى على الصامت، والمايك يشتغل للعب أون لاين (playback بروحه يمنع المايك)
+        try? AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .mixWithOthers, .allowBluetooth, .allowBluetoothA2DP, .allowAirPlay])
         try? AVAudioSession.sharedInstance().setActive(true)
         application.isIdleTimerDisabled = true // الشاشة ما تطفي وقت اللعب
         LiveTurn.end() // أي دور قديم من قبل
