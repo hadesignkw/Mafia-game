@@ -54,6 +54,8 @@ async function start(){
   // آيفون ما يشغّل صوت إلا من عناصر انفتحت بضغطة: نجهز كم واحد الحين وقت الضغطة
   for(let i=0;i<12;i++){const a=newAudio();try{a.srcObject=new MediaStream();a.play().catch(()=>{})}catch{}V.pool.push(a)}
   paint();
+  // الأصوات حاطة الآيفون على «playback» (عشان تطلع على الصامت)، وهذا يمنع المايك: نحوله «play-and-record» (يطلع على الصامت بعد)
+  try{if(navigator.audioSession)navigator.audioSession.type='play-and-record'}catch{}
   try{
     const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
     const talk=stream.getAudioTracks()[0],mafia=talk.clone();
@@ -88,6 +90,7 @@ function playIt(a){const p=a.play();if(p&&p.catch)p.catch(()=>{if(V){V.needTap=t
 function stop(){
   if(!V)return;V.dead=true;try{const s=G('send');s&&s({t:"vstate",on:false,mute:false})}catch{}
   try{V.stream&&V.stream.getTracks().forEach(t=>t.stop());V.mafia&&V.mafia.stop()}catch{}
+  try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch{}
   try{V.prod&&V.prod.close()}catch{}try{V.cons&&V.cons.close()}catch{}
   (V.audios||new Map()).forEach(a=>a.remove());(V.pool||[]).forEach(a=>a.remove());
   V=null;paint();
