@@ -1546,6 +1546,17 @@ function confetti(host,colors,embers){
 }
 
 /* ---------- المؤقت ---------- */
+/* تطبيق الآيفون: اسم اللي يسولف ووقته بالجزيرة (Live Activity) — يتحدث والتطبيق مفتوح */
+let liveKey=null;
+setInterval(()=>{
+  const h=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.diwanLive;if(!h)return;
+  const t=st&&view==="game"&&st.phase==="day"&&st.timer;
+  if(t&&t.endsAt-(Date.now()+offset)>0){
+    if(t.id===liveKey)return;liveKey=t.id;
+    const ends=t.endsAt-offset;
+    try{h.postMessage({name:String(t.name||""),mine:!!(st.me&&t.pid===st.me.id),start:ends-(t.dur||60)*1000,ends:ends})}catch(e){}
+  }else if(liveKey!==null){liveKey=null;try{h.postMessage({end:1})}catch(e){}}
+},700);
 let lastBuzzT=null,lastTimerId=null;
 function drawTimer(){
   const el=$("#timer");if(!el)return;

@@ -1,6 +1,9 @@
 import UIKit
 import WebKit
 import AVFoundation
+#if canImport(ActivityKit)
+import ActivityKit
+#endif
 
 /// تطبيق ديوان المدلل للآيفون: يفتح الموقع بشاشة كاملة، وأي تعديل على الموقع يوصل للتطبيق على طول.
 @main
@@ -10,6 +13,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
         try? AVAudioSession.sharedInstance().setActive(true)
         application.isIdleTimerDisabled = true // الشاشة ما تطفي وقت اللعب
+        LiveTurn.end() // أي دور قديم من قبل
         return true
     }
     func application(_ application: UIApplication, configurationForConnecting s: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
@@ -51,6 +55,7 @@ final class WebVC: UIViewController, WKNavigationDelegate, WKUIDelegate {
         // نفس تجربة تطبيق الويب: إذا الآيفون ما يدعم «الشاشة ما تطفي» أو «مشاركة» داخل التطبيق، التطبيق نفسه يسويهم
         let uc = WKUserContentController()
         uc.add(ShareBridge(self), name: "diwanShare")
+        uc.add(ShareBridge(self), name: "diwanLive")
         uc.addUserScript(WKUserScript(source: Self.polyfills, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         c.userContentController = uc
         web = WKWebView(frame: .zero, configuration: c)
@@ -152,6 +157,35 @@ private final class ShareBridge: NSObject, WKScriptMessageHandler {
     weak var vc: WebVC?
     init(_ v: WebVC) { vc = v }
     func userContentController(_ uc: WKUserContentController, didReceive m: WKScriptMessage) {
-        if let d = m.body as? [String: Any] { vc?.share(d) }
+        guard let d = m.body as? [String: Any] else { return }
+        if m.name == "diwanLive" { LiveTurn.handle(d); return }
+        vc?.share(d)
+    }
+}
+
+/// الجزيرة: اسم اللي يسولف + عداد ينزل بروحه حتى لو التطبيق مسكّر.
+/// يتحدث بس والتطبيق مفتوح (الحساب المجاني ما يسمح بتحديثه من السيرفر).
+enum LiveTurn {
+    static func handle(_ d: [String: Any]) {
+        guard #available(iOS 16.2, *) else { return }
+        if d["end"] != nil { end(); return }
+        guard let name = d["name"] as? String, let ends = d["ends"] as? Double else { return }
+        let start = Date(timeIntervalSince1970: ((d["start"] as? Double) ?? Date().timeIntervalSince1970 * 1000) / 1000)
+        let st = DiwanTurn.ContentState(name: name, mine: (d["mine"] as? Bool) ?? false, start: min(start, Date()), ends: Date(timeIntervalSince1970: ends / 1000))
+        show(st)
+    }
+    @available(iOS 16.2, *)
+    private static func show(_ st: DiwanTurn.ContentState) {
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+        let content = ActivityContent(state: st, staleDate: st.ends.addingTimeInterval(2))
+        if let a = Activity<DiwanTurn>.activities.first {
+            Task { await a.update(content) }
+        } else {
+            _ = try? Activity<DiwanTurn>.request(attributes: DiwanTurn(), content: content, pushType: nil)
+        }
+    }
+    static func end() {
+        guard #available(iOS 16.2, *) else { return }
+        for a in Activity<DiwanTurn>.activities { Task { await a.end(nil, dismissalPolicy: .immediate) } }
     }
 }

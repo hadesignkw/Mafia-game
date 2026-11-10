@@ -10,6 +10,10 @@ targets:
     sources:
       - Diwan/Sources
       - Diwan/Resources
+      - Shared
+    dependencies:
+      - target: DiwanLive
+        embed: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: kw.hadesign.diwan
@@ -41,6 +45,7 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
+        NSSupportsLiveActivities: true
         NSCameraUsageDescription: ديوان المدلل يستخدم الكاميرا عشان تمسح رمز QR وتدخل الغرفة.
         NSMicrophoneUsageDescription: ديوان المدلل يستخدم المايك للكلام باللعب أون لاين.
         UIApplicationSceneManifest:
@@ -49,3 +54,29 @@ targets:
             UIWindowSceneSessionRoleApplication:
               - UISceneConfigurationName: Default
                 UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).SceneDelegate
+  DiwanLive:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "16.2"
+    sources:
+      - DiwanLive
+      - Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: kw.hadesign.diwan.live
+        PRODUCT_NAME: DiwanLive
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CODE_SIGNING_ALLOWED: "NO"
+        CODE_SIGNING_REQUIRED: "NO"
+        CODE_SIGN_IDENTITY: ""
+        GENERATE_INFOPLIST_FILE: "NO"
+        INFOPLIST_FILE: DiwanLive/Info.plist
+        SKIP_INSTALL: "YES"
+    info:
+      path: DiwanLive/Info.plist
+      properties:
+        CFBundleDisplayName: ديوان المدلل
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
