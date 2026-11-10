@@ -1,0 +1,46 @@
+name: تطبيق آيفون
+
+# يدوي: gh workflow run ios.yml (أو من صفحة Actions)
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios
+  cancel-in-progress: true
+
+jobs:
+  ipa:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: الأدوات
+        run: brew install xcodegen
+      - name: المشروع
+        working-directory: ios
+        run: xcodegen generate
+      - name: بناء (بدون توقيع — SideStore يوقّعه بحساب Apple على التلفون)
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -project Diwan.xcodeproj -scheme Diwan -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+            MARKETING_VERSION=1.0.${GITHUB_RUN_NUMBER} CURRENT_PROJECT_VERSION=${GITHUB_RUN_NUMBER} \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee build.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" build.log || { grep -B2 -A6 "error:" build.log | head -80 | while IFS= read -r l; do echo "::error::$l"; done; exit 1; }
+      - name: IPA
+        working-directory: ios
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/Diwan.app Payload/
+          zip -qry diwan.ipa Payload
+          ls -lh diwan.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: diwan-ios
+          path: ios/diwan.ipa
+          retention-days: 30

@@ -1,3 +1,7 @@
 node_modules
 .wrangler
 .dev.vars
+ios/build/
+ios/*.xcodeproj
+ios/Payload/
+ios/*.ipa

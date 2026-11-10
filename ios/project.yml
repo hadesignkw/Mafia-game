@@ -1,0 +1,51 @@
+name: Diwan
+options:
+  bundleIdPrefix: kw.hadesign
+  deploymentTarget:
+    iOS: "15.0"
+targets:
+  Diwan:
+    type: application
+    platform: iOS
+    sources:
+      - Diwan/Sources
+      - Diwan/Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: kw.hadesign.diwan
+        PRODUCT_NAME: Diwan
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGNING_ALLOWED: "NO"
+        CODE_SIGNING_REQUIRED: "NO"
+        CODE_SIGN_IDENTITY: ""
+        GENERATE_INFOPLIST_FILE: "NO"
+        INFOPLIST_FILE: Diwan/Info.plist
+    info:
+      path: Diwan/Info.plist
+      properties:
+        CFBundleDisplayName: ديوان المدلل
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen:
+          UIColorName: ""
+        UIRequiresFullScreen: false
+        UIStatusBarStyle: UIStatusBarStyleLightContent
+        UIViewControllerBasedStatusBarAppearance: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        NSCameraUsageDescription: ديوان المدلل يستخدم الكاميرا عشان تمسح رمز QR وتدخل الغرفة.
+        NSMicrophoneUsageDescription: ديوان المدلل يستخدم المايك للكلام باللعب أون لاين.
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+          UISceneConfigurations:
+            UIWindowSceneSessionRoleApplication:
+              - UISceneConfigurationName: Default
+                UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).SceneDelegate
