@@ -44,3 +44,10 @@ jobs:
           name: diwan-ios
           path: ios/diwan.ipa
           retention-days: 30
+
+      - name: نسخة على فرع ipa
+        run: |
+          mkdir out && cp ios/diwan.ipa out/diwan.ipa
+          cd out && git init -q -b ipa && git add diwan.ipa
+          git -c user.name=ci -c user.email=ci@local commit -qm "ipa ${GITHUB_RUN_NUMBER} (1.0.${GITHUB_RUN_NUMBER})"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" ipa
