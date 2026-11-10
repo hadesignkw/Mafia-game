@@ -39,3 +39,7 @@ body.reception-mode[data-reception-time=sunset]{--rx-scene-filter:brightness(.68
 .rx-footer .rx-who b{font-weight:700}
 .rx-footer .rx-open{border:1px solid var(--rx-edge);border-radius:12px;padding:8px 20px;min-height:40px;background:linear-gradient(#e9cf98,#b98d4c);color:#2a1c0c;font:700 14px var(--body);cursor:pointer;box-shadow:0 2px 0 #0004}
 .rx-footer .rx-open:active{transform:translateY(1px)}
+/* النهار: الشريط فوق وتحت غامق بلون الديوانية بدل الفاتح، عشان يبين جزء من الصورة */
+body.reception-mode[data-reception-time=day]{background:#241a12}
+body.reception-mode[data-reception-time=day] .rx-footer,body.reception-mode[data-reception-time=day] .rx-help{background:#241a12;color:#fff2dc}
+body.reception-mode[data-reception-time=day] .rx-footer .lnk,body.reception-mode[data-reception-time=day] .rx-footer .rx-who{color:#fff2dc;text-decoration-color:#d2b38188}
