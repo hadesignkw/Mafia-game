@@ -828,7 +828,7 @@ export class Room extends DurableObject {
       this.eliminate(k, "اغتيال");
       msg = `${s.roles[k] === "sniper" ? `ودّع ${this.nm(k)}` : `تم اغتيال ${this.nm(k)}`} وطلع من اللعبة. صيدة سهلة والدكتور مدوّج 😴`;
       const sniper = s.roles[k] === "sniper";
-      if (sniper) { msg += ` ${this.nm(k)} قناص، بيسحب واحد وياه.`; s.sniperPending = k; this.snipeStart(); }
+      if (sniper) { msg = ""; s.sniperPending = k; this.snipeStart(); } // القناص: الكل قرأ الخبر بالمشهد، وبعده شاشة السكوب عند الكل
       this.ev("kill", { who: this.nm(k), sniper });
     }
     Object.assign(s, { phase: "day", step: null, round: s.round + 1, canVote: true, talked: {}, announce: msg, timer: null });
@@ -850,7 +850,7 @@ export class Room extends DurableObject {
       this.eliminate(o, "تصويت");
       msg = `${this.nm(o)} طلع بالتصويت (${votesTxt(max)}).`;
       const sniper = s.roles[o] === "sniper";
-      if (sniper) { msg += ` ${this.nm(o)} قناص، بيسحب واحد وياه.`; s.sniperPending = o; this.snipeStart(); }
+      if (sniper) { msg = ""; s.sniperPending = o; this.snipeStart(); }
       this.ev("out", { who: this.nm(o), votes: max, sniper });
     }
     s.announce = msg;
@@ -868,7 +868,7 @@ export class Room extends DurableObject {
     if (!s.snipeAsk) { s.snipeAsk = Date.now() + SNIPE_ASK * 1000 * Math.max(this.spd(), 0.6); s.snipeDl = s.snipeAsk; return; }
     // ما رد: تروح عليه السحبة
     this.log(`القناص ${this.nm(s.sniperPending)} ما اختار`);
-    s.announce = (s.announce || "") + " القناص ما سحب أحد.";
+    s.announce = `القناص ${this.nm(s.sniperPending)} ما سحب أحد.`;
     s.sniperPending = null; s.snipeDl = null; s.snipeAsk = null;
     this.checkWin();
     if (s.online && s.phase === "day" && !s.timer) this.setDl(ON.pre);
@@ -880,7 +880,7 @@ export class Room extends DurableObject {
     this.eliminate(t, "سحبه القناص");
     this.note(sn, `سحبت ${this.nm(t)} وياك، دوره: ${ROLE_N[s.roles[t]]}${this.isFake(t) ? " (النصاب)" : ""}`);
     s.sniperPending = null;
-    s.announce = (s.announce || "") + ` القناص سحب ${this.nm(t)} وياه.`;
+    s.announce = `القناص ${this.nm(sn)} سحب ${this.nm(t)} وياه.`;
     this.ev("snipe", { who: this.nm(t) });
     this.checkWin();
     if (s.online && s.phase === "day" && !s.timer) this.setDl(ON.pre);

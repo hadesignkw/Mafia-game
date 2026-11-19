@@ -1024,6 +1024,30 @@ body:not(.reception-mode) .winhero.mafia{background:radial-gradient(120% 90% at 
 .winhero .wh-pics .ch{width:96px;height:110px;overflow:hidden;filter:drop-shadow(0 6px 14px rgb(0 0 0 / .5))}
 .winhero .wh-pics .ch img{width:100%;height:auto}
 .n0note{border:1px dashed var(--line);border-radius:12px;padding:8px 12px}
+
+/* القناص يختار: سكوب يدوّر عند الكل */
+body:not(.reception-mode) .panel.scopewait{text-align:center;color:#f6eaea;background:radial-gradient(120% 80% at 50% 0%,#3a1213,#0d0506 72%);border:1px solid #ff5b4f55}
+.scopewait h2{color:#fff}.scopewait h2 b{color:#ff8a80}.scopewait .muted{color:#e6b9b6!important}
+.scopewait .sw-k{align-self:center;font-size:.85rem;color:#ffb4ab;border:1px solid #ff5b4f55;border-radius:99px;padding:2px 12px}
+.sw-field{position:relative;height:300px;border-radius:16px;overflow:hidden;background:#070304;border:1px solid #ff5b4f33}
+.sw-names{position:absolute;inset:0;display:flex;flex-wrap:wrap;align-content:space-evenly;justify-content:space-evenly;gap:10px;padding:14px}
+.sw-names span{display:inline-flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:99px;background:#1c0f10;border:1px solid #ffffff1a;color:#f3e4e2;font-weight:600}
+.sw-names .pav{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--c);color:#14100c;font-weight:800;font-size:.8rem}
+.sw-scope{position:absolute;width:130px;height:130px;left:10%;top:12%;color:#ff5b4f;border-radius:50%;box-shadow:0 0 0 999px rgb(0 0 0 / .62),inset 0 0 30px rgb(255 91 79 / .25);animation:swRoam 9s ease-in-out infinite;filter:drop-shadow(0 0 10px #ff5b4f88)}
+.sw-scope svg{width:100%;height:100%}
+@keyframes swRoam{0%{left:8%;top:10%}14%{left:55%;top:6%}28%{left:62%;top:50%}42%{left:20%;top:58%}56%{left:40%;top:28%}70%{left:68%;top:22%}84%{left:6%;top:42%}100%{left:8%;top:10%}}
+/* الطلقة: السكوب يرجف، يثبت على الاسم، فلاش، والاسم ينشطب */
+#fx.fx-snipe2{background:radial-gradient(ellipse,#2a0b0c,#050203 78%)}
+.fx-snipe2 .sn-scope{position:relative;width:min(300px,78vw);aspect-ratio:1;color:#ff5b4f;display:grid;place-items:center;border-radius:50%;box-shadow:0 0 0 2000px rgb(0 0 0 / .55),inset 0 0 50px rgb(255 91 79 / .22);animation:snHunt 1.3s ease-in-out both,snLock .25s 1.3s cubic-bezier(.3,1.8,.5,1) forwards}
+.fx-snipe2 .sn-scope svg{position:absolute;inset:0;width:100%;height:100%;filter:drop-shadow(0 0 12px #ff5b4f99)}
+.fx-snipe2 .sn-name{font-family:var(--display);font-weight:800;font-size:clamp(2rem,11vw,3.2rem);color:#fff;text-shadow:0 2px 14px #000;position:relative;z-index:1;animation:fxin .2s 1.3s both}
+.fx-snipe2 .sn-x{position:absolute;width:62%;height:6px;background:#ff3b30;border-radius:4px;transform:rotate(-14deg) scaleX(0);z-index:2;box-shadow:0 0 14px #ff3b30;animation:snX .35s 1.55s cubic-bezier(.2,.8,.2,1) forwards}
+.fx-snipe2 .sn-flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;animation:snFlash .5s 1.4s ease-out forwards}
+.fx-snipe2 .sn-after{position:relative;z-index:2;margin-top:22px;font-size:clamp(1.6rem,8vw,2.2rem);animation:fxin .4s 1.9s both}
+@keyframes snHunt{0%{transform:translate(-38%,-30%) scale(1.15)}22%{transform:translate(30%,-18%) scale(1.1)}45%{transform:translate(-22%,26%) scale(1.08)}65%{transform:translate(18%,12%) scale(1.04)}82%{transform:translate(-6%,-5%)}100%{transform:translate(0,0)}}
+@keyframes snLock{0%{transform:scale(1.12)}100%{transform:scale(1)}}
+@keyframes snX{to{transform:rotate(-14deg) scaleX(1)}}
+@keyframes snFlash{0%{opacity:.95}100%{opacity:0}}
 </style>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ديوان المدلل">
@@ -1521,7 +1545,7 @@ function playNext(){
   else if(e.type==="out"){cls="fx-out hit"+(window.MV?" mv":"");dur=12000;html=`<svg class="gavel" viewBox="0 0 120 120" aria-hidden="true"><g class="gv"><rect x="54" y="40" width="10" height="66" rx="4" fill="#8a5a33"/><rect x="26" y="14" width="66" height="30" rx="8" fill="#5a3720" stroke="#b8cadd" stroke-width="3"/><rect x="21" y="19" width="9" height="20" rx="2" fill="#b8cadd"/><rect x="88" y="19" width="9" height="20" rx="2" fill="#b8cadd"/></g><ellipse cx="59" cy="112" rx="40" ry="6" fill="#2a1a0c"/></svg>${polaroid(e.who,"out")}<div class="sub" style="margin-top:14px">${esc(e.who)} طلع بالتصويت</div><div class="vcount" data-n="${+e.votes||0}">0</div>${e.sniper?sniperUp(e.who):""}`;buzz([30,40,160])}
   else if(e.type==="verdict"){cls="fx-verdict";dur=2700;html=`<div class="vd-spot" aria-hidden="true"></div><div class="vd-k">الشعب قرر</div><div class="vd-dots" aria-hidden="true"><i></i><i></i><i></i></div><div class="vd-s">ومنو بيطلع الليلة…</div>`;buzz([40,260,40])}
   else if(e.type==="tie"){cls="fx-tie";dur=12000;html=`<svg class="scale" viewBox="0 0 120 90" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"><path d="M60 8v74M30 84h60M14 22h92M14 22 4 52h22zM106 22l-10 30h22z"/></svg><div class="big">${e.none?"ما أحد صوّت":"تعادل"}</div><div class="sub">التصويت ما ينحسب</div>`}
-  else if(e.type==="snipe"){cls="fx-snipe";dur=12000;html=`${polaroid(e.who,"aim")}<div class="big" style="font-size:2.4rem">القناص سحبه</div>`;buzz([20,30,20,30,200])}
+  else if(e.type==="snipe"){cls="fx-snipe fx-snipe2";dur=12000;html=`<div class="sn-scope">${SCOPE_SVG}<span class="sn-name">${esc(e.who)}</span><i class="sn-x" aria-hidden="true"></i></div><div class="sn-flash" aria-hidden="true"></div><div class="big sn-after">القناص سحب ${esc(e.who)} 🎯</div>`;setTimeout(()=>buzz([30,40,260]),1400)}
   else if(e.type==="cast"){cls="fx-cast hit";dur=fxQ.some(x=>x.type==="cast")?1300:2600;
     const me=st&&st.me&&st.me.id;
     {const later=fxQ.some(x=>x.type==="cast"),cur=st&&st.phase==="vote"&&st.vote?st.vote.cur:null;
@@ -1694,7 +1718,7 @@ function sceneSound(e){
   else if(type==="out"){const d=window.MV?.3:0;P("gavel",{gain:1,vary:false,delay:d});P("gavel",{gain:1,delay:d+.38,vary:false});P("gavel",{gain:1.1,delay:d+.76,vary:false});P("gasp",{gain:.4,delay:d+1.1});if(e.sniper)snupSound(P)}
   else if(type==="verdict"){P("heartbeat",{gain:.9});P("tension",{gain:.7,delay:.4});P("whoosh",{gain:.6,delay:2.3})}
   else if(type==="tie"){P("gavel",{gain:.8});P("coins",{gain:.35,delay:.4})}
-  else if(type==="snipe"){P("sniper",{gain:1.4,vary:false});P("shot",{gain:.7,vary:false,delay:.05});P("gasp",{gain:.5,delay:.5});P("tension",{gain:.5,delay:.8})}
+  else if(type==="snipe"){P("heartbeat",{gain:.6});P("sniper",{gain:1.4,vary:false,delay:1.4});P("shot",{gain:.7,vary:false,delay:1.45});P("gasp",{gain:.5,delay:1.9})} // السكوب يدوّر ثانية وشوي، يثبت، وبعدين الطلقة
   else if(type==="cast"){P("chips",{gain:.9})}
   /* تفتيش الشريف: بدون صوت عشان اللي جنبه ما يعرف دوره */
   else if(type==="win"){if(e.winner==="town")P("win",{gain:.7});else{P("shot",{gain:.9});P("tension",{gain:.8,delay:.3})}}
@@ -2151,6 +2175,7 @@ function playerView(){
   if(st.phase==="over")return h+overView();
   const alive=P(me.id).alive;
   if(st.phase==="deal")return h+cardView()+`<div class="panel nightbox"><div class="moon"></div><h2>احفظ دورك</h2><p class="muted">${st.online?"أول ما يخلص الوقت الكرت ينشال.":"أول ما يبدا القاضي اللعبة الكرت ينشال."}</p></div>`;
+  if(st.sniperPending&&st.sniperPending!==me.id&&["day","result"].includes(st.phase))return h+scopeWait(); // القناص يختار: الكل يشوف السكوب يدوّر
   if(!alive&&isM(me.role)&&st.phase==="night"&&(me.todo||[]).includes("kill"))return h+advNight(aliveIds().filter(i=>i!==me.id),aliveIds())+chatPanels()+aliveList();
   if(!alive&&st.sniperPending!==me.id)return h+`<div class="panel"><h2>طلعت من اللعبة</h2><p class="muted">${st.online&&!st.local?"صرت بالمقبرة: تسولف ويا الطالعين، وتقرا شات المافيا بس ما تكتب فيه.":"لا تتكلم ولا تأشر، تابع لين تخلص."}</p></div>`+chatPanels()+(st.vote?voteStage():"")+aliveList();
   return h+actionView()+chatPanels()+hostPanel();
@@ -2311,6 +2336,12 @@ function suspectPanel(){
 function detectivePanel(){
   const d=st.detectives||[];if(!st.adv&&!st.online)return"";
   return`<div class="panel best det"><h2>أحسن محقق 🕵️</h2>${d.length?`<div class="list">${d.map((x,i)=>`<div class="li"><span class="nm">${["🥇","🥈","🥉"][i]} ${esc(x.name)}${st.me&&x.id===st.me.id?" (أنت)":""}</span><span class="chip t">${ar(x.pts)} ${x.pts===1?"نقطة":"نقاط"}</span></div>`).join("")}</div>`:`<p class="muted small">ما أحد من الشعب خمّن صح.</p>`}</div>`;
+}
+/* القناص يختار: عند الكل سكوب يدوّر فوق الأسامي، والخيارات بس عند القناص */
+const SCOPE_SVG=`<svg viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><circle cx="100" cy="100" r="94" stroke-width="4"/><circle cx="100" cy="100" r="62" stroke-width="1.2" opacity=".55"/><path d="M100 6v64M100 130v64M6 100h64M130 100h64" stroke-width="2.6"/><path d="M90 100h20M100 90v20" stroke-width="1.4"/><circle cx="100" cy="100" r="3.5" fill="currentColor" stroke="none"/></svg>`;
+function scopeWait(){
+  const sp=st.sniperPending,ids=aliveIds().filter(i=>i!==sp);
+  return`<div class="panel scopewait" data-keep="scopewait|${sp}|${ids.join(",")}"><span class="sw-k">🎯 القناص يختار</span><h2><b>${esc(nm(sp))}</b> يدوّر هدفه…</h2><div class="sw-field"><div class="sw-names">${ids.map(i=>`<span style="--c:${seatColor(nm(i))}">${pav(i)}${esc(nm(i))}${st.me&&i===st.me.id?" (أنت)":""}</span>`).join("")}</div><div class="sw-scope">${SCOPE_SVG}</div></div>${snipeTimer(false)}<p class="muted small">أول ما يختار، تطلع الطلقة عند الكل.</p></div>`;
 }
 /* بالنهار اللاعبين يشوفون بس منو يسولف */
 let lastSpk=null;
