@@ -139,7 +139,7 @@ function onFx(){
  }
  else if(has('fx-cast')){
   const v=f.querySelector('.voter'),t=f.querySelector('.target');if(!v||!t)return;
-  later(150,()=>{const a=box(v),b=box(t);let k=0,rot=0;draw(dt=>{k+=dt/.65;rot+=dt*9;if(k>=1){burst(b.x,b.y,14,{s0:40,s1:120,r0:2,r1:3.5,l0:.4,l1:.8,p:{sp:SP.gold}});return false}
+  later(150,()=>{const a0=box(v),a={x:a0.x,y:a0.y-a0.h*1.6-10},b=box(t); /* الورقة تطلع من فوق الاسم، مو فوق الكلام */let k=0,rot=0;draw(dt=>{k+=dt/.65;rot+=dt*9;if(k>=1){burst(b.x,b.y,14,{s0:40,s1:120,r0:2,r1:3.5,l0:.4,l1:.8,p:{sp:SP.gold}});return false}
    const e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2,x=a.x+(b.x-a.x)*e,y=a.y+(b.y-a.y)*e-Math.sin(Math.PI*e)*90;
    ctx.save();ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.translate(x,y);ctx.rotate(rot);ctx.fillStyle='#f2e6cc';ctx.shadowColor='#0008';ctx.shadowBlur=6;ctx.fillRect(-13,-9,26,18);ctx.restore()});sfx('whoosh',{gain:.35})});
  }

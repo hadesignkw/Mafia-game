@@ -5,8 +5,8 @@ export { Parl, Acct };
 
 /* =========== قوانين اللعبة =========== */
 const ROLE_N = {
-  mafia: "مافيا", cop: "الشريييف 👮",
-  doctor: "البيطري", sniper: "القناص", citizen: "فداوي",
+  mafia: "مافيا", cop: "الشريف 👮",
+  doctor: "الدكتور", sniper: "القناص", citizen: "فداوي",
 };
 const isM = (r) => r === "mafia";
 const mafiaCount = (n) => 2 + Math.floor((n - 6) / 4); // ٦–٩:٢ · ١٠–١٣:٣ · ١٤–١٧:٤
@@ -15,7 +15,7 @@ const MAX_PLAYERS = 30;
 const TALK = 40;
 const TALK_LOCAL = 60;
 const SNIPE_SEC = 60, SNIPE_ASK = 5; // القناص: دقيقة يختار، بعدها «تحتاج وقت؟» ٥ ثواني // القاضي الآلي: كل واحد دقيقة
-// أقصى عدد مافيا: لازم يبقى الشريف والبيطري والقناص، والمافيا أقل من الشعب
+// أقصى عدد مافيا: لازم يبقى الشريف والدكتور والقناص، والمافيا أقل من الشعب
 const maxMafia = (n, c = 1, d = 1) => Math.max(1, Math.min(n - (c + d + 1), Math.floor((n - 1) / 2)));
 const DEF_SET = { mode: "default", mafia: 2, talk: TALK, cops: 1, docs: 1, cap: MAX_PLAYERS };
 const NIGHTS = ["الأولى", "الثانية", "الثالثة", "الرابعة", "الخامسة", "السادسة", "السابعة", "الثامنة", "التاسعة", "العاشرة"];
@@ -37,7 +37,9 @@ const MAX_SPECT = 20; // أقصى عدد متفرجين
 const HOST_GRACE = 5 * 60e3; // الأون لاين: المضيف إذا انقطع ٥ دقايق واللعبة ما بدت (أو خلصت) تتسكر الغرفة
 const RATE = { n: 25, ms: 2000 }; // أقصى عدد رسايل من الجهاز الواحد (٢٥ كل ثانيتين)
 /* ---------- الأون لاين: القاضي الآلي ---------- */
-const ON = { deal: 20, police: 45, doctor: 45, mafia: 60, all: 60, tieMore: 20, pre: 8, vote: 25, result: 8, sniper: 45, grace: 60 };
+const NIGHT0_SEC = 30; // الليلة الأولى بكل الأوضاع: ٣٠ ثانية للنصاب والتفتيش، وبعدها يطلع الصبح بروحه
+const DUSK_SEC = 7; // شاشة «الليل» تاخذ ٧ ثواني (محد يقدر يدوس فيها)، فتنضاف عشان الـ٣٠ ثانية تكون كاملة
+const ON = { deal: 20, night0: NIGHT0_SEC + DUSK_SEC, police: 45, doctor: 45, mafia: 60, all: 60, tieMore: 20, pre: 8, vote: 25, result: 8, sniper: 45, grace: 60 };
 const HOST_CMDS = new Set(["settings", "start", "kick", "newGame"]);
 const CHAT_MAX = 80; // الغرفة تنمسح بعد ١٢ ساعة بدون استخدام
 
@@ -247,7 +249,7 @@ export class Room extends DurableObject {
       await this.save(); this.broadcast(); await this.schedule();
       return;
     }
-    if (this.s && this.s.online && this.s.deadline && Date.now() >= this.s.deadline - 80) {
+    if (this.s && this.s.deadline && (this.s.online || this.s.phase === "night0") && Date.now() >= this.s.deadline - 80) {
       this.s.deadline = null;
       try { this.tick(); } catch (e) { console.log("tick", e && e.stack); }
       await this.save(); this.broadcast(); await this.schedule(); this.rtcEnforce();
@@ -276,7 +278,7 @@ export class Room extends DurableObject {
     s.hostIdleSince = idle ? was || Date.now() : null;
     if (s.hostIdleSince !== was) await this.ctx.storage.put("s", s);
     const at = [ttl];
-    if (s.online && s.deadline) at.push(s.deadline);
+    if (s.deadline && (s.online || s.phase === "night0")) at.push(s.deadline);
     if (s.snipeDl) at.push(s.snipeDl);
     if (s.hostIdleSince) at.push(s.hostIdleSince + HOST_GRACE);
     await this.ctx.storage.setAlarm(Math.min(...at));
@@ -406,6 +408,7 @@ export class Room extends DurableObject {
       pub.vote = { order: s.voteOrder, turn: s.voteTurn, votes: s.votes, cur: this.curVoter() };
     pub.adv = s.phase === "lobby" ? true : this.adv();
     if (s.phase === "lobby" && !s.online) pub.ready = s.ready || {};
+    if (s.phase === "night0" && s.deadline) pub.deadline = s.deadline; // الليلة الأولى: عداد ٣٠ ثانية للكل
     if (s.online) {
       pub.online = true; pub.local = !!s.local; pub.deadline = s.deadline; pub.hostId = s.hostPid; pub.watchers = (s.spect || []).filter((i) => s.players[i]).map((i) => s.players[i].name);
     }
@@ -525,7 +528,7 @@ export class Room extends DurableObject {
   aliveIds() { return this.s.order.filter((i) => this.s.alive[i]); }
   /* ---------- الإعدادات المتقدمة ---------- */
   adv() { return !!this.s.advOn; }
-  // القاضي الآلي: بعد الليلة الأولى الكل يختار بنفس الدقيقة (المافيا والبيطري والشريف)
+  // القاضي الآلي: بعد الليلة الأولى الكل يختار بنفس الدقيقة (المافيا والدكتور والشريف)
   // الأون لاين والقاضي الآلي: الليلة الأولى بعد خطوة وحدة (الشريف يفتش والمافيا يختارون النصاب بنفس الدقيقة)
   // كل الأوضاع: كل ليلة خطوة وحدة، الكل يختار بنفس الوقت (الليلة الأولى: الشريف يفتش والمافيا يختارون النصاب)
   stepsFor(p) { return p === "night0" ? STEPS_ADV : this.adv() || this.s.online ? STEPS_ADV : STEPS; }
@@ -662,9 +665,9 @@ export class Room extends DurableObject {
       case "start": return this.paidStart();
       case "begin":
         // القاضي يبدا اللعبة بعد ما شاف الكل أدوارهم، والكروت تنشال
-        if (s.phase === "deal") { Object.assign(s, { phase: "night0", step: this.stepsFor("night0")[0], announce: "الليلة الأولى بدت." }); this.ev("dusk"); }
+        if (s.phase === "deal") { Object.assign(s, { phase: "night0", step: this.stepsFor("night0")[0], announce: "الليلة الأولى بدت." }); this.ev("dusk"); this.setDl(NIGHT0_SEC + DUSK_SEC); }
         break;
-      case "next": return this.next();
+      case "next": if (s.phase === "night0") break; return this.next(); // الليلة الأولى وقتها ثابت، والصبح يطلع بروحه
       case "night": return this.goNight();
       case "vote":
         if (s.phase === "day" && s.canVote && !s.sniperPending) {
@@ -779,7 +782,7 @@ export class Room extends DurableObject {
     s.ready = {};
     this.ev("deal");
     if (s.online) { s.chats = { mafia: [], grave: [], town: [] }; s.offSince = {}; s.talkQ = []; this.setDl(ON.deal); }
-    this.log(`بدت اللعبة: ${n} لاعبين، ${m} مافيا${c > 1 ? `، ${c} شرطة` : ""}${d > 1 ? `، ${d} بياطرة` : ""}`);
+    this.log(`بدت اللعبة: ${n} لاعبين، ${m} مافيا${c > 1 ? `، ${c} شرطة` : ""}${d > 1 ? `، ${d} دكاترة` : ""}`);
   }
 
   next(force = false) {
@@ -793,9 +796,9 @@ export class Room extends DurableObject {
     if (s.phase === "night0") {
       // نخبر المافيا إذا القاضي عيّن النصاب عنهم
       for (const f of this.judgeFakes()) for (const mm of this.aliveIds().filter((i) => isM(s.roles[i])))
-        this.note(mm, `${s.online ? "اللعبة اختارت عنكم" : "القاضي اختار عنكم"}: ${mm === f ? "أنت صرت النصاب" : `صار ${this.nm(f)} النصاب`}`);
+        this.note(mm, `${s.online || s.night.fakeAuto ? "خلص الوقت واللعبة اختارت عنكم" : "القاضي اختار عنكم"}: ${mm === f ? "أنت صرت النصاب" : `صار ${this.nm(f)} النصاب`}`);
       if (this.adv()) this.suspectMap();
-      Object.assign(s, { phase: "day", step: null, round: 1, canVote: false, talked: {}, announce: "الصبح. الشرطة طالعين للكل بتلفوناتهم." });
+      Object.assign(s, { phase: "day", step: null, round: 1, canVote: false, talked: {}, announce: "الصبح. الشرطة طالعين للكل بتلفوناتهم.", deadline: null });
       this.ev("dawn");
       if (s.online) this.dayStart();
       return;
@@ -820,10 +823,10 @@ export class Room extends DurableObject {
     const s = this.s, k = s.night.kill, saved = Object.values(this.smap());
     let msg;
     if (!k) { msg = "المافيا ما عرفوا يغتالون أحد الليلة."; this.ev("nokill"); }
-    else if (saved.includes(k)) { msg = "اغتيال شامط، البيطري موجووووود 🔥"; this.log(`البيطري لحّق على ${this.nm(k)}`); this.ev("saved"); }
+    else if (saved.includes(k)) { msg = "اغتيال شامط، الدكتور موجووووود 🔥"; this.log(`الدكتور لحّق على ${this.nm(k)}`); this.ev("saved"); }
     else {
       this.eliminate(k, "اغتيال");
-      msg = `${s.roles[k] === "sniper" ? `ودّع ${this.nm(k)}` : `تم اغتيال ${this.nm(k)}`} وطلع من اللعبة. صيدة سهلة والبيطري مدوّج 😴`;
+      msg = `${s.roles[k] === "sniper" ? `ودّع ${this.nm(k)}` : `تم اغتيال ${this.nm(k)}`} وطلع من اللعبة. صيدة سهلة والدكتور مدوّج 😴`;
       const sniper = s.roles[k] === "sniper";
       if (sniper) { msg += ` ${this.nm(k)} قناص، بيسحب واحد وياه.`; s.sniperPending = k; this.snipeStart(); }
       this.ev("kill", { who: this.nm(k), sniper });
@@ -845,7 +848,7 @@ export class Room extends DurableObject {
     else {
       const o = top[0];
       this.eliminate(o, "تصويت");
-      msg = `${this.nm(o)} طلع بالتصويت (${max} صوت).`;
+      msg = `${this.nm(o)} طلع بالتصويت (${votesTxt(max)}).`;
       const sniper = s.roles[o] === "sniper";
       if (sniper) { msg += ` ${this.nm(o)} قناص، بيسحب واحد وياه.`; s.sniperPending = o; this.snipeStart(); }
       this.ev("out", { who: this.nm(o), votes: max, sniper });
@@ -1093,10 +1096,10 @@ export class Room extends DurableObject {
   }
   tick() {
     const s = this.s;
-    if (!s.online) return;
+    if (!s.online && s.phase !== "night0") return; // بغرفة القاضي: بس الليلة الأولى لها وقت ثابت
     switch (s.phase) {
       case "deal":
-        { const st0 = this.stepsFor("night0")[0]; Object.assign(s, { phase: "night0", step: st0, announce: "الليلة الأولى بدت." }); this.ev("dusk"); this.setDl(ON[st0]); } return;
+        { const st0 = this.stepsFor("night0")[0]; Object.assign(s, { phase: "night0", step: st0, announce: "الليلة الأولى بدت." }); this.ev("dusk"); this.setDl(ON.night0); } return;
       case "night0": case "night": {
         // بالليل ما ننطر أحد يفصل: لو وقفنا عشانه، الكل بيعرف إن عنده دور
         const n = s.night;
@@ -1114,7 +1117,7 @@ export class Room extends DurableObject {
             const left = this.fakeCands();
             if (!left.length) break;
             s.fakeCop = guard === 0 && r.winner && left.includes(r.winner) ? r.winner : left[crypto.getRandomValues(new Uint32Array(1))[0] % left.length];
-            s.night.fakeByJudge = true; this.lockFake();
+            s.night.fakeByJudge = true; s.night.fakeAuto = true; this.lockFake();
           }
         }
         this.next(true); return;
@@ -1239,6 +1242,9 @@ export class Room extends DurableObject {
 }
 
 // التخمين بالليل («منو تشك إنه مافيا؟»): الكل، بس بعد ما يخلص دوره.
-function canGuessRole(r, phase) { return !!r && r !== "cop" && (r !== "doctor" || phase === "night0"); } // كل واحد خيار واحد: الشريف يفتش بس، والبيطري يفزع بس (بالليلة الأولى ما عنده فزعة فيخمن). المافيا يغتالون ويخمنون
+function canGuessRole(r, phase) { return !!r && r !== "cop" && (r !== "doctor" || phase === "night0"); } // كل واحد خيار واحد: الشريف يفتش بس، والدكتور يفزع بس (بالليلة الأولى ما عنده فزعة فيخمن). المافيا يغتالون ويخمنون
+
+// عدد الأصوات بالكويتي: صوت، صوتين، ٣ أصوات… ١١ صوت
+function votesTxt(n) { return n === 1 ? "صوت واحد" : n === 2 ? "صوتين" : n >= 3 && n <= 10 ? `${n} أصوات` : `${n} صوت`; }
 
 function blankNight() { return { sugg: {}, suggAt: {}, fake: {}, kill: null, save: {}, queried: {}, guess: {}, fguess: {}, killByJudge: false, fakeByJudge: false }; }
